@@ -1,0 +1,47 @@
+/* 我的 — primary tab 5 (positions follow the five-screen mockup) */
+.screen--profile { background: #F8F4EE; }
+.me-scroll { position: relative; padding: 0 12px 22px; }
+.me-band { position: absolute; left: 0; right: 0; top: 0; height: 258px; background: #F0E7DE; }
+
+.me-head { position: relative; height: 190px; }
+.me-photo {
+  position: absolute; left: 10px; top: 80px; width: 94px; height: 94px; border-radius: 50%;
+  overflow: visible; cursor: pointer; display: block;
+}
+.me-photo > img { width: 94px; height: 94px; border-radius: 50%; object-fit: cover; background: #DDD3C9; box-shadow: 0 2px 10px rgba(80, 60, 44, .1); }
+.me-photo-cam {
+  position: absolute; right: 3px; bottom: 4px; width: 21px; height: 21px; border-radius: 50%;
+  display: grid; place-items: center; background: rgba(42, 38, 34, .86); color: #fff; box-shadow: 0 0 0 2px #F0E7DE;
+}
+.me-photo:focus-within > img { box-shadow: 0 0 0 3px var(--ink); }
+.me-id { position: absolute; left: 118.5px; right: 54px; top: 101.8px; text-align: left; display: block; }
+.me-name { font-family: var(--font-cjk); font-size: 20px; line-height: 28px; font-weight: 900; letter-spacing: .02em; color: #1A1715; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.me-bio { margin-top: 7.4px; font-size: 15px; line-height: 21px; color: #8B827A; letter-spacing: .03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.me-gear { position: absolute; right: 1.7px; top: 56.3px; color: #2A2622; }
+.me-gear svg { width: 26px; height: 26px; }
+
+.me-card { position: relative; background: #FDF9F4; border-radius: 16px; box-shadow: 0 1px 2px rgba(90, 70, 50, .035), inset 0 0 0 1px rgba(234, 227, 218, .45); }
+.me-stats { display: grid; grid-template-columns: repeat(3, 1fr); height: 68px; }
+.me-stats button { position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 10.2px; }
+.me-stats button + button::before { content: ""; position: absolute; left: 0; top: 17px; bottom: 17px; width: 1px; background: #ECE4DB; }
+.me-stats b { font-family: "VT Inter", var(--font-cjk); font-size: 19px; line-height: 22px; font-weight: 700; color: #1A1715; font-variant-numeric: tabular-nums; }
+.me-stats span { margin-top: 4px; font-size: 13px; line-height: 18px; color: #6F675F; letter-spacing: .03em; }
+
+.me-orders { margin-top: 13px; height: 129px; display: flow-root; }
+.me-orders-h { display: flex; align-items: center; justify-content: space-between; height: 24px; margin: 10.4px 19.5px 0 21.5px; }
+.me-orders-h h2 { font-family: var(--font-cjk); font-size: 17px; line-height: 24px; font-weight: 900; letter-spacing: .03em; color: #1A1715; }
+.me-all { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; color: #8B827A; letter-spacing: .03em; margin-right: -4px; }
+.me-oicons { display: grid; grid-template-columns: repeat(5, 1fr); margin: 24.8px 8px 0 10.5px; }
+.me-oicons button { display: flex; flex-direction: column; align-items: center; color: #2A2622; }
+.me-oicons svg { width: 30px; height: 30px; }
+.me-oicons span { margin-top: 7px; font-size: 12px; line-height: 16px; color: #6F675F; letter-spacing: .03em; }
+
+.me-list { margin-top: 14.7px; overflow: hidden; }
+.me-row { min-height: 0; height: 49.2px; padding: 0 14.5px 0 22px; gap: 0; }
+.me-row .set-ic { width: 24px; }
+.me-row .set-ic svg { width: 25px; height: 25px; }
+.me-row .set-main { margin-left: 18.5px; }
+.me-row .set-label { font-size: 15.5px; color: #2B2622; }
+.me-row + .me-row::before { left: 64.5px; right: 14.5px; background: #F0E9E1; }
+.me-ava-thumb { width: 31px; height: 31px; border-radius: 50%; overflow: hidden; margin-right: 4.5px; flex: none; background: #DDD3C9; }
+.me-ava-thumb img { width: 100%; height: 100%; object-fit: cover; }

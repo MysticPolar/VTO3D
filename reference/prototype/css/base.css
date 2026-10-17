@@ -1,0 +1,36 @@
+/* ==========================================================================
+   Base: self-hosted fonts (subset to the glyphs this prototype uses), reset
+   ========================================================================== */
+@font-face { font-family: "VT Sans SC"; font-weight: 400; font-display: swap; src: url("../assets/fonts/vt-sans-sc-400.woff2") format("woff2"); }
+@font-face { font-family: "VT Sans SC"; font-weight: 500; font-display: swap; src: url("../assets/fonts/vt-sans-sc-500.woff2") format("woff2"); }
+@font-face { font-family: "VT Sans SC"; font-weight: 700; font-display: swap; src: url("../assets/fonts/vt-sans-sc-700.woff2") format("woff2"); }
+@font-face { font-family: "VT Sans SC"; font-weight: 900; font-display: swap; src: url("../assets/fonts/vt-sans-sc-900.woff2") format("woff2"); }
+@font-face { font-family: "VT Inter"; font-weight: 400; font-display: swap; src: url("../assets/fonts/vt-inter-400.woff2") format("woff2"); unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF; }
+@font-face { font-family: "VT Inter"; font-weight: 500; font-display: swap; src: url("../assets/fonts/vt-inter-500.woff2") format("woff2"); unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF; }
+@font-face { font-family: "VT Inter"; font-weight: 600; font-display: swap; src: url("../assets/fonts/vt-inter-600.woff2") format("woff2"); unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF; }
+@font-face { font-family: "VT Inter"; font-weight: 700; font-display: swap; src: url("../assets/fonts/vt-inter-700.woff2") format("woff2"); unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF; }
+@font-face { font-family: "VT Inter"; font-weight: 800; font-display: swap; src: url("../assets/fonts/vt-inter-800.woff2") format("woff2"); unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: #2A231F;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+}
+img { display: block; max-width: 100%; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; -webkit-appearance: none; appearance: none; }
+input, textarea { font: inherit; color: inherit; }
+h1, h2, h3, h4, p { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+svg { display: block; flex-shrink: 0; }
+.sr-only {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+:focus { outline: none; }
+:focus-visible { outline: 2px solid #8A6F5A; outline-offset: 2px; }

@@ -1,0 +1,80 @@
+/* Screen 5 — 商品详情 */
+.screen--product { background: #F8F4EF; }
+.pd-scroll { padding-bottom: 96px; }
+.pd-hero { position: relative; height: 350.7px; background: #E8E0D7; overflow: hidden; }
+.pd-hero-img { width: 100%; height: 100%; transition: opacity .2s ease; }
+.pd-hero-img.fit-cover { object-fit: cover; object-position: 50% 50%; }
+.pd-hero-img.fit-contain { object-fit: contain; object-position: 50% 100%; padding-top: 52px; }
+.pd-hero-img.is-swap { opacity: .4; }
+.pd-hero.is-small .pd-hero-img { object-fit: contain; padding: 70px 70px 30px; }
+.pd-hero-next { position: absolute; inset: 70px 0 0; }
+.pd-top { position: absolute; left: 0; right: 0; top: 0; height: 90px; pointer-events: none; z-index: 5; }
+.pd-top > *, .pd-top-r > * { pointer-events: auto; }
+.pd-top .back-btn { position: absolute; left: 6.4px; top: 34.2px; }
+.pd-top .back-btn svg { width: 23.5px; height: 23.5px; }
+.pd-fav { position: absolute; right: 46.4px; top: 34.4px; width: 44px; height: 44px; }
+.pd-fav svg { width: 27px; height: 27px; }
+.pd-share { position: absolute; right: 4.6px; top: 33.6px; }
+.pd-share svg { width: 26px; height: 26px; }
+.pd-thumbs { display: flex; gap: 7.2px; padding: 5px 0 0 16.3px; overflow-x: auto; scrollbar-width: none; }
+.pd-thumbs::-webkit-scrollbar { display: none; }
+.pd-thumb { flex: none; width: 65px; height: 75px; border-radius: 8px; overflow: hidden; background: #E7DFD6; transition: width .2s ease; }
+.pd-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.pd-thumb img.is-small { object-fit: contain; padding: 6px; }
+.pd-thumb.is-on { width: 81.8px; box-shadow: inset 0 0 0 1.4px #26231F; padding: 2.6px; border-radius: 9.5px; background: #F8F4EF; }
+.pd-thumb.is-on img { border-radius: 7px; }
+.pd-body { padding: 0 22.1px 0 23.2px; }
+.pd-title-row { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 17px; }
+.pd-title { font-family: var(--font-cjk); font-weight: 900; font-size: 23.2px; line-height: 28px; letter-spacing: -.035em; color: #1C1A18; }
+.pd-rating { display: inline-flex; align-items: center; gap: 4px; padding-bottom: 3px; font-family: "VT Inter", var(--font); font-size: 14.3px; color: #1C1A18; }
+.pd-rating svg { width: 16.5px; height: 16.5px; margin-right: 2px; }
+.pd-rating b { font-weight: 500; }
+.pd-rating span { color: #7A736C; font-weight: 400; }
+.pd-brand { display: inline-flex; align-items: center; gap: 6px; margin-top: -0.2px; font-family: "VT Inter", var(--font); font-size: 13.3px; color: #6F6862; letter-spacing: .01em; height: 22px; }
+.pd-brand svg { width: 14px; height: 14px; }
+.pd-price { margin-top: -0.6px; }
+.pd-price .price { font-size: 25px; font-weight: 800; color: #161514; letter-spacing: -.02em; }
+.pd-price .price-cur { font-size: 16px; margin-right: 2px; }
+.pd-desc { margin-top: 1.2px; font-size: 12.8px; line-height: 19.3px; color: #6C655E; letter-spacing: .03em; }
+.pd-sec { display: flex; align-items: center; justify-content: space-between; margin-top: 15.6px; height: 22px; }
+.pd-sec h2 { font-size: 12.8px; font-weight: 700; color: #1C1A18; letter-spacing: .03em; }
+.pd-more { display: inline-flex; align-items: center; gap: 6px; font-size: 12.3px; color: #26231F; letter-spacing: .03em; margin-right: -2px; }
+.pd-more svg { width: 15px; height: 15px; }
+.pd-swatches { display: flex; gap: 10.3px; margin-top: 6.4px; margin-left: -1px; }
+.pd-sw { width: 38.9px; height: 38.9px; border-radius: 50%; display: grid; place-items: center; }
+.pd-sw i { display: block; width: 33.2px; height: 33.2px; border-radius: 50%; box-shadow: inset 0 0 0 .6px rgba(0, 0, 0, .06); }
+.pd-sw.is-on { box-shadow: inset 0 0 0 1.5px #1C1A18; }
+.pd-sw.is-on i { width: 32px; height: 32px; }
+.pd-sec--size { margin-top: 12.6px; }
+.pd-sizes { display: flex; gap: 6px; margin: 9.4px -0.9px 0 -2.9px; }
+.pd-size {
+  flex: 1 1 0; height: 34.4px; border-radius: 11.5px;
+  background: #F2EEE8; box-shadow: inset 0 0 0 1px #E7E1D9;
+  font-family: "VT Inter", var(--font); font-size: 12.6px; font-weight: 500; color: #3A3532;
+  transition: background-color .15s ease, color .15s ease;
+}
+.pd-size.is-on { background: #1D1D1C; color: #fff; box-shadow: none; }
+.pd-cta { position: absolute; left: 16.7px; right: 16.8px; bottom: calc(16.3px + var(--safe-bottom, 0px)); display: flex; gap: 8.4px; z-index: 6; }
+.pd-cta .btn { flex: 1 1 0; height: 52.5px; border-radius: 21px; font-size: 14.9px; letter-spacing: .07em; gap: 15px; }
+.pd-try { background: #E5DCD3; color: #1C1A18; }
+.pd-add { background: #1F1F1E; color: #fff; }
+.pd-cta .btn svg { width: 26px; height: 26px; margin-left: 0; }
+.pd-cta .btn { padding: 0 0 0 4px; }
+
+.opt-sw { width: 26px; height: 26px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 .6px rgba(0, 0, 0, .1); }
+.guide-tip { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: var(--card); font-size: 13px; line-height: 1.55; color: var(--text-2); margin-bottom: 14px; }
+.guide-tip svg { flex: none; margin-top: 1px; color: var(--ink); }
+.guide-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; font-family: "VT Inter", var(--font); }
+.guide-table th { color: var(--text-3); font-weight: 500; padding: 8px 0; border-bottom: 1px solid var(--divider); }
+.guide-table td { padding: 10px 0; border-bottom: 1px solid var(--divider); }
+.guide-table tr.is-on td { font-weight: 700; background: var(--card); }
+.rv-sum { display: flex; align-items: baseline; gap: 10px; padding: 4px 0 14px; }
+.rv-sum b { font-size: 30px; font-family: "VT Inter", var(--font); }
+.rv-sum span { color: #C9A25A; letter-spacing: 2px; }
+.rv-sum em { font-style: normal; font-size: 12px; color: var(--text-3); }
+.rv-list { display: flex; flex-direction: column; gap: 10px; }
+.rv-list li { padding: 14px; border-radius: 16px; background: var(--card); }
+.rv-h { display: flex; justify-content: space-between; font-size: 13px; }
+.rv-h span { color: #C9A25A; letter-spacing: 1px; }
+.rv-list p { margin-top: 6px; font-size: 13.5px; line-height: 1.6; }
+.rv-list em { display: block; margin-top: 6px; font-style: normal; font-size: 11.5px; color: var(--text-4); }

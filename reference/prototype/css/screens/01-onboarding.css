@@ -1,0 +1,54 @@
+/* Screen 1 — 启动页 */
+.screen--onboarding { background: #3A322C; }
+.onb { position: absolute; inset: 0; overflow: hidden; color: #fff; }
+.onb-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 100%; }
+.onb-shade { display: none; }
+.onb-copy { position: absolute; left: 0; right: 0; top: 0; padding: 0 0 0 28.6px; }
+.onb-title {
+  margin-top: 64.2px;
+  font-family: var(--font-cjk);
+  font-weight: 900;
+  font-size: 54.6px;
+  line-height: 59.6px;
+  letter-spacing: -0.075em;
+  color: #F7F2EA;
+  text-shadow: 0 2px 14px rgba(20, 14, 10, .22);
+}
+.onb-title span { display: block; white-space: nowrap; }
+.onb-title span + span { font-size: 52.2px; letter-spacing: -0.082em; margin-top: 0.4px; }
+.onb-dot {
+  display: inline-block;
+  width: 14.2px; height: 14.2px;
+  margin-left: 0.2px;
+  border-radius: 50%;
+  background: #F2C450;
+  vertical-align: 1px;
+  box-shadow: none;
+}
+.onb-tagline {
+  margin-top: 8.7px;
+  padding-left: 2.6px;
+  font-size: 15.4px;
+  line-height: 21.7px;
+  letter-spacing: .085em;
+  color: #ECE6DE;
+  font-weight: 400;
+}
+.onb-features { margin-top: 45.3px; padding-left: 1.2px; display: flex; flex-direction: column; gap: 26.45px; }
+.onb-features li { display: flex; align-items: flex-start; gap: 10.7px; height: 40px; }
+.onb-ic {
+  width: 40px; height: 40px; flex: none;
+  display: grid; place-items: center;
+  border-radius: 10.5px;
+  background: rgba(255, 248, 240, .1);
+  box-shadow: inset 0 0 0 1px rgba(255, 248, 240, .3);
+  color: #FBF7F2;
+}
+.onb-features div { display: flex; flex-direction: column; margin-top: 2.5px; }
+.onb-features strong { font-weight: 700; font-size: 15.6px; line-height: 20px; letter-spacing: -.016em; color: #FBF8F4; }
+.onb-features div span { margin-top: 1.4px; font-size: 12.6px; line-height: 18px; letter-spacing: .004em; color: #E6DFD7; }
+.onb-actions { position: absolute; left: 25.3px; right: 25.3px; bottom: calc(28.5px + var(--safe-bottom, 0px)); display: flex; flex-direction: column; gap: 10.4px; }
+.onb-start { background: #2B2522; min-height: 50.6px; font-size: 17.6px; letter-spacing: .06em; padding-left: 58.6px; }
+.onb-start .btn-arrow { margin-left: 11.3px; }
+.onb-login { min-height: 51px; font-size: 16.4px; letter-spacing: .08em; color: #2B2522; box-shadow: inset 0 0 0 1.1px #3B3330; }
+.onb-login:active { background: rgba(255, 255, 255, .25); }

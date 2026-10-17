@@ -1,0 +1,86 @@
+/* Secondary screens reached from 我的: profile, addresses, payments,
+   avatar management, favourites, history (shared list styles live in components.css) */
+.screen--editprofile, .screen--addresses, .screen--payments, .screen--notifications,
+.screen--privacy, .screen--settings, .screen--help, .screen--avatarhub,
+.screen--favorites, .screen--history { background: #F8F4EE; }
+
+/* 我的资料 */
+.ep-photo { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 6px 0 4px; }
+.ep-photo p { font-size: 12.5px; color: var(--text-3); }
+.ep-photo-btn { position: relative; width: 88px; height: 88px; border-radius: 50%; cursor: pointer; }
+.ep-photo-btn > img { width: 88px; height: 88px; border-radius: 50%; object-fit: cover; background: #DDD3C9; }
+.ep-photo-btn:focus-within > img { box-shadow: 0 0 0 3px var(--ink); }
+.ep-cam { position: absolute; right: 0; bottom: 2px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #2A2622; color: #fff; box-shadow: 0 0 0 3px #F8F4EE; }
+
+/* 收货地址 */
+.ad-list { display: flex; flex-direction: column; gap: 10px; }
+.ad-card { padding: 14px 16px 10px; }
+.ad-main { display: flex; align-items: center; flex-wrap: wrap; gap: 0 10px; font-size: 15px; }
+.ad-main b { font-weight: 700; }
+.ad-main span { font-family: "VT Inter", var(--font); color: var(--text-2); font-size: 14px; }
+.ad-main .set-tag { margin-left: 0; }
+.ad-addr { margin-top: 6px; font-size: 13.5px; line-height: 1.6; color: var(--text-2); }
+.ad-acts { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 8px; border-top: 1px solid #EFE8E0; }
+.ad-acts .co-link { margin-left: 16px; font-size: 13px; }
+.ad-def-btn { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); height: 30px; }
+.ad-def-btn .radio { width: 18px; height: 18px; }
+.ad-tags { display: flex; gap: 8px; margin: 2px 0 14px; flex-wrap: wrap; }
+.ad-def { padding: 4px 2px 14px; min-height: 0; }
+
+/* 支付方式 */
+.pm-row { min-height: 62px; }
+.pm-logo { width: 34px; height: 34px; border-radius: 9px; overflow: hidden; flex: none; background: #fff; display: grid; place-items: center; }
+.pm-logo img { width: 100%; height: 100%; object-fit: contain; }
+.screen--payments .btn--ghost { margin-top: 16px; }
+
+/* 我的形象 */
+.ah-hero { display: flex; gap: 14px; align-items: stretch; padding: 4px 0 2px; }
+.ah-plate {
+  position: relative; width: 150px; height: 252px; flex: none; border-radius: 18px; overflow: hidden;
+  background: #CFC0B2 url("../../assets/backgrounds/fitting-plate.webp") 50% 100% / cover no-repeat;
+}
+.ah-fig { position: absolute; left: 50%; bottom: -10px; height: 262px; width: auto; max-width: none; transform: translateX(-50%); }
+.ah-info { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; padding: 12px 0 8px; }
+.ah-info h2 { margin-top: 10px; font-family: var(--font-cjk); font-size: 19px; font-weight: 900; letter-spacing: .02em; }
+.ah-info p { margin-top: 4px; font-size: 13px; color: var(--text-2); }
+.ah-info .ah-note { color: var(--text-3); font-size: 12px; }
+.ah-info .btn { margin-top: auto; gap: 6px; }
+.ah-chip { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 10px; border-radius: 999px; background: var(--chip); color: var(--text-2); font-size: 12px; font-weight: 600; }
+.ah-chip.is-ok { background: #E3EBE2; color: #2F5A3B; }
+.ah-shots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
+.ah-shot { position: relative; height: 150px; border-radius: 12px; overflow: hidden; background: var(--tile); margin: 0; }
+.ah-shot img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 15%; }
+.ah-shot figcaption { position: absolute; left: 8px; bottom: 8px; display: inline-flex; gap: 6px; align-items: center; padding: 3px 9px; border-radius: 999px; background: rgba(31, 29, 28, .72); color: #fff; font-size: 11.5px; font-weight: 600; }
+.ah-shot em { font-style: normal; font-weight: 500; opacity: .8; }
+.ah-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.ah-acts .btn { gap: 6px; }
+.ah-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* 我的收藏 */
+.fv-seg { flex: none; padding: 0 16px 6px; }
+.fv-seg .seg { width: 100%; }
+.fv-seg .seg button { flex: 1; }
+.fv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fv-card { position: relative; border-radius: 14px; background: #FEFBF7; overflow: hidden; box-shadow: 0 1px 2px rgba(90, 70, 50, .04); }
+.fv-open { position: absolute; inset: 0; z-index: 1; }
+.fv-img { height: 150px; background: var(--tile); }
+.fv-img img { width: 100%; height: 100%; object-fit: cover; }
+.fv-img.is-small img { object-fit: contain; padding: 12px; }
+.fv-heart { position: absolute; right: 2px; top: 2px; z-index: 2; }
+.fv-meta { padding: 8px 10px 10px; }
+.fv-meta h3 { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fv-price { margin-top: 2px; font-size: 15px; }
+.fv-looks { display: flex; flex-direction: column; gap: 10px; }
+.fv-look { display: flex; gap: 12px; padding: 10px; }
+.fv-look img { width: 96px; height: 128px; border-radius: 12px; object-fit: cover; object-position: 50% 0; flex: none; }
+.fv-look div { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding-top: 4px; }
+.fv-look b { font-family: "VT Inter", var(--font); font-size: 16px; }
+.fv-look span { font-size: 12.5px; color: var(--text-3); }
+.fv-look .btn { margin-top: auto; }
+
+/* 浏览记录 */
+.hs-row { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px 10px 10px; text-align: left; }
+.hs-row + .hs-row::before { content: ""; position: absolute; left: 82px; right: 0; top: 0; height: 1px; background: #EFE8E0; }
+.hs-img { width: 60px; height: 60px; border-radius: 10px; overflow: hidden; background: var(--tile); flex: none; }
+.hs-img img { width: 100%; height: 100%; object-fit: cover; }
+.hs-price { flex: none; font-size: 15px; }

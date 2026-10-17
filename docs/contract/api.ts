@@ -1,0 +1,211 @@
+/**
+ * API contract, part 2: the operations.
+ *
+ * Copy to src/api/api.ts unchanged. Screens never call this directly: they use the
+ * TanStack Query hooks in src/api/hooks, which wrap `api` from src/api/client.ts.
+ * Every method may reject with ApiError (types.ts). Demo behaviour of each method
+ * is described in docs/HANDOFF.md §9.
+ */
+import type {
+  Address,
+  AddressInput,
+  Avatar,
+  AvatarJob,
+  AvatarPhotoKind,
+  Body,
+  CategoryTab,
+  ChatMessage,
+  CheckoutOptions,
+  Faq,
+  FeedbackInput,
+  HistoryEntry,
+  LoginInput,
+  Look,
+  Notice,
+  Order,
+  OrderCounts,
+  OrderDraft,
+  OrderFilter,
+  Outfit,
+  PaymentAction,
+  PaymentMethodId,
+  Product,
+  ProductQuery,
+  Profile,
+  ProfilePatch,
+  RecentChat,
+  Render,
+  RenderResult,
+  ReturnInput,
+  ReviewSummary,
+  SavedLook,
+  Session,
+  Settings,
+  SettingsPatch,
+  SizeGuide,
+  StylistSendInput,
+  SupportChannel,
+  SupportChat,
+  SupportMessage,
+  TryOnCategory,
+  WardrobeChoice,
+  WardrobeItem,
+  WardrobeUploadInput,
+} from './types';
+
+export interface Api {
+  auth: {
+    session(): Promise<Session>;
+    /** sends an SMS code; the mock returns it so the demo can fill it in */
+    requestCode(phone: string): Promise<{ demoCode?: string }>;
+    login(input: LoginInput): Promise<Session>;
+    logout(): Promise<void>;
+  };
+
+  catalog: {
+    /** the 购物广场 feed in feed order, filtered */
+    list(query?: ProductQuery): Promise<Product[]>;
+    get(productId: string): Promise<Product>;
+    /** category tabs; each screen has its own order */
+    categories(screen: 'plaza' | 'wardrobe'): Promise<CategoryTab[]>;
+    /** the 首页 garment menu */
+    tryOnCategories(): Promise<TryOnCategory[]>;
+    renders(): Promise<Render[]>;
+    looks(): Promise<Look[]>;
+    reviews(productId: string): Promise<ReviewSummary>;
+    sizeGuide(productId: string): Promise<SizeGuide>;
+    /** 拍照找同款: products similar to a photo (already downscaled) */
+    similar(photo: Blob): Promise<Product[]>;
+    /** the brand sheet on 商品详情 (demo: up to 3 other products of the same category, catalogue order) */
+    related(productId: string): Promise<Product[]>;
+  };
+
+  favorites: {
+    /** hearted productIds, in the order they were first hearted */
+    list(): Promise<string[]>;
+    set(productId: string, on: boolean): Promise<void>;
+  };
+
+  savedLooks: {
+    /** newest first */
+    list(): Promise<SavedLook[]>;
+    set(lookId: string, on: boolean): Promise<void>;
+  };
+
+  history: {
+    /** newest first, one entry per product, at most 30 */
+    list(): Promise<HistoryEntry[]>;
+    record(productId: string): Promise<void>;
+    clear(): Promise<void>;
+  };
+
+  wardrobe: {
+    /** stored order: seed order, new items first (never re-sorted by date) */
+    list(): Promise<WardrobeItem[]>;
+    /** 加入衣橱. If the product is already there, only its colour and size change (isNew false). */
+    add(productId: string, choice: WardrobeChoice): Promise<{ item: WardrobeItem; isNew: boolean }>;
+    upload(input: WardrobeUploadInput): Promise<WardrobeItem>;
+    setFav(uid: string, fav: boolean): Promise<void>;
+    /** rejects with VALIDATION for 'owned' items */
+    remove(uid: string): Promise<void>;
+  };
+
+  fitting: {
+    /** the on-body image for an outfit (mock: pickRender, HANDOFF §9.3) */
+    render(outfit: Outfit): Promise<RenderResult>;
+  };
+
+  stylist: {
+    messages(): Promise<ChatMessage[]>;
+    /** resolves with the new messages: the user's message first, then the reply */
+    send(input: StylistSendInput): Promise<ChatMessage[]>;
+    /** the 「最近的对话」 list in the 历史造型 sheet */
+    recentChats(): Promise<RecentChat[]>;
+    /** the quick-question chips under the thread */
+    suggestions(): Promise<string[]>;
+  };
+
+  avatar: {
+    get(): Promise<Avatar>;
+    /** stores a photo (already downscaled); a ready avatar becomes 'stale' */
+    uploadPhoto(kind: AvatarPhotoKind, image: Blob, fileName: string): Promise<Avatar>;
+    /** use the preset demo avatar without generating (跳过, 登录, 试穿 before setup) */
+    useDemo(): Promise<Avatar>;
+    /** start generating from the stored photos (samples stand in for missing ones) */
+    generate(): Promise<AvatarJob>;
+    job(jobId: string): Promise<AvatarJob>;
+    cancel(jobId: string): Promise<void>;
+    body(): Promise<Body>;
+    updateBody(body: Body): Promise<Body>;
+  };
+
+  checkout: {
+    options(): Promise<CheckoutOptions>;
+  };
+
+  orders: {
+    /** stored order: seed order, new orders first (never re-sorted by date) */
+    list(filter?: OrderFilter): Promise<Order[]>;
+    counts(): Promise<OrderCounts>;
+    get(orderId: string): Promise<Order>;
+    /** creates an unpaid order (status -1); hidden from list/counts until paid (HANDOFF §9.4) */
+    create(draft: OrderDraft): Promise<Order>;
+    pay(orderId: string, method: PaymentMethodId): Promise<PaymentAction>;
+    /**
+     * demo only: completes the payment after the simulated cashier. An order made by create()
+     * and never paid gets the checkout outcome (§9.4); any other unpaid order the re-pay outcome (§9.5).
+     */
+    confirmDemoPayment(orderId: string): Promise<Order>;
+    /** unpaid orders only; the order is deleted (the demo has no 已取消 status) */
+    cancel(orderId: string): Promise<void>;
+    confirmReceipt(orderId: string): Promise<Order>;
+    submitReturn(orderId: string, input: ReturnInput): Promise<Order>;
+    withdrawReturn(orderId: string): Promise<Order>;
+  };
+
+  notices: {
+    /** the 购物广场 「消息通知」 sheet */
+    list(): Promise<Notice[]>;
+  };
+
+  addresses: {
+    /** in stored order; may be empty */
+    list(): Promise<Address[]>;
+    create(input: AddressInput): Promise<Address>;
+    update(addressId: string, input: AddressInput): Promise<Address>;
+    remove(addressId: string): Promise<void>;
+    /** exactly one address is the default whenever the book is not empty */
+    setDefault(addressId: string): Promise<void>;
+  };
+
+  profile: {
+    get(): Promise<Profile>;
+    update(patch: ProfilePatch): Promise<Profile>;
+    /** already cropped to a square and downscaled by the client */
+    setPhoto(image: Blob): Promise<Profile>;
+  };
+
+  settings: {
+    get(): Promise<Settings>;
+    update(patch: SettingsPatch): Promise<Settings>;
+  };
+
+  privacy: {
+    /** 清除已上传的照片: avatar photos, profile photo and return evidence */
+    clearUploadedPhotos(): Promise<void>;
+  };
+
+  support: {
+    faqs(): Promise<Faq[]>;
+    feedback(input: FeedbackInput): Promise<void>;
+    /** opens a chat; the demo starts a fresh thread every time */
+    openChat(channel: SupportChannel): Promise<SupportChat>;
+    /** resolves with the new messages: mine first, then the reply */
+    send(channel: SupportChannel, text: string): Promise<SupportMessage[]>;
+  };
+
+  /** demo builds only (isDemo()) */
+  devtools: {
+    reset(): Promise<void>;
+  };
+}

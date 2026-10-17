@@ -1,0 +1,61 @@
+/* Screen 4 — 购物广场 */
+.screen--plaza { background: #FAF6F0; }
+.pz-head { position: relative; flex: none; height: 88px; }
+.pz-title {
+  position: absolute; left: 27.6px; top: 44.8px;
+  font-family: var(--font-cjk); font-weight: 900; font-size: 30.4px; line-height: 38px; letter-spacing: 0;
+  color: #1C1A18;
+}
+.pz-actions { position: absolute; inset: 0; pointer-events: none; }
+.pz-actions > * { pointer-events: auto; }
+.pz-bag { position: absolute; right: 54.4px; top: 43.6px; }
+.pz-bell { position: absolute; right: 15.8px; top: 44.2px; }
+.pz-actions .icon-btn { color: #1C1A18; }
+.pz-actions .icon-btn svg { width: 26px; height: 26px; }
+.pz-search { flex: none; position: relative; margin: 6px 21.7px 0 22.6px; height: 36.2px; }
+.pz-search-box { display: flex; align-items: center; height: 100%; border-radius: 999px; background: #F2EDE7; padding: 0 44px 0 14px; gap: 10px; color: #3A3532; cursor: text; }
+.pz-search-box svg { width: 19.5px; height: 19.5px; flex: none; }
+.pz-search-box input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; font-size: 11.4px; color: var(--ink); letter-spacing: .01em; height: 100%; -webkit-appearance: none; appearance: none; }
+.pz-search-box input::placeholder { color: #A39B94; }
+.pz-search-box input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.pz-search-box:focus-within { box-shadow: inset 0 0 0 1.2px #CDC3B9; }
+.pz-scan { position: absolute; right: 2px; top: -4px; width: 44px; height: 44px; display: grid; place-items: center; color: #2F2B28; }
+.pz-scan svg { width: 18.5px; height: 18.5px; }
+.pz-chips { flex: none; display: flex; gap: 6px; margin-top: 11.7px; padding: 0 22px 0 22.1px; overflow-x: auto; scrollbar-width: none; }
+.pz-chips::-webkit-scrollbar { display: none; }
+.pz-chips .chip { height: 24.4px; padding: 0 11.2px; font-size: 10.8px; background: #F1ECE6; color: #59524C; font-weight: 500; flex: none; letter-spacing: .02em; }
+.pz-chips .chip:first-child { padding: 0 13.4px; }
+.pz-chips .chip.is-on { background: #393532; color: #fff; font-weight: 500; }
+.pz-scroll { padding: 13.1px 19.4px 18px 19.9px; }
+.pz-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 7.7px; row-gap: 7.7px; align-items: start; }
+.pz-card { position: relative; border-radius: 12px; background: #FBF8F3; box-shadow: 0 1px 2px rgba(90, 70, 50, .03); }
+.pz-open { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.pz-open:focus-visible { outline-offset: 0; }
+.pz-img { border-radius: 11px; overflow: hidden; background: #E3DBD2; }
+.pz-img img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; }
+.pz-img.is-small img { object-fit: contain; object-position: 50% 50%; padding: 12px; background: #F2EEE9; }
+.pz-heart { position: absolute; top: -1.9px; right: -3px; z-index: 2; color: #221F1D; }
+.pz-heart svg { width: 21.6px; height: 21.6px; }
+.pz-meta { padding: 5.2px 8.2px 4.6px; }
+.pz-meta h3 { font-size: 11.5px; line-height: 15px; font-weight: 700; letter-spacing: .03em; color: #1E1C1A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pz-tags { margin-top: 1.4px; font-size: 10.1px; line-height: 14px; color: #8A837C; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pz-row { display: flex; align-items: center; justify-content: space-between; margin-top: 2.1px; height: 20px; }
+.pz-price { font-size: 15px; font-weight: 700; color: #1E1C1A; }
+.pz-price .price-cur { font-size: 10px; margin-right: 2.4px; }
+.pz-row .dots { gap: 4.6px; }
+.pz-row .dots i { width: 12px; height: 12px; }
+.pz-row .dots em { font-size: 8.6px; margin-left: 2px; }
+.pz-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 70px 30px; color: var(--text-3); text-align: center; font-size: 13.5px; }
+
+.notice-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 6px; }
+.notice-list button { display: flex; gap: 12px; text-align: left; width: 100%; padding: 14px; border-radius: 16px; background: var(--card); }
+.notice-ic { width: 36px; height: 36px; border-radius: 50%; background: var(--chip); display: grid; place-items: center; flex: none; }
+.notice-list b { display: block; font-size: 14px; }
+.notice-list em { display: block; font-style: normal; font-size: 12.5px; color: var(--text-2); margin-top: 2px; line-height: 1.5; }
+.notice-list i { display: block; font-style: normal; font-size: 11px; color: var(--text-4); margin-top: 4px; }
+.scan-pick { cursor: pointer; }
+.scan-photo { position: relative; margin-top: 14px; height: 150px; border-radius: 16px; overflow: hidden; background: var(--tile); }
+.scan-photo img { width: 100%; height: 100%; object-fit: cover; }
+.scan-photo span { position: absolute; left: 10px; top: 10px; padding: 3px 9px; border-radius: 999px; background: rgba(31, 29, 28, .75); color: #fff; font-size: 11px; }
+.scan-h { display: flex; align-items: center; gap: 8px; margin: 16px 0 10px; font-size: 14.5px; font-weight: 700; }
+.mini { width: 100%; text-align: left; }

@@ -1,0 +1,158 @@
+/* 我的订单 family — 订单详情 (reference screen 9), 我的订单, 物流跟踪, 申请退换货 */
+.screen--orders, .screen--orderlist, .screen--tracking, .screen--returns { background: #F8F5EF; }
+.or-head { position: relative; flex: none; height: 92px; }
+.or-head .back-btn { position: absolute; left: 3.6px; top: 41.6px; }
+.or-head .back-btn svg { width: 25px; height: 25px; }
+.or-title { position: absolute; left: 0; right: 0; top: 47.4px; text-align: center; font-family: var(--font-cjk); font-weight: 900; font-size: 22px; line-height: 30px; letter-spacing: -.035em; color: #1C1A18; pointer-events: none; }
+.or-svc { position: absolute; right: 9px; top: 43px; }
+.or-svc svg { width: 25px; height: 25px; }
+.or-scroll { padding: 2.4px 16.6px 24px 16.3px; display: flex; flex-direction: column; gap: 13.4px; }
+.or-card { flex: none; background: #FBF9F4; border-radius: 16px; box-shadow: 0 1px 2px rgba(90, 70, 50, .03), inset 0 0 0 1px rgba(232, 225, 216, .55); }
+.or-status { padding: 0 0 22px; height: 160px; position: relative; }
+.or-status-link { display: block; width: 100%; text-align: left; padding: 18.6px 18px 0 20.3px; position: relative; }
+.or-status h2 { font-family: var(--font-cjk); font-size: 22.7px; line-height: 30px; font-weight: 900; letter-spacing: .02em; color: #161514; }
+.or-status p { margin-top: 3.4px; font-size: 13.5px; line-height: 20px; color: #7B746D; letter-spacing: .05em; }
+.or-chev { color: #26231F; display: grid; place-items: center; }
+.or-chev svg { width: 18px; height: 18px; }
+.or-chev--top { position: absolute; right: 13.4px; top: 25.7px; }
+.or-track { position: absolute; left: 0; right: 0; top: 87.1px; height: 60px; }
+.or-step { position: absolute; top: 0; width: 80px; margin-left: -40px; display: flex; flex-direction: column; align-items: center; }
+.or-step:nth-child(1) { left: 10.3%; }
+.or-step:nth-child(2) { left: 37.58%; }
+.or-step:nth-child(3) { left: 63.76%; }
+.or-step:nth-child(4) { left: 89.33%; }
+.or-track::before, .or-track::after { content: ""; position: absolute; top: 4.6px; height: 2.4px; border-radius: 2px; left: 10.3%; }
+.or-track::before { right: 10.67%; background: #DCD6D0; }
+.or-track::after { width: var(--done, 0%); background: #28221C; }
+.or-step:nth-child(1) { align-items: flex-start; margin-left: -18.3px; }
+.or-step:nth-child(1) .or-dot { margin-left: 10.6px; }
+.or-dot { position: relative; z-index: 1; width: 11.4px; height: 11.4px; border-radius: 50%; background: #D7D1CB; }
+.or-step.is-done .or-dot { background: #28221C; }
+.or-step b { margin-top: 10.1px; font-size: 11.6px; line-height: 17px; font-weight: 500; color: #8A837C; white-space: nowrap; letter-spacing: .03em; }
+.or-step.is-done b { color: #1C1A18; font-weight: 700; }
+.or-step span { margin-top: 1.6px; font-family: "VT Inter", var(--font-cjk); font-size: 9.9px; line-height: 15px; color: #8A837C; white-space: nowrap; }
+.or-item { padding: 8.6px 13.4px 12.3px 14px; height: 225px; }
+.or-item-top { position: relative; display: flex; width: 100%; text-align: left; gap: 19px; padding-bottom: 8.1px; border-bottom: 1px solid #E9E3DC; }
+.or-item-img { width: 129.2px; height: 121.1px; border-radius: 10px; overflow: hidden; flex: none; background: #E9E1D8; }
+.or-item-img img { width: 100%; height: 100%; object-fit: cover; }
+.or-item-main { display: flex; flex-direction: column; padding-top: 14.4px; }
+.or-item-main b { font-size: 14.8px; line-height: 22px; font-weight: 700; letter-spacing: .03em; color: #1C1A18; }
+.or-item-main em { font-style: normal; margin-top: 0.8px; font-size: 13.4px; line-height: 20px; color: #7B746D; letter-spacing: .03em; font-family: var(--font-cjk); }
+.or-price { margin-top: 15.5px; font-size: 16.8px; color: #161514; }
+.or-price .price-cur { font-size: 11.5px; }
+.or-chev--item { position: absolute; right: -2.6px; top: 18px; }
+.or-thumbs { display: grid; grid-template-columns: repeat(4, 75px); justify-content: space-between; margin-top: 11.8px; padding-right: 0.4px; }
+.or-thumbs button { height: 63px; border-radius: 8px; overflow: hidden; background: #E9E1D8; }
+.or-thumbs img { width: 100%; height: 100%; object-fit: cover; }
+.or-actions { padding: 0 13.4px 0 14px; }
+.or-row { position: relative; display: flex; align-items: center; width: 100%; height: 63.7px; text-align: left; gap: 0; }
+.or-row + .or-row { border-top: 1px solid #E9E3DC; }
+.or-row-ic { width: 52px; flex: none; display: grid; place-items: center start; padding-left: 3px; color: #1E1B19; }
+.or-row-ic svg { width: 29px; height: 29px; margin-top: -9px; }
+.or-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding-left: 0; margin-top: -5px; }
+.or-row-main b { font-size: 15.3px; line-height: 21px; font-weight: 700; letter-spacing: .04em; color: #1C1A18; }
+.or-row-main em { font-style: normal; margin-top: 2.8px; font-size: 12.2px; line-height: 18px; color: #7B746D; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.or-row .or-chev { margin-right: -2.6px; }
+
+.or-lg-head { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--card); margin-bottom: 16px; }
+.or-lg-head b { display: block; font-size: 14px; }
+.or-lg-head em { display: block; font-style: normal; font-size: 12px; color: var(--text-3); margin-top: 2px; font-family: "VT Inter", var(--font-cjk); }
+.or-lg-head > div { flex: 1; min-width: 0; }
+.or-lg-ic { width: 40px; height: 40px; border-radius: 50%; background: var(--chip); display: grid; place-items: center; flex: none; }
+.faq { display: flex; flex-direction: column; gap: 8px; }
+.faq-i { border-radius: 14px; background: var(--card); overflow: hidden; }
+.faq-q { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 14px 14px 14px 16px; font-size: 14px; font-weight: 600; text-align: left; }
+.faq-q svg { transition: transform .2s ease; color: var(--text-3); }
+.faq-q.is-open svg { transform: rotate(180deg); }
+.faq-a { padding: 0 16px 14px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+.or-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.or-seg { display: flex; padding: 4px; border-radius: 14px; background: var(--chip); }
+.or-seg button { flex: 1; height: 38px; border-radius: 10px; font-size: 14px; font-weight: 600; color: var(--text-2); }
+.or-seg button.is-on { background: var(--card); color: var(--ink); box-shadow: 0 2px 6px rgba(60, 45, 30, .08); }
+.or-no { font-family: "VT Inter", var(--font-cjk); }
+.or-viewer { height: 300px; border-radius: 18px; overflow: hidden; background: var(--tile); display: grid; place-items: center; }
+.or-viewer img { width: 100%; height: 100%; object-fit: contain; }
+.or-viewer-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; font-size: 13px; color: var(--text-3); font-family: "VT Inter", var(--font-cjk); }
+
+/* 订单详情: unpaid state + confirm button */
+.or-status.is-unpaid { height: 132px; }
+.or-paybar { position: absolute; left: 20.3px; right: 16px; top: 84px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid #E9E3DC; font-size: 13.5px; color: var(--text-2); }
+.or-paybar b { font-family: "VT Inter", var(--font); font-size: 17px; color: var(--ink); margin-left: 4px; }
+.or-confirm { flex: none; margin-top: 2px; }
+
+/* 我的订单 */
+.ol-tabs { flex: none; display: flex; gap: 6px; padding: 0 12px 10px; overflow-x: auto; scrollbar-width: none; }
+.ol-tabs::-webkit-scrollbar { display: none; }
+.ol-tab { position: relative; flex: none; height: 32px; padding: 0 13px; border-radius: 999px; background: var(--chip); color: var(--text-2); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.ol-tab.is-on { background: var(--ink-2); color: #fff; }
+.ol-tab i { margin-left: 4px; font-style: normal; font-size: 11.5px; font-weight: 700; font-family: "VT Inter", var(--font); color: #9A7B5F; }
+.ol-tab.is-on i { color: #F2C14E; }
+.ol-scroll { padding: 2px 14px 24px; display: flex; flex-direction: column; gap: 12px; }
+.ol-card { flex: none; background: #FBF9F4; border-radius: 16px; padding: 12px 14px 12px; box-shadow: 0 1px 2px rgba(90, 70, 50, .03), inset 0 0 0 1px rgba(232, 225, 216, .55); }
+.ol-card-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; }
+.ol-shop { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: #26221F; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ol-status { flex: none; font-weight: 700; color: #6B5A4C; }
+.ol-status.is-warn { color: #A1552F; }
+.ol-item { display: flex; gap: 12px; width: 100%; margin-top: 10px; text-align: left; }
+.ol-img { width: 76px; height: 76px; border-radius: 10px; overflow: hidden; background: #E9E1D8; flex: none; }
+.ol-img img { width: 100%; height: 100%; object-fit: cover; }
+.ol-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding-top: 2px; }
+.ol-main b { font-size: 14.5px; font-weight: 700; color: #1C1A18; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ol-main em { font-style: normal; font-size: 12.5px; color: #7B746D; }
+.ol-time { font-size: 11.5px; color: var(--text-4); font-family: "VT Inter", var(--font); }
+.ol-pr { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; padding-top: 2px; }
+.ol-pr .price { font-size: 15px; }
+.ol-pr em { font-style: normal; font-size: 12px; color: var(--text-3); font-family: "VT Inter", var(--font); }
+.ol-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #EEE7DF; }
+.ol-sum { font-size: 12.5px; color: var(--text-2); white-space: nowrap; }
+.ol-sum b { font-family: "VT Inter", var(--font); font-size: 15px; color: var(--ink); margin-left: 2px; }
+.ol-acts { display: flex; gap: 8px; }
+.ol-acts .btn { min-height: 32px; padding: 0 13px; font-size: 12.5px; }
+.ol-btn { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px #CFC6BD; }
+.ol-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 70px 30px 30px; color: var(--text-3); font-size: 13.5px; text-align: center; }
+
+/* 物流跟踪 */
+.tr-scroll { padding: 2px 16px 24px; display: flex; flex-direction: column; gap: 12px; }
+.tr-sum { flex: none; display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+.tr-img { width: 58px; height: 58px; border-radius: 10px; overflow: hidden; background: #E9E1D8; flex: none; }
+.tr-img img { width: 100%; height: 100%; object-fit: cover; }
+.tr-sum h2 { font-family: var(--font-cjk); font-size: 21px; font-weight: 900; letter-spacing: .02em; }
+.tr-sum p { margin-top: 2px; font-size: 13px; color: #7B746D; }
+.tr-carrier { flex: none; padding: 6px 16px; }
+.tr-kv { display: flex; align-items: center; gap: 12px; min-height: 40px; font-size: 13.5px; }
+.tr-kv + .tr-kv { border-top: 1px solid #EEE7DF; }
+.tr-kv span { width: 64px; color: var(--text-3); flex: none; }
+.tr-kv b { flex: 1; font-weight: 600; }
+.tr-no { font-family: "VT Inter", var(--font); letter-spacing: .02em; }
+.tr-track { flex: none; position: relative; height: 84px; }
+.tr-track .or-track { top: 16px; }
+.tr-tl { flex: none; padding: 16px 16px 12px; }
+.tr-tl h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+.tr-acts { flex: none; display: flex; gap: 10px; margin-top: 2px; }
+.tr-acts .btn { flex: 1; gap: 6px; }
+
+/* 申请退换货 / 售后进度 */
+.rt-scroll { padding: 2px 16px 28px; }
+.rt-mini { background: #FBF9F4; box-shadow: inset 0 0 0 1px rgba(232, 225, 216, .55); }
+.rt-scroll .opt { background: #FBF9F4; }
+.rt-photos { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+.rt-photos > span, .rt-add { position: relative; width: 76px; height: 76px; border-radius: 12px; overflow: hidden; background: var(--tile); flex: none; }
+.rt-photos img { width: 100%; height: 100%; object-fit: cover; }
+.rt-add { display: grid; place-items: center; color: var(--text-2); box-shadow: inset 0 0 0 1.4px #D6CDC3; background: #FBF9F4; cursor: pointer; }
+.rt-add:focus-within { box-shadow: inset 0 0 0 2px var(--ink); }
+.rt-del { position: absolute; right: 4px; top: 4px; width: 20px; height: 20px; border-radius: 50%; background: rgba(31, 29, 28, .72); color: #fff; display: grid; place-items: center; }
+.rt-submit { margin-top: 20px; }
+.rt-state { flex: none; margin-top: 12px; padding: 16px 16px 18px; }
+.rt-state h2 { font-family: var(--font-cjk); font-size: 20px; font-weight: 900; letter-spacing: .02em; }
+.rt-state p { margin-top: 4px; font-size: 13px; color: #7B746D; }
+.rt-steps { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 18px; position: relative; }
+.rt-steps li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 11.5px; color: #8A837C; text-align: center; }
+.rt-steps li::before { content: ""; position: absolute; top: 5px; left: -50%; width: 100%; height: 2px; background: #DCD6D0; }
+.rt-steps li:first-child::before { display: none; }
+.rt-steps li.is-done::before { background: #28221C; }
+.rt-steps i { position: relative; z-index: 1; width: 12px; height: 12px; border-radius: 50%; background: #D7D1CB; }
+.rt-steps li.is-done i { background: #28221C; }
+.rt-steps li.is-done span { color: #1C1A18; font-weight: 700; }
+.rt-detail { flex: none; margin-top: 12px; padding: 16px; }
+.rt-detail .rt-photos { margin-top: 14px; }
+.rt-scroll .tr-acts { margin-top: 14px; }

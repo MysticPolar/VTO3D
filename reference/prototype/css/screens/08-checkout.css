@@ -1,0 +1,89 @@
+/* Screen 8 — 结算下单 */
+.screen--checkout { background: #F7F4EE; }
+.co-head { position: relative; flex: none; height: 87.4px; }
+.co-head .back-btn { position: absolute; left: 4.8px; top: 41px; }
+.co-head .back-btn svg { width: 22.5px; height: 22.5px; }
+.co-title { position: absolute; left: 0; right: 0; top: 47.4px; text-align: center; font-family: var(--font-cjk); font-weight: 900; font-size: 19.6px; line-height: 28px; letter-spacing: -.01em; color: #1C1A18; pointer-events: none; }
+.co-scroll { padding: 0.6px 13.6px 4px 14px; display: flex; flex-direction: column; gap: 9.6px; }
+.co-ship { margin-top: -3.2px; }
+.co-card { display: block; width: 100%; text-align: left; background: #FBF8F3; border-radius: 15px; box-shadow: 0 1px 2px rgba(90, 70, 50, .03); }
+.co-item { display: flex; gap: 15.8px; padding: 7.8px 10px 8.6px 7.7px; height: 139.4px; flex: none; }
+.co-item-img { flex: none; width: 127.4px; height: 122.6px; border-radius: 10px; overflow: hidden; background: #E9E2DA; }
+.co-item-img img { width: 100%; height: 100%; object-fit: cover; }
+.co-item-main { flex: 1; min-width: 0; position: relative; }
+.co-item-link { display: block; width: 100%; text-align: left; padding-top: 6.6px; }
+.co-item h2 { font-size: 13.7px; line-height: 20px; font-weight: 700; color: #1C1A18; letter-spacing: .03em; }
+.co-tags { margin-top: 0.4px; font-size: 11.7px; line-height: 17px; color: #7B746D; letter-spacing: .03em; white-space: pre; }
+.co-price { display: block; margin-top: 5.6px; font-size: 20.6px; font-weight: 700; color: #161514; }
+.co-price .price-cur { font-size: 13.5px; margin-right: 2px; }
+.co-chev { position: absolute; right: -3.8px; top: 46.6px; color: #26231F; }
+.co-chev svg { width: 18px; height: 18px; }
+.co-chips { position: absolute; left: -0.4px; right: 0; top: 87.8px; display: flex; gap: 7px; }
+.co-chip { height: 26.2px; padding: 0 6px; border-radius: 9px; background: #F1ECE6; font-size: 10.2px; color: #49433E; white-space: nowrap; letter-spacing: .02em; }
+.co-chip:nth-child(1) { width: 66.4px; }
+.co-chip:nth-child(2) { width: 62px; }
+.co-chip:nth-child(3) { width: 58px; }
+.co-row { position: relative; display: flex; align-items: flex-start; flex: none; padding: 0 12px 0 0; }
+.co-ic { width: 41px; flex: none; display: grid; place-items: center; color: #23201D; }
+.co-ic svg { width: 20.5px; height: 20.5px; }
+.co-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.co-h { font-size: 13.6px; line-height: 20px; font-weight: 700; color: #1C1A18; letter-spacing: .04em; }
+.co-l1, .co-l2 { font-size: 12.1px; line-height: 18px; color: #3B3631; letter-spacing: .02em; }
+.co-l1 i { display: inline-block; width: 14px; }
+.co-chev--row { position: absolute; right: 9px; top: 15.5px; }
+.co-addr { height: 87.6px; padding-top: 10.2px; }
+.co-addr .co-ic { margin-top: 1px; }
+.co-addr .co-l1 { margin-top: 7.4px; }
+.co-addr .co-l2 { margin-top: 1.6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.co-ship { height: 91px; padding-top: 13.2px; }
+.co-ship .co-chev--row { top: 18px; }
+.co-l1--ship { display: flex; justify-content: space-between; margin-top: 8.6px; padding-right: 0; }
+.co-l1--ship em { font-style: normal; font-size: 12px; color: #2A2622; margin-right: -2px; }
+.co-eta { color: #7B746D; margin-top: 1.2px; }
+.co-pay { padding: 12.6px 0 6px; flex: none; height: 185.8px; }
+.co-pay-h, .co-amt-h { display: flex; align-items: center; }
+.co-pays { margin-top: 0; }
+.co-pm { position: relative; display: flex; align-items: center; width: 100%; height: 36.6px; padding: 0 16.7px 0 42.9px; text-align: left; }
+.co-pm + .co-pm::before { content: ""; position: absolute; left: 82.3px; right: 14.5px; top: 0; height: 1px; background: #E8E2DB; }
+.co-pm-logo { width: 25px; height: 25px; border-radius: 6px; overflow: hidden; display: grid; place-items: center; flex: none; color: #1C1A18; }
+.co-pm-logo img { width: 100%; height: 100%; object-fit: cover; }
+.co-pm-name { flex: 1; margin-left: 13.9px; font-size: 12.4px; color: #1C1A18; letter-spacing: .04em; }
+.co-pm .radio { width: 18.6px; height: 18.6px; box-shadow: inset 0 0 0 1px #C9C2BA; }
+.co-pm .radio.is-on { box-shadow: inset 0 0 0 1.8px #141418; }
+.co-pm .radio.is-on::after { width: 10.4px; height: 10.4px; background: #141418; }
+.co-amt { padding: 9.2px 0 0; height: 114px; flex: none; position: relative; }
+.co-amt-list { position: absolute; left: 139.7px; right: 14px; top: 11.2px; margin: 0; }
+.co-amt-list div { display: flex; justify-content: space-between; height: 19.3px; align-items: center; font-size: 11.2px; color: #7B746D; }
+.co-amt-list dd { margin: 0; font-family: "VT Inter", var(--font); color: #2A2622; font-size: 12.6px; }
+.co-amt-list .co-paid { margin-top: 2.3px; padding-top: 6px; border-top: 1px solid #E6E0D9; height: auto; color: #1C1A18; font-size: 12.8px; }
+.co-paid .price { font-size: 20.6px; color: #161514; }
+.co-paid .price-cur { font-size: 13.5px; }
+.co-foot { flex: none; position: relative; z-index: 2; margin-top: -10px; padding: 14.7px 15.4px calc(12.7px + var(--safe-bottom, 0px)) 15.4px; background: linear-gradient(rgba(247, 244, 238, 0), #F7F4EE 9px); }
+.co-agree { display: flex; align-items: center; gap: 5.4px; padding-left: 4.5px; height: 18px; font-size: 11.1px; color: #8A837C; letter-spacing: .03em; white-space: nowrap; }
+.co-agree.shake { animation: co-shake .4s ease; }
+@keyframes co-shake { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+.co-check { width: 13.2px; height: 13.2px; border-radius: 50%; box-shadow: inset 0 0 0 1.2px #8A837C; display: grid; place-items: center; color: #fff; flex: none; position: relative; }
+.co-check::before { content: ""; position: absolute; inset: -12px; }
+.co-check.is-on { background: #1C1A18; box-shadow: none; }
+.co-link { color: #2A2622; text-decoration: underline; text-underline-offset: 2.5px; text-decoration-thickness: 1px; font-size: 11.1px; }
+.co-submit { width: 100%; height: 38.4px; min-height: 38.4px; margin-top: 7.5px; border-radius: 999px; background: #252321; font-size: 16.6px; letter-spacing: .1em; }
+.co-sh-h { margin: 16px 0 8px; font-size: 13.5px; font-weight: 700; color: var(--text-2); }
+.co-sh-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.co-doc p { font-size: 13.5px; line-height: 1.75; color: var(--text-2); margin-bottom: 8px; }
+
+/* simulated payment */
+.co-paylayer { z-index: 70; }
+.co-paybox { position: absolute; left: 0; right: 0; bottom: 0; background: var(--page); border-radius: 24px 24px 0 0; padding: 26px 24px calc(26px + var(--safe-bottom, 0px)); box-shadow: 0 -10px 40px rgba(40, 28, 20, .2); transform: translateY(100%); transition: transform .32s var(--ease-out); }
+.co-paylayer.is-open .co-paybox { transform: none; }
+.co-pay-s { display: none; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+.co-paybox[data-state="open"] .co-pay-open, .co-paybox[data-state="confirm"] .co-pay-confirm, .co-paybox[data-state="busy"] .co-pay-busy, .co-paybox[data-state="ok"] .co-pay-ok { display: flex; }
+.co-pay-open, .co-pay-busy { min-height: 150px; justify-content: center; color: var(--text-2); font-size: 14px; }
+.co-pay-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
+.co-pay-brand img { width: 28px; height: 28px; border-radius: 7px; }
+.co-pay-amt .price { font-size: 38px; }
+.co-pay-amt .price-cur { font-size: 22px; }
+.co-pay-note { font-size: 12px; color: var(--text-3); margin-bottom: 8px; }
+.co-pay-check { width: 62px; height: 62px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; animation: vt-pop .4s var(--ease-out); }
+.co-pay-ok h3 { font-size: 20px; font-weight: 900; margin-top: 4px; }
+.co-pay-ok p { font-size: 13px; color: var(--text-3); margin-bottom: 8px; }
+.co-pay-s .btn { width: 100%; }
