@@ -1,0 +1,145 @@
+/* ==========================================================================
+   Mode A — feature showcase board (1672×941 design, scaled to fit)
+   Mode B — simulator (desktop overlay) and solo / bare app modes
+   ========================================================================== */
+body { overflow: hidden; background: #241D19; }
+body[data-mode="board-mobile"] { overflow: auto; }
+
+/* ---------------- board ---------------- */
+.showcase { position: fixed; inset: 0; display: grid; place-items: center; overflow: hidden; background: #221B17; }
+.board-stage { position: relative; flex: none; }
+.board-stage.is-scroll { margin: 0 auto; }
+body[data-mode="board-mobile"] .showcase { position: absolute; overflow-x: auto; overflow-y: hidden; place-items: center start; padding: 12px; -webkit-overflow-scrolling: touch; }
+.board { position: absolute; left: 0; top: 0; transform-origin: 0 0; overflow: hidden; color: #F4EEE6; }
+.board-bg { position: absolute; inset: 0; background: #2C241F url("../assets/backgrounds/showcase-room.webp") 50% 50% / cover no-repeat; }
+.board-bg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(70% 55% at 50% 22%, rgba(0, 0, 0, 0), rgba(0, 0, 0, .1)); }
+.board-head { position: absolute; left: 0; right: 0; top: 0; text-align: center; }
+.board-title {
+  position: absolute; left: 0; right: 0; top: 25.7px;
+  font-family: var(--font-cjk); font-weight: 900; font-size: 111.6px; line-height: 150px; letter-spacing: -.045em; transform: scaleX(.97);
+  color: #F6F0E8; white-space: nowrap;
+  text-shadow: 0 6px 30px rgba(0, 0, 0, .28);
+  padding-left: 39.5px;
+}
+.board-dot { display: inline-block; width: 29px; height: 29px; margin-left: 13.5px; border-radius: 50%; background: #F2C14E; vertical-align: 0; box-shadow: 0 2px 10px rgba(242, 193, 78, .25); }
+.board-sub {
+  position: absolute; left: 0; right: 0; top: 172px;
+  font-size: 22px; line-height: 30px; letter-spacing: .72em; color: #DCD3C9; font-weight: 500;
+  padding-left: .72em; white-space: nowrap;
+}
+.board-sub b { font-weight: 500; margin: 0 .1em; color: #CFC6BC; }
+
+/* five phones: screen 390×844 at 0.6845, centred on the mockup's phone positions */
+.board-phones { position: absolute; inset: 0; }
+.board-item { position: absolute; top: 226.2px; width: 284px; }
+.board-item:nth-child(1) { left: 86.5px; }
+.board-item:nth-child(2) { left: 397px; }
+.board-item:nth-child(3) { left: 696px; }
+.board-item:nth-child(4) { left: 998.5px; }
+.board-item:nth-child(5) { left: 1307px; }
+.board-phone { position: relative; display: block; width: 284px; height: 594.7px; border-radius: 44px; transition: transform .35s var(--ease-out), filter .35s ease; }
+@media (hover: hover) { .board-phone:hover { transform: translateY(-8px); } }
+.board-phone:focus-visible { outline: 3px solid #F2C14E; outline-offset: 5px; }
+.mini-phone {
+  position: absolute; inset: 0; border-radius: 44px; padding: 8.5px;
+  background: linear-gradient(145deg, #3A3530, #0B0A09 22%, #050505 74%, #2A2622);
+  box-shadow: 0 0 0 1.5px #4A433D, 0 0 0 3px #12100F, 0 26px 46px rgba(0, 0, 0, .5), 0 6px 14px rgba(0, 0, 0, .32);
+}
+.mini-screen { position: relative; display: block; width: 100%; height: 100%; border-radius: 36px; overflow: hidden; background: #F7F3EE; }
+.mini-app { position: absolute; left: 0; top: 0; transform-origin: 0 0; transform: scale(.6845); pointer-events: none; }
+.mini-notch { position: absolute; left: 50%; top: 8.5px; width: 104px; height: 20px; margin-left: -52px; background: #050505; border-radius: 0 0 13px 13px; z-index: 5; }
+.mini-notch::after { content: ""; position: absolute; left: 50%; top: 6px; width: 34px; height: 4px; margin-left: -17px; border-radius: 2px; background: #1C1A19; }
+.board-hover { position: absolute; inset: 0; display: grid; place-items: end center; padding-bottom: 40px; border-radius: 44px; opacity: 0; transition: opacity .25s ease; background: linear-gradient(transparent 55%, rgba(20, 15, 12, .55)); z-index: 6; }
+.board-hover span { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 999px; background: rgba(250, 246, 240, .95); color: #1F1C19; font-size: 14px; font-weight: 700; }
+@media (hover: hover) { .board-phone:hover .board-hover { opacity: 1; } }
+.board-phone:focus-visible .board-hover { opacity: 1; }
+/* numbered captions under each phone (left edges follow the mockup) */
+.board-cap { position: absolute; top: 610.1px; white-space: nowrap; }
+.board-item:nth-child(1) .board-cap { left: 16.5px; }
+.board-item:nth-child(2) .board-cap { left: 70px; }
+.board-item:nth-child(3) .board-cap { left: 74px; }
+.board-item:nth-child(4) .board-cap { left: 74.5px; }
+.board-item:nth-child(5) .board-cap { left: 81px; }
+.board-cap h2 { display: flex; font-size: 23.5px; line-height: 28px; font-weight: 600; letter-spacing: .02em; color: #F3EDE5; }
+.board-cap h2 span { width: 35px; flex: none; font-family: "VT Inter", var(--font-cjk); font-weight: 600; }
+.board-cap p { margin: 8.3px 0 0 34.5px; font-size: 18.5px; line-height: 25px; letter-spacing: .04em; color: #D5CDC3; }
+.board-hint { position: absolute; right: 26px; top: 22px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(236, 228, 218, .55); letter-spacing: .04em; }
+.board-close { position: fixed; right: 14px; top: 14px; z-index: 10; display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 999px; background: #F7F2EA; color: #1F1C19; font-weight: 700; font-size: 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, .35); }
+
+/* ---------------- simulator ---------------- */
+.sim { position: fixed; inset: 0; z-index: 100; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; opacity: 0; transition: opacity .25s ease; }
+.sim.is-open { opacity: 1; }
+.sim[hidden] { display: none; }
+.sim-bg { position: absolute; inset: 0; background: rgba(28, 22, 18, .78) url("../assets/backgrounds/showcase-room.webp") 50% 50% / cover no-repeat; }
+.sim-bg::after { content: ""; position: absolute; inset: 0; background: rgba(22, 17, 14, .78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.sim-stage { position: relative; grid-column: 2; display: grid; place-items: center; }
+.sim-phone { --k: 1; width: calc(414px * var(--k)); height: calc(868px * var(--k)); position: relative; }
+.phone {
+  position: absolute; left: 0; top: 0; width: 414px; height: 868px; transform: scale(var(--k)); transform-origin: 0 0;
+  border-radius: 62px; padding: 12px;
+  background: linear-gradient(150deg, #2E2A27, #0C0B0A 26%, #050505 74%, #24211F);
+  box-shadow: 0 0 0 1.5px #3B3633, 0 0 0 3px #0D0C0B, 0 40px 80px rgba(0, 0, 0, .55), 0 10px 24px rgba(0, 0, 0, .35);
+}
+.phone-screen { position: relative; width: 390px; height: 844px; border-radius: 50px; overflow: hidden; background: #F7F3EE; }
+.sim-app { position: absolute; inset: 0; }
+.phone-notch { position: absolute; left: 50%; top: 0; width: 158px; height: 31px; margin-left: -79px; background: #050505; border-radius: 0 0 20px 20px; z-index: 200; pointer-events: none; }
+.phone-notch::after { content: ""; position: absolute; left: 50%; top: 9px; width: 48px; height: 5px; margin-left: -24px; border-radius: 3px; background: #1B1A19; }
+.sim-side { position: relative; z-index: 2; align-self: stretch; display: flex; flex-direction: column; padding: 34px 32px; color: #EDE6DD; }
+.sim-left { grid-column: 1; align-items: flex-end; }
+.sim-right { grid-column: 3; align-items: flex-start; justify-content: flex-end; }
+.sim-back { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px 11px 14px; border-radius: 999px; background: #F7F2EA; color: #1F1C19; font-weight: 700; font-size: 15px; box-shadow: 0 8px 24px rgba(0, 0, 0, .3); transition: transform .15s ease; }
+.sim-back:hover { transform: translateX(-2px); }
+.sim-nav { margin-top: 22px; width: 236px; max-height: calc(100vh - 120px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .2) transparent; }
+.sim-label { margin: 12px 0 8px; font-size: 12px; letter-spacing: .14em; color: rgba(237, 230, 221, .5); }
+.sim-list { display: flex; flex-direction: column; gap: 2px; }
+.sim-list--flows button { padding: 6px 12px; }
+.sim-list--flows i { width: 22px; display: grid; place-items: center; flex: none; }
+.sim-list--flows i::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: rgba(237, 230, 221, .35); }
+.sim-list--flows button.is-on i::before { background: #F2C14E; }
+.sim-list--flows span { font-size: 13.5px; line-height: 1.35; }
+.sim-list--flows em { font-style: normal; font-size: 11px; color: rgba(237, 230, 221, .45); margin-left: 6px; }
+.sim-list button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 12px; border-radius: 12px; color: rgba(237, 230, 221, .78); font-size: 14px; text-align: left; transition: background-color .15s ease, color .15s ease; }
+.sim-list button:hover { background: rgba(255, 255, 255, .07); color: #fff; }
+.sim-list button.is-on { background: rgba(247, 242, 234, .14); color: #fff; font-weight: 700; }
+.sim-list b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-family: "VT Inter", var(--font-cjk); font-size: 12px; background: rgba(255, 255, 255, .1); flex: none; }
+.sim-list button.is-on b { background: #F2C14E; color: #1F1C19; }
+.sim-note { width: 240px; padding: 18px; border-radius: 18px; background: rgba(255, 255, 255, .06); }
+.sim-note h3 { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+.sim-note li { position: relative; padding-left: 14px; font-size: 12.5px; line-height: 1.6; color: rgba(237, 230, 221, .75); margin-bottom: 6px; }
+.sim-note li::before { content: ""; position: absolute; left: 0; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: #F2C14E; }
+.sim-reset { margin-top: 12px; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; color: rgba(237, 230, 221, .85); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22); font-size: 13.5px; }
+.sim-reset:hover { background: rgba(255, 255, 255, .06); }
+@media (max-width: 1100px) {
+  .sim { grid-template-columns: 1fr; }
+  .sim-stage { grid-column: 1; grid-row: 1; }
+  .sim-side { position: absolute; padding: 18px; }
+  .sim-left { left: 0; top: 0; align-items: flex-start; }
+  .sim-left .sim-nav, .sim-right { display: none; }
+}
+
+/* ---------------- solo (mobile full-screen) ---------------- */
+.sim.is-solo { display: block; background: #F7F3EE; }
+.sim.is-solo .sim-bg, .sim.is-solo .sim-side { display: none; }
+.sim.is-solo .sim-stage, .sim.is-solo .sim-phone { position: fixed; inset: 0; width: auto; height: auto; }
+.sim.is-solo .phone { position: absolute; inset: 0; width: 100%; height: 100%; transform: none; padding: 0; border-radius: 0; box-shadow: none; background: #F7F3EE; }
+.sim.is-solo .phone-screen { width: 100%; height: 100%; border-radius: 0; }
+.sim.is-solo .phone-notch { display: none; }
+.sim.is-behind { visibility: hidden; pointer-events: none; }
+.sim.is-solo .vt-app { --safe-bottom: env(safe-area-inset-bottom, 0px); }
+.sim.is-solo .sb { visibility: hidden; }
+.sim.is-solo .screen { padding-top: max(0px, calc(env(safe-area-inset-top, 0px) - 30px)); }
+.solo-menu { position: fixed; right: 0; top: 46%; z-index: 300; }
+.solo-menu[hidden] { display: none; }
+.solo-fab { width: 28px; height: 44px; border-radius: 12px 0 0 12px; background: rgba(33, 31, 29, .62); color: #fff; display: grid; place-items: center; box-shadow: 0 6px 18px rgba(0, 0, 0, .25); }
+.solo-panel { position: absolute; right: 40px; top: 50%; transform: translateY(-50%); width: 248px; padding: 12px; border-radius: 18px; background: rgba(33, 31, 29, .94); color: #fff; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 16px 40px rgba(0, 0, 0, .35); }
+.solo-panel[hidden] { display: none; }
+.solo-panel > button { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .08); font-size: 14px; font-weight: 600; }
+.solo-label { margin: 2px 2px -2px; font-size: 11px; letter-spacing: .14em; color: rgba(255, 255, 255, .5); }
+.solo-pages { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 46vh; overflow-y: auto; }
+.solo-pages button { min-height: 34px; padding: 6px 8px; border-radius: 10px; background: rgba(255, 255, 255, .08); font-size: 12.5px; font-weight: 600; line-height: 1.25; text-align: left; }
+.solo-pages button.is-on { background: #F2C14E; color: #1F1C19; }
+
+/* ---------------- bare app (?app=screen) ---------------- */
+.bare { position: fixed; inset: 0; background: #F7F3EE; }
+.bare-app { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+body[data-mode="bare"] { background: #F7F3EE; }

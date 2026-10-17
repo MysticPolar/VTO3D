@@ -1,0 +1,104 @@
+/* 首页 — 虚拟试衣间 (primary tab 1)
+   One continuous taupe plate from top to bottom (no white strip under the avatar).
+   Positions follow the five-screen mockup; the avatar stands just above the tab bar. */
+.screen--fitting { background: #D2C3B6; color: #2E2925; }
+.fit-plate {
+  position: absolute; inset: 0;
+  background: #C9B9AB url("../../assets/backgrounds/fitting-plate.webp") 50% 100% / cover no-repeat;
+  filter: brightness(1.14) saturate(.9);
+}
+.fit-plate::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(255, 251, 246, .14), rgba(255, 251, 246, 0) 42%); }
+.fit-avatar {
+  position: absolute;
+  top: 90px;
+  left: calc(50% + 7.7px);
+  height: calc(100% - 90px - var(--tabbar-h) + 10.4px);
+  aspect-ratio: 640 / 1672;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.fit-avatar-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; transition: opacity .42s ease; }
+.fit-avatar-img.is-next { opacity: 0; }
+.fit-avatar-img.is-cur { opacity: 1; }
+.fit-avatar-img.is-out { opacity: 0; }
+.fit-shadow {
+  position: absolute; left: 25%; width: 62%; top: 94.4%; height: 4.6%;
+  background: radial-gradient(closest-side, rgba(84, 64, 48, .26), rgba(84, 64, 48, .1) 55%, rgba(84, 64, 48, 0));
+  filter: blur(2px);
+}
+
+.fit-head { position: absolute; left: 0; right: 0; top: 0; height: 90px; z-index: 5; pointer-events: none; }
+.fit-head > * { pointer-events: auto; }
+.fit-title {
+  position: absolute; left: 60px; right: 60px; top: 54.4px;
+  text-align: center; pointer-events: none;
+  font-family: var(--font-cjk); font-weight: 900; font-size: 22.4px; line-height: 28px; letter-spacing: 0;
+  color: #24201D;
+}
+.fit-cam {
+  position: absolute; right: 16px; top: 51.6px; width: 33.6px; height: 33.6px;
+  border-radius: 50%; background: #2A2725; color: #fff;
+  display: grid; place-items: center;
+  box-shadow: 0 4px 12px rgba(40, 30, 22, .18);
+  transition: transform .15s ease;
+}
+.fit-cam svg { width: 19px; height: 19px; }
+.fit-cam::after { content: ""; position: absolute; left: 13.3px; top: 14.8px; width: 4px; height: 4px; border-radius: 50%; background: #2A2725; }
+.fit-cam:active { transform: scale(.92); }
+
+.fit-menu { position: absolute; left: 10px; top: 100.6px; z-index: 4; }
+.fit-menu ul { display: flex; flex-direction: column; gap: 12.9px; }
+.fit-cat {
+  position: relative; display: flex; align-items: center; gap: 13px; height: 46px; width: 97px; padding-left: 11px;
+  border-radius: 12px; color: #39332E;
+  transition: background-color .2s ease, box-shadow .2s ease;
+}
+.fit-cat-ic { width: 26px; height: 26px; display: grid; place-items: center; flex: none; }
+.fit-cat-ic svg { width: 26px; height: 26px; }
+.fit-cat-l { font-size: 14px; font-weight: 500; letter-spacing: .02em; white-space: nowrap; }
+.fit-cat.is-on { background: #FFFDF8; color: #171513; box-shadow: 0 2px 8px rgba(80, 60, 44, .07); }
+.fit-cat.is-on .fit-cat-l { font-weight: 700; }
+.fit-cat:not(.is-on):active { background: rgba(255, 252, 246, .45); }
+
+.fit-rail {
+  position: absolute; right: 0; top: 80px; bottom: var(--tabbar-h); width: 94px;
+  padding: 7.8px 19px 14px 9px;
+  z-index: 4; flex: none;
+}
+.fit-rail ul { display: flex; flex-direction: column; gap: 7.4px; }
+.fit-thumb {
+  position: relative; display: block; width: 66px; height: 62px;
+  border-radius: 9px; overflow: hidden; background: #E9E0D7;
+  box-shadow: 0 1px 2px rgba(70, 52, 38, .05);
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+.fit-thumb-img { width: 100%; height: 100%; object-fit: cover; }
+.fit-thumb:active { transform: scale(.95); }
+.fit-thumb.is-on { box-shadow: 0 0 0 2px #2A2725, 0 4px 10px rgba(40, 30, 22, .16); }
+.fit-check { position: absolute; right: 3.5px; top: 3.5px; width: 15px; height: 15px; border-radius: 50%; background: #2A2725; color: #fff; display: grid; place-items: center; }
+.screen--fitting .tabbar { position: absolute; left: 0; right: 0; bottom: 0; }
+
+/* video try-on (camera preview layer) */
+.cam { background: #15110E; z-index: 70; color: #fff; }
+.cam-view { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(120% 80% at 50% 30%, #3A302A, #15110E 70%); }
+.cam-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .4s ease; }
+.cam-video.is-mirror { transform: scaleX(-1); }
+.cam-view[data-state="live"] .cam-video { opacity: 1; }
+.cam-top { position: absolute; left: 0; right: 0; top: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; z-index: 2; }
+.cam-btn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(20, 16, 13, .45); color: #fff; }
+.cam-btn[hidden] { display: none; }
+.cam-title { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: 999px; background: rgba(20, 16, 13, .45); font-size: 13px; font-weight: 600; letter-spacing: .03em; }
+.cam-rec { width: 7px; height: 7px; border-radius: 50%; background: #9A9089; }
+.cam-view[data-state="live"] .cam-rec { background: #E2574C; animation: cam-blink 1.4s ease-in-out infinite; }
+@keyframes cam-blink { 50% { opacity: .35; } }
+.cam-panel { position: absolute; inset: 0; display: grid; place-items: center; padding: 0 30px; z-index: 1; }
+.cam-panel > div { display: none; width: 100%; max-width: 300px; text-align: center; flex-direction: column; align-items: center; }
+.cam-panel[data-state="intro"] .cam-intro, .cam-panel[data-state="wait"] .cam-wait, .cam-panel[data-state="error"] .cam-err { display: flex; }
+.cam-panel[data-state="live"] { pointer-events: none; }
+.cam-ic { width: 60px; height: 60px; border-radius: 50%; background: rgba(255, 255, 255, .1); display: grid; place-items: center; margin-bottom: 16px; }
+.cam-panel h2 { font-size: 20px; font-weight: 900; letter-spacing: .02em; }
+.cam-panel p { margin: 10px 0 22px; font-size: 13.5px; line-height: 1.65; color: rgba(255, 255, 255, .72); }
+.cam-panel .btn + .btn { margin-top: 10px; }
+.cam-cancel { color: rgba(255, 255, 255, .8); background: transparent; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
+.cam-wait p { margin-bottom: 0; }
+.cam-foot { position: absolute; left: 22px; right: 22px; bottom: 30px; text-align: center; font-size: 11.5px; line-height: 1.5; color: rgba(255, 255, 255, .7); padding: 8px 12px; border-radius: 12px; background: rgba(20, 16, 13, .4); z-index: 2; }
