@@ -46,7 +46,11 @@
   function thumbs(s) {
     const cat = D().fitCats.find((c) => c.id === s.fit.cat) || D().fitCats[0];
     const sel = new Set(Object.values(s.fit.outfit).filter(Boolean));
-    return cat.items.map((pid) => {
+    // garments without a render stay off the rail, unless one is selected (sent from
+    // 商品详情, 个人衣橱 or a look): it shows until it is tapped off
+    const all = D().fitCatsAll.find((c) => c.id === cat.id);
+    const items = all.items.filter((pid) => cat.items.includes(pid) || sel.has(pid));
+    return items.map((pid) => {
       const p = D().byId[pid];
       const on = sel.has(pid);
       return `<li><button type="button" class="fit-thumb ${on ? 'is-on' : ''}" data-act="pick" data-pid="${pid}" aria-pressed="${on}" aria-label="${on ? '取消试穿' : '试穿'}${p.name}">

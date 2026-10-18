@@ -200,7 +200,7 @@
 
   /** send garments to the fitting room, select them and jump there */
   function tryOn(app, pids) {
-    const cats = D().fitCats;
+    const cats = D().fitCatsAll; // a garment without a render still opens its own category
     let first = null;
     VT.store.update((s) => {
       pids.forEach((pid) => {

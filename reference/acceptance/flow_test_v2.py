@@ -1,4 +1,4 @@
-"""Acceptance test used to verify the HTML prototype (100 checks, all passing on v2).
+"""Acceptance test used to verify the HTML prototype (102 checks, all passing on v2).
 
 Port these CHECKS (not the selectors) to the web app's Playwright suite.
 Run against the prototype:
@@ -113,10 +113,25 @@ async def main():
         r = await app.locator('.fit-avatar-img.is-cur').get_attribute('data-render')
         check('outfit change: dress → look3 render', r == 'look3', r)
         await app.locator('.fit-cat[data-cat="upper"]').click()
-        await app.locator('.fit-thumb[data-pid="grey-hoodie"]').click()
-        await pg.wait_for_timeout(400)
+        # the rail lists only garments that some render wears; the others stay in the catalog
+        rendered = set(await pg.evaluate('VT.data.renders.flatMap(r => Object.values(r.wears))'))
+        rail = []
+        for c_id in await pg.evaluate('VT.data.fitCats.map(c => c.id)'):
+            await app.locator(f'.fit-cat[data-cat="{c_id}"]').click()
+            rail += await app.locator('.fit-thumb').evaluate_all('els => els.map(e => e.dataset.pid)')
+        hidden = await pg.evaluate("[...new Set(VT.data.products.filter(p => ['top','bottom','dress','outer','shoes','bag','acc'].includes(p.cat)).map(p => p.id))].filter(id => !new Set(VT.data.renders.flatMap(r => Object.values(r.wears))).has(id))")
+        check('首页 rail lists only garments with a render', set(rail) == rendered and 'grey-hoodie' in await pg.evaluate('Object.keys(VT.data.byId)'), f'{len(set(rail))} shown; hidden: {",".join(hidden)}')
+        await app.locator('.fit-cat[data-cat="upper"]').click()
+        # garments without imagery can still arrive from elsewhere (商品详情 试穿), with the honest toast
+        await pg.evaluate("VT.tryOn(VT.liveApp, ['grey-hoodie'])")
+        await pg.wait_for_timeout(700)
         t = await app.locator('.toast').inner_text()
         check('honest toast for garments without imagery', '暂无' in t, t)
+        on = await app.locator('.fit-thumb.is-on[data-pid="grey-hoodie"]').count()
+        await app.locator('.fit-thumb[data-pid="grey-hoodie"]').click()
+        await pg.wait_for_timeout(300)
+        gone = await app.locator('.fit-thumb[data-pid="grey-hoodie"]').count()
+        check('selected garment without a render shows until tapped off', on == 1 and gone == 0, f'on={on} after={gone}')
         await app.locator('.fit-cam').click()
         await pg.wait_for_timeout(400)
         await app.locator('.cam [data-act="start"]').first.click()

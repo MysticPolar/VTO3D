@@ -188,8 +188,9 @@
     return p.cat === cat;
   }
 
-  /* fitting room: left menu categories and their garment lists (上装 = reference order) */
-  const fitCats = [
+  /* fitting room: left menu categories and their garment lists (上装 = reference order).
+     Only garments worn in at least one render are listed (filtered below, after `renders`). */
+  const fitCatsAll = [
     { id: 'upper', label: '上装', icon: 'tshirt', items: ['knit-cardigan', 'striped-shirt', 'beige-blazer', 'black-blazer', 'basic-cami', 'oxford-shirt', 'utility-jacket', 'grey-hoodie', 'black-sweater', 'bow-blouse', 'white-tee', 'white-shirt', 'brown-sweater', 'ribbed-tank'] },
     { id: 'lower', label: '下装', icon: 'pants', items: ['straight-jeans', 'pleated-skirt', 'beige-trousers'] },
     { id: 'dress', label: '连衣裙', icon: 'dress', items: ['satin-slip-dress'] },
@@ -208,6 +209,11 @@
     { id: 'look2', img: 'assets/people/avatar-look2.webp', label: 'Look 2 · 摩登气质', wears: { top: 'basic-cami', bottom: 'straight-jeans', outer: 'black-blazer', bag: 'black-handbag', shoes: 'black-pumps' } },
     { id: 'look3', img: 'assets/people/avatar-look3.webp', label: 'Look 3 · 优雅迷人', wears: { dress: 'satin-slip-dress', bag: 'black-handbag', shoes: 'strappy-heels', acc: 'gold-hoops' } },
   ];
+
+  /* 首页 shows only garments that some render actually wears; the rest stay in the
+     catalog and reappear here as soon as a render that wears them is added above */
+  const rendered = new Set(renders.flatMap((r) => Object.values(r.wears)));
+  const fitCats = fitCatsAll.map((c) => ({ ...c, items: c.items.filter((pid) => rendered.has(pid)) }));
 
   /* AI stylist looks (reference screen 7) */
   const looks = [
@@ -365,7 +371,7 @@
   ];
 
   VT.data = {
-    products, byId, plazaCats, wardrobeCats, inCat, fitCats, slotOf, renders, looks, lookById,
+    products, byId, plazaCats, wardrobeCats, inCat, fitCats, fitCatsAll, slotOf, renders, looks, lookById,
     seedWardrobe, plazaOrder, addresses, shippingOptions, payments, seedOrder, seedOrders, seedReturns,
     orderStatus, orderFilters, seedFavorites, seedHistory, faqs,
     chatSeed, chatSuggestions, chatReplies, chatFallback,
