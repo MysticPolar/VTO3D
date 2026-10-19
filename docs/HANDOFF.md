@@ -73,10 +73,10 @@ Use the latest stable version of each unless a version is given. Anything not on
 
 | Concern | Choice | Notes |
 |---|---|---|
-| Package manager, runtime | pnpm, Node 22 LTS | |
+| Package manager, runtime | pnpm, Node 24 LTS | Node 24 approved on 19 Oct 2026 instead of 22, which reaches end of life in April 2027 |
 | Build | Vite | `build.assetsDir: '_app'` so build output never mixes with `public/assets` |
 | UI | React 18.3, TypeScript `strict` | Team standard is React 18; do not move to 19 |
-| Routing | React Router (`createBrowserRouter`) | One splat route per area; the stack logic is ours (§4.3) |
+| Routing | React Router 7 (`createBrowserRouter`) | One splat route per area; the stack logic is ours (§4.3). Version 8 needs React 19 |
 | Server state | TanStack Query 5 | Every API call goes through a query or mutation hook |
 | Client state | Zustand 5 with `persist` | Session flags, navigation memory, drafts, UI choices (§4.4) |
 | Styling | CSS Modules + global tokens | No Tailwind, no CSS-in-JS, no component library |
@@ -86,7 +86,7 @@ Use the latest stable version of each unless a version is given. Anything not on
 | Local blob storage | `idb-keyval` | Uploaded photos for the mock backend |
 | Unit and component tests | Vitest, Testing Library, jsdom, `@vitest/coverage-v8`, `fake-indexeddb` | coverage gate in Phase 2; IndexedDB for the mock under jsdom |
 | E2E and visual tests | Playwright Test (Chromium + WebKit), `@axe-core/playwright` | |
-| Lint and format | ESLint (flat config: typescript-eslint, react-hooks, jsx-a11y), Prettier | |
+| Lint and format | ESLint 9 (flat config: typescript-eslint, react-hooks, jsx-a11y), Prettier | ESLint 9 until jsx-a11y supports ESLint 10 |
 | Font tooling (dev only) | Python 3 with `fonttools` + `brotli` | Same tool the prototype used; only needed when copy changes |
 
 No date library: the app only formats a few Chinese date strings (`7月20日 (周一)`); write small helpers in `src/lib/format.ts`.
@@ -646,6 +646,8 @@ Waits that stand for server work live in the mock; waits that are purely visual 
 ## 11. Phases
 
 Each phase ends with every check below green, the report, the `CLAUDE.md` tick, one commit, and a stop. Before each phase, re-read it and the sections it points to. Acceptance checks are named as in `flow_test_v2.py` (§10.1).
+
+`pnpm verify` skips the visual and acceptance checks of screens that aren't built yet: a phase adds the screens it builds to `BUILT` in `e2e/screens.ts`, and its report lists what was skipped (decided 19 Oct 2026).
 
 ### Phase 0 · Scaffold
 

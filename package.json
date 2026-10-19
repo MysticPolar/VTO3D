@@ -1,0 +1,59 @@
+{
+  "name": "vto-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@12.14.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "pnpm fonts:check && tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "e2e": "playwright test --project=chromium --project=webkit",
+    "visual": "playwright test --project=visual",
+    "visual:baseline": "node scripts/visual/capture-prototype.ts",
+    "fonts": "python3 scripts/fonts/subset.py",
+    "fonts:check": "node scripts/fonts/check.ts",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm e2e && pnpm visual"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.104.4",
+    "clsx": "^2.1.1",
+    "idb-keyval": "^6.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router": "^7.18.4",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.64.1",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
+    "@types/node": "^24.13.3",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^5.0.5",
+    "eslint": "^9.39.5",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "fake-indexeddb": "^6.2.6",
+    "globals": "^17.13.0",
+    "jsdom": "^30.1.3",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.5"
+  }
+}

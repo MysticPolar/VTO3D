@@ -27,16 +27,16 @@ Mobile-first web app (H5) for a Chinese-market virtual try-on and personal wardr
 ## Commands (create them in Phase 0, keep this list accurate)
 - `pnpm dev`: dev server. Append `?frame=iphone` to compare a screen with the prototype
 - `pnpm build` / `pnpm preview`
-- `pnpm typecheck` · `pnpm lint` · `pnpm test` (Vitest) · `pnpm e2e` (Playwright) · `pnpm visual` (screenshot diff vs prototype)
-- `pnpm visual:baseline`: re-capture the prototype screenshots. Never run the visual suite with `--update-snapshots`
-- `pnpm fonts`: re-subset the fonts after adding Chinese copy (from Phase 6 the build fails if a character is missing)
-- `pnpm verify`: everything above in one go; run it before every phase commit
+- `pnpm typecheck` · `pnpm lint` (ESLint + Prettier check) · `pnpm format` · `pnpm test` (Vitest) · `pnpm e2e` (Playwright, Chromium + WebKit) · `pnpm visual` (screenshot diff vs prototype)
+- `pnpm visual:baseline`: re-capture the prototype screenshots (`--prototype <dir>` reads another copy, e.g. a clean export of the last commit). Never run the visual suite with `--update-snapshots`
+- `pnpm fonts`: re-subset the fonts after adding Chinese copy. `pnpm fonts:check` runs before every build and lists characters the fonts lack (from Phase 6 the build fails)
+- `pnpm verify`: everything above in one go; run it before every phase commit. Visual and acceptance checks of screens not built yet are skipped (`BUILT` in `e2e/screens.ts`)
 
 ## Project map
 `src/app` shell, router, providers · `src/routes` screens · `src/components` shared UI · `src/features` domain logic · `src/api` contract + mock · `src/store` Zustand · `src/styles` tokens, fonts, motion · `public/assets` images · `scripts` fonts and visual-baseline tools · `e2e` Playwright
 
 ## Phase checklist
-- [ ] Phase 0: Scaffold
+- [x] Phase 0: Scaffold
 - [ ] Phase 1: App shell and navigation
 - [ ] Phase 2: Data layer and domain rules
 - [ ] Phase 3: The five tab screens

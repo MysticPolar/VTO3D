@@ -1,0 +1,14 @@
+# read-only input, the spec and generated files (HANDOFF §4.1)
+reference
+docs
+*.md
+e2e/visual/__baseline__
+dist
+coverage
+playwright-report
+test-results
+fonts-src
+public/assets
+pnpm-lock.yaml
+# copied from the prototype unchanged (HANDOFF §5.1), so it stays diffable against it
+src/styles/tokens.css

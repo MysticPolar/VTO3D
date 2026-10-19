@@ -1,0 +1,89 @@
+/* ==========================================================================
+   Design tokens — sampled from the 9 reference screens (863×1822 → 390 CSS px)
+   Quiet-luxury palette: warm ivory, beige, taupe, chocolate, charcoal.
+   ========================================================================== */
+:root {
+  /* ink & text */
+  --ink: #211F1D;            /* primary text, primary buttons */
+  --ink-2: #2B2724;          /* selected chips, dark surfaces */
+  --ink-3: #3A3531;
+  --text-2: #57514B;         /* secondary text */
+  --text-3: #857C74;         /* muted text / captions */
+  --text-4: #A9A098;         /* placeholders, inactive steps */
+
+  /* surfaces */
+  --page: #F7F3EE;           /* app page background (warm ivory) */
+  --page-2: #F3EEE8;
+  --card: #FBF8F3;           /* raised cards */
+  --card-2: #FDFBF7;         /* chat bubbles, inputs */
+  --chip: #EEE8E1;           /* unselected chips / pills */
+  --chip-2: #E7E0D8;
+  --tile: #E9E0D7;           /* garment tiles */
+  --beige: #E6DDD4;          /* secondary button */
+  --stone: #DCD3CA;          /* inactive stepper */
+  --divider: #E7E0D8;
+  --line: #DCD4CB;
+
+  /* fitting room */
+  --taupe: #B7A799;
+  --taupe-top: #AB9B8D;
+  --taupe-bottom: #C7B7A9;
+  --taupe-tile: #D5C8BB;
+
+  /* accents (used sparingly) */
+  --yellow: #F2C14E;
+  --white: #FFFFFF;
+  --success: #3F6B4F;
+
+  /* radii */
+  --r-xs: 8px;
+  --r-s: 12px;
+  --r-m: 16px;
+  --r-l: 20px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* type */
+  --font: "VT Inter", "VT Sans SC", "PingFang SC", "Noto Sans CJK SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-cjk: "VT Sans SC", "PingFang SC", "Noto Sans CJK SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+
+  /* phone */
+  --phone-w: 390px;
+  --phone-h: 844px;
+
+  /* motion */
+  --ease: cubic-bezier(.22, .8, .24, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+}
+
+/* ==========================================================================
+   Web app additions (HANDOFF §4.2, §5.1). Everything above this block is the
+   prototype's css/tokens.css, unchanged.
+   ========================================================================== */
+:root {
+  /* device chrome: the real safe areas; ?frame=iphone sets 44px and 0px (HANDOFF §4.2) */
+  --top-inset: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* tab bar */
+  --tabbar-bg: #FCF8F3;
+  --tabbar-icon: #3D3833;
+  --tabbar-label: #8B837B;
+  --tabbar-on: #1A1816;
+
+  /* 我的 header band and cards */
+  --me-band: #F0E7DE;
+  --me-card: #FDF9F4;
+
+  /* desktop backdrop around the app column */
+  --backdrop: #241D19;
+
+  /* focus ring (css/base.css:36) */
+  --focus: #8A6F5A;
+}
+
+/* Tokens built on the insets resolve on the app root, as the prototype's do on .vt-app,
+   so the dev frame's inset values reach them */
+[data-app] {
+  --tabbar-h: calc(52.4px + max(25.6px, var(--safe-bottom)));
+}

@@ -1,0 +1,48 @@
+/* ?frame=iphone: the prototype's bare ?app=<id> box (css/showcase.css:143-145) at its 390 × 844
+   baseline, under a 44 px status bar and with no bottom inset (HANDOFF §4.2) */
+.frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--phone-w);
+  height: var(--phone-h);
+  --top-inset: 44px;
+  --safe-bottom: 0px;
+}
+
+/* status bar: css/components.css:59-75 */
+.sb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 44px;
+  z-index: 30;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 14.2px 24px 0 41.6px;
+  color: var(--ink);
+}
+.light {
+  color: #fff;
+}
+.time {
+  font-weight: 600;
+  font-size: 13.3px;
+  line-height: 15px;
+  letter-spacing: -0.1px;
+}
+.icons {
+  display: flex;
+  align-items: center;
+  gap: 4.2px;
+  margin-top: 1.2px;
+}
+.icons svg {
+  fill: currentColor;
+}
+.icons .battery {
+  margin-left: 1px;
+}

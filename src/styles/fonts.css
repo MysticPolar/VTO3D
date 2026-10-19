@@ -1,0 +1,61 @@
+/* Self-hosted fonts (HANDOFF §5.2): the @font-face rules of the prototype's css/base.css.
+   The files are subset to the characters in fonts/charset.txt; `pnpm fonts` re-subsets them. */
+@font-face {
+  font-family: 'VT Sans SC';
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/vt-sans-sc-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'VT Sans SC';
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/vt-sans-sc-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'VT Sans SC';
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/vt-sans-sc-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'VT Sans SC';
+  font-weight: 900;
+  font-display: swap;
+  src: url('./fonts/vt-sans-sc-900.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'VT Inter';
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/vt-inter-400.woff2') format('woff2');
+  unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF;
+}
+@font-face {
+  font-family: 'VT Inter';
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/vt-inter-500.woff2') format('woff2');
+  unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF;
+}
+@font-face {
+  font-family: 'VT Inter';
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/vt-inter-600.woff2') format('woff2');
+  unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF;
+}
+@font-face {
+  font-family: 'VT Inter';
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/vt-inter-700.woff2') format('woff2');
+  unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF;
+}
+@font-face {
+  font-family: 'VT Inter';
+  font-weight: 800;
+  font-display: swap;
+  src: url('./fonts/vt-inter-800.woff2') format('woff2');
+  unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF;
+}
