@@ -1,0 +1,8 @@
+node_modules
+dist
+.vercel
+.env*.local
+test-results
+playwright-report
+# latency/cost runs: raw stats and screenshots stay on this Mac; REPORT.md keeps the numbers
+measurements

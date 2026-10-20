@@ -1,0 +1,60 @@
+/* ==========================================================================
+   Design tokens — sampled from the 9 reference screens (863×1822 → 390 CSS px)
+   Quiet-luxury palette: warm ivory, beige, taupe, chocolate, charcoal.
+   ========================================================================== */
+:root {
+  /* ink & text */
+  --ink: #211f1d; /* primary text, primary buttons */
+  --ink-2: #2b2724; /* selected chips, dark surfaces */
+  --ink-3: #3a3531;
+  --text-2: #57514b; /* secondary text */
+  --text-3: #857c74; /* muted text / captions */
+  --text-4: #a9a098; /* placeholders, inactive steps */
+
+  /* surfaces */
+  --page: #f7f3ee; /* app page background (warm ivory) */
+  --page-2: #f3eee8;
+  --card: #fbf8f3; /* raised cards */
+  --card-2: #fdfbf7; /* chat bubbles, inputs */
+  --chip: #eee8e1; /* unselected chips / pills */
+  --chip-2: #e7e0d8;
+  --tile: #e9e0d7; /* garment tiles */
+  --beige: #e6ddd4; /* secondary button */
+  --stone: #dcd3ca; /* inactive stepper */
+  --divider: #e7e0d8;
+  --line: #dcd4cb;
+
+  /* fitting room */
+  --taupe: #b7a799;
+  --taupe-top: #ab9b8d;
+  --taupe-bottom: #c7b7a9;
+  --taupe-tile: #d5c8bb;
+
+  /* accents (used sparingly) */
+  --yellow: #f2c14e;
+  --white: #ffffff;
+  --success: #3f6b4f;
+
+  /* radii */
+  --r-xs: 8px;
+  --r-s: 12px;
+  --r-m: 16px;
+  --r-l: 20px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* type */
+  --font:
+    'VT Inter', 'VT Sans SC', 'PingFang SC', 'Noto Sans CJK SC', 'Noto Sans SC', 'Microsoft YaHei',
+    system-ui, sans-serif;
+  --font-cjk:
+    'VT Sans SC', 'PingFang SC', 'Noto Sans CJK SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+
+  /* phone */
+  --phone-w: 390px;
+  --phone-h: 844px;
+
+  /* motion */
+  --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}

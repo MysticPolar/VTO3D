@@ -1,0 +1,8 @@
+# generated or binary; the catalog script writes its JSON and CSS copies already formatted
+public
+dist
+test-results
+playwright-report
+measurements
+pnpm-lock.yaml
+*.md

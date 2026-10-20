@@ -1,0 +1,707 @@
+/* The live try-on page. Values are px at the prototype's 390 × 844 baseline.
+   Sections marked PROTOTYPE are copied from reference/prototype/css (file:line) with only the
+   HANDOFF §4.2 changes: no fake status bar, so top offsets become calc(var(--top-inset) + (v − 44px)),
+   and footers add var(--safe-bottom). Sections marked DRAFT are new for live try-on and wait for
+   the Mobile UI/UX session to settle them in the prototype (PROPOSALS.md). */
+
+@import './proto/tokens.css';
+
+/* PROTOTYPE base.css:4-12 (fonts self-hosted, same origin) */
+@font-face {
+  font-family: 'VT Sans SC';
+  font-weight: 400;
+  font-display: swap;
+  src: url('/proto/fonts/vt-sans-sc-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'VT Sans SC';
+  font-weight: 500;
+  font-display: swap;
+  src: url('/proto/fonts/vt-sans-sc-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'VT Sans SC';
+  font-weight: 700;
+  font-display: swap;
+  src: url('/proto/fonts/vt-sans-sc-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'VT Sans SC';
+  font-weight: 900;
+  font-display: swap;
+  src: url('/proto/fonts/vt-sans-sc-900.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'VT Inter';
+  font-weight: 400;
+  font-display: swap;
+  src: url('/proto/fonts/vt-inter-400.woff2') format('woff2');
+  unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF;
+}
+@font-face {
+  font-family: 'VT Inter';
+  font-weight: 500;
+  font-display: swap;
+  src: url('/proto/fonts/vt-inter-500.woff2') format('woff2');
+  unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF;
+}
+@font-face {
+  font-family: 'VT Inter';
+  font-weight: 600;
+  font-display: swap;
+  src: url('/proto/fonts/vt-inter-600.woff2') format('woff2');
+  unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF;
+}
+@font-face {
+  font-family: 'VT Inter';
+  font-weight: 700;
+  font-display: swap;
+  src: url('/proto/fonts/vt-inter-700.woff2') format('woff2');
+  unicode-range: U+0000-02FF, U+2000-206F, U+20A0-20CF, U+2190-21FF;
+}
+
+:root {
+  --top-inset: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* PROTOTYPE base.css:14-36 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: #241d19;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+}
+img {
+  display: block;
+  max-width: 100%;
+}
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+svg {
+  display: block;
+  flex-shrink: 0;
+}
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid #8a6f5a;
+  outline-offset: 2px;
+}
+
+/* HANDOFF §4.2: phone-width column on wide screens, full screen on phones */
+.app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  margin: 0 auto;
+  background: #d2c3b6;
+}
+@media (min-width: 501px) {
+  .app {
+    width: min(100vw, 430px);
+  }
+}
+
+/* PROTOTYPE 03-fitting.css:4-47 — the 首页 behind the layer (plate, avatar, title, camera button) */
+.fit-plate {
+  position: absolute;
+  inset: 0;
+  background: #c9b9ab url('/proto/fitting-plate.webp') 50% 100% / cover no-repeat;
+  filter: brightness(1.14) saturate(0.9);
+}
+.fit-plate::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(255, 251, 246, 0.14), rgba(255, 251, 246, 0) 42%);
+}
+.fit-avatar {
+  position: absolute;
+  top: calc(var(--top-inset) + 46px);
+  left: calc(50% + 7.7px);
+  height: calc(100% - var(--top-inset) - 46px + 10.4px);
+  aspect-ratio: 640 / 1672;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.fit-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+}
+.fit-title {
+  position: absolute;
+  left: 60px;
+  right: 60px;
+  top: calc(var(--top-inset) + 10.4px);
+  text-align: center;
+  font-family: var(--font-cjk);
+  font-weight: 900;
+  font-size: 22.4px;
+  line-height: 28px;
+  color: #24201d;
+}
+.fit-cam {
+  position: absolute;
+  right: 16px;
+  top: calc(var(--top-inset) + 7.6px);
+  width: 33.6px;
+  height: 33.6px;
+  border-radius: 50%;
+  background: #2a2725;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 12px rgba(40, 30, 22, 0.18);
+  transition: transform 0.15s ease;
+}
+.fit-cam svg {
+  width: 19px;
+  height: 19px;
+}
+.fit-cam::after {
+  content: '';
+  position: absolute;
+  left: 13.3px;
+  top: 14.8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #2a2725;
+}
+.fit-cam:active {
+  transform: scale(0.92);
+}
+
+/* PROTOTYPE components.css:89-114, 241-261, 296-298 — buttons, layer fade, toasts, spinner */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--r-pill);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  min-height: 44px;
+  padding: 0 20px;
+  white-space: nowrap;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    opacity 0.15s ease;
+}
+.btn:active {
+  transform: scale(0.98);
+}
+.btn[hidden] {
+  display: none;
+}
+.btn--light {
+  background: var(--beige);
+  color: var(--ink);
+}
+.btn--lg {
+  min-height: 48px;
+  font-size: 16px;
+}
+.btn--block {
+  width: 100%;
+}
+.ov {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+.ov--layer {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.ov--layer.is-open {
+  opacity: 1;
+}
+.ov.is-closing {
+  pointer-events: none;
+}
+.vt-toasts {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 108px;
+  z-index: 80;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 320px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(33, 31, 29, 0.92);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  transform: translateY(10px);
+  opacity: 0;
+  transition:
+    transform 0.25s var(--ease-out),
+    opacity 0.2s ease;
+}
+.toast.is-in {
+  transform: none;
+  opacity: 1;
+}
+.spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: vt-spin 0.8s linear infinite;
+}
+@keyframes vt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* PROTOTYPE 03-fitting.css:81-104 — the video try-on layer (.cam-top top 44 → var(--top-inset)) */
+.cam {
+  background: #15110e;
+  z-index: 70;
+  color: #fff;
+}
+.cam-view {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(120% 80% at 50% 30%, #3a302a, #15110e 70%);
+}
+.cam-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.cam-video.is-mirror {
+  transform: scaleX(-1);
+}
+.cam-top {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--top-inset);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  z-index: 2;
+}
+.cam-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(20, 16, 13, 0.45);
+  color: #fff;
+}
+.cam-btn[hidden] {
+  display: none;
+}
+.cam-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(20, 16, 13, 0.45);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.cam-rec {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9a9089;
+}
+.cam-view[data-state='live'] .cam-rec {
+  background: #e2574c;
+  animation: cam-blink 1.4s ease-in-out infinite;
+}
+@keyframes cam-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+.cam-panel {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 30px;
+  z-index: 1;
+}
+.cam-panel > div {
+  display: none;
+  width: 100%;
+  max-width: 300px;
+  text-align: center;
+  flex-direction: column;
+  align-items: center;
+}
+.cam-panel[data-state='intro'] .cam-intro,
+.cam-panel[data-state='wait'] .cam-wait,
+.cam-panel[data-state='error'] .cam-err {
+  display: flex;
+}
+.cam-panel[data-state='live'] {
+  pointer-events: none;
+}
+.cam-ic {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+}
+.cam-panel h2 {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+.cam-panel p {
+  margin: 10px 0 22px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.72);
+}
+.cam-panel .btn + .btn {
+  margin-top: 10px;
+}
+.cam-cancel {
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+.cam-wait p {
+  margin-bottom: 0;
+}
+.cam-foot {
+  margin: 0 22px;
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(20, 16, 13, 0.4);
+}
+
+/* DRAFT — live try-on: the camera under the model's output, both full bleed */
+.cam-view[data-state='connecting'] .cam-video--local,
+.cam-view[data-state='live'] .cam-video--local,
+.cam-view[data-state='reconnecting'] .cam-video--local {
+  opacity: 1;
+}
+.cam-view[data-state='live'] .cam-video--out.is-playing,
+.cam-view[data-state='reconnecting'] .cam-video--out.is-playing {
+  opacity: 1;
+}
+.cam-panel[data-state='connecting'],
+.cam-panel[data-state='reconnecting'] {
+  pointer-events: none;
+}
+
+/* DRAFT — status line under the top bar: connecting, queueing, applying a garment, reconnecting */
+.cam-chip {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--top-inset) + 54px);
+  z-index: 2;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(20, 16, 13, 0.58);
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.cam-chip[hidden] {
+  display: none;
+}
+.cam-chip .spinner {
+  width: 14px;
+  height: 14px;
+  border-width: 1.8px;
+}
+
+/* DRAFT — the visible mark China's AI-content labelling rules ask for, on generated video only */
+.cam-ai {
+  position: absolute;
+  right: 12px;
+  top: calc(var(--top-inset) + 56px);
+  z-index: 2;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(20, 16, 13, 0.5);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.cam-ai[hidden] {
+  display: none;
+}
+
+/* DRAFT — consent and the test server's access code, inside the explainer */
+.cam-consent {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin: -8px 0 18px;
+  text-align: left;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+}
+.cam-consent input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: #e6ddd4;
+}
+.cam-code {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin: 0 0 14px;
+  text-align: left;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.78);
+}
+.cam-code[hidden] {
+  display: none;
+}
+.cam-code input {
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
+.cam-code input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* DRAFT — bottom stack: garment picker over the footer */
+.cam-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(22px + var(--safe-bottom));
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cam-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cam-picker[hidden] {
+  display: none;
+}
+.cam-cats,
+.cam-rail {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.cam-cats::-webkit-scrollbar,
+.cam-rail::-webkit-scrollbar {
+  display: none;
+}
+.cam-cats {
+  gap: 6px;
+  padding: 0 12px;
+}
+.cam-cat {
+  flex: none;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(20, 16, 13, 0.5);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.cam-cat[aria-pressed='true'] {
+  background: #fffdf8;
+  color: #171513;
+  font-weight: 700;
+}
+.cam-rail {
+  gap: 8px;
+  padding: 3px 12px 4px;
+  scroll-padding: 0 12px;
+}
+.cam-thumb {
+  position: relative;
+  flex: none;
+  width: 58px;
+  height: 58px;
+  border-radius: 9px;
+  overflow: hidden;
+  background: #e9e0d7;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+.cam-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cam-thumb:active {
+  transform: scale(0.95);
+}
+.cam-thumb[aria-pressed='true'] {
+  box-shadow:
+    0 0 0 2px #fffdf8,
+    0 4px 10px rgba(0, 0, 0, 0.3);
+}
+.cam-thumb .cam-check {
+  position: absolute;
+  right: 3.5px;
+  top: 3.5px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #2a2725;
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+.cam-thumb .spinner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-color: rgba(42, 39, 37, 0.25);
+  border-top-color: #2a2725;
+}
+/* the explainer needs the room on short phones: pick once the camera is on */
+@media (max-height: 760px) {
+  .cam-view[data-state='intro'] .cam-picker {
+    display: none;
+  }
+}
+
+/* DRAFT — ?debug=1: latency, frame rate and running cost for the measurement runs */
+.cam-debug {
+  position: absolute;
+  left: 8px;
+  top: calc(var(--top-inset) + 92px);
+  z-index: 3;
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #a8f0a8;
+  font:
+    11px/1.45 ui-monospace,
+    Menlo,
+    monospace;
+  white-space: pre;
+  pointer-events: none;
+}
+.cam-debug[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cam-video,
+  .toast,
+  .ov--layer {
+    transition: none;
+  }
+  .cam-view[data-state='live'] .cam-rec {
+    animation: none;
+  }
+}
