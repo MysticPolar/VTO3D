@@ -1,8 +1,8 @@
 /* ==========================================================================
    Demo state + localStorage persistence.
-   Persisted: first-launch flag, avatar, favorites, wardrobe, outfit, cart,
-   orders + returns, saved looks, chat, filters, profile, addresses, history
-   and settings. Use VT.store.reset() to restore.
+   Persisted: first-launch flag, avatar, favorites, favourite stores, store
+   chats, wardrobe, outfit, cart, orders + returns, saved looks, chat, filters,
+   profile, addresses, history and settings. Use VT.store.reset() to restore.
    ========================================================================== */
 (function () {
   const VT = (window.VT = window.VT || {});
@@ -31,7 +31,9 @@
       currentOrder: d.seedOrder.id,
       savedLooks: {},
       chat: clone(d.chatSeed),
-      plaza: { cat: 'all', q: '' },
+      plaza: { cat: 'all', q: '', store: 'all' },
+      storeFavs: d.seedStoreFavs.slice(), // favourite stores, in 购物广场 bar order
+      storeChats: clone(d.storeChatSeed), // 商家消息
       wardrobeCat: 'all',
       selections: {},
       returns: clone(d.seedReturns),

@@ -9,7 +9,8 @@
 .pz-actions { position: absolute; inset: 0; pointer-events: none; }
 .pz-actions > * { pointer-events: auto; }
 .pz-bag { position: absolute; right: 54.4px; top: 43.6px; }
-.pz-bell { position: absolute; right: 15.8px; top: 44.2px; }
+.pz-msg { position: absolute; right: 15.8px; top: 44.2px; }
+.pz-badge { position: absolute; top: 5px; right: 3px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #C8473D; color: #fff; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; box-shadow: 0 0 0 1.5px #FAF6F0; }
 .pz-actions .icon-btn { color: #1C1A18; }
 .pz-actions .icon-btn svg { width: 26px; height: 26px; }
 .pz-search { flex: none; position: relative; margin: 6px 21.7px 0 22.6px; height: 36.2px; }
@@ -21,18 +22,20 @@
 .pz-search-box:focus-within { box-shadow: inset 0 0 0 1.2px #CDC3B9; }
 .pz-scan { position: absolute; right: 2px; top: -4px; width: 44px; height: 44px; display: grid; place-items: center; color: #2F2B28; }
 .pz-scan svg { width: 18.5px; height: 18.5px; }
-.pz-chips { flex: none; display: flex; gap: 6px; margin-top: 11.7px; padding: 0 22px 0 22.1px; overflow-x: auto; scrollbar-width: none; }
+.pz-chips { flex: none; display: flex; gap: 6px; margin-top: 10px; padding: 0 22px 0 22.1px; overflow-x: auto; scrollbar-width: none; }
 .pz-chips::-webkit-scrollbar { display: none; }
 .pz-chips .chip { height: 24.4px; padding: 0 11.2px; font-size: 10.8px; background: #F1ECE6; color: #59524C; font-weight: 500; flex: none; letter-spacing: .02em; }
 .pz-chips .chip:first-child { padding: 0 13.4px; }
 .pz-chips .chip.is-on { background: #393532; color: #fff; font-weight: 500; }
-.pz-scroll { padding: 13.1px 19.4px 18px 19.9px; }
+.pz-scroll { padding: 12px 19.4px 18px 19.9px; }
 .pz-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 7.7px; row-gap: 7.7px; align-items: start; }
 .pz-card { position: relative; border-radius: 12px; background: #FBF8F3; box-shadow: 0 1px 2px rgba(90, 70, 50, .03); }
 .pz-open { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
 .pz-open:focus-visible { outline-offset: 0; }
-.pz-img { border-radius: 11px; overflow: hidden; background: #E3DBD2; }
-.pz-img img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; }
+.pz-img { aspect-ratio: 1 / .95; border-radius: 11px; overflow: hidden; background: #E3DBD2; }
+.pz-img img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
+.pz-img.is-model img { object-position: 50% 24%; }
+.pz-img.is-top img { object-position: 50% 0; }
 .pz-img.is-small img { object-fit: contain; object-position: 50% 50%; padding: 12px; background: #F2EEE9; }
 .pz-heart { position: absolute; top: -1.9px; right: -3px; z-index: 2; color: #221F1D; }
 .pz-heart svg { width: 21.6px; height: 21.6px; }
@@ -59,3 +62,63 @@
 .scan-photo span { position: absolute; left: 10px; top: 10px; padding: 3px 9px; border-radius: 999px; background: rgba(31, 29, 28, .75); color: #fff; font-size: 11px; }
 .scan-h { display: flex; align-items: center; gap: 8px; margin: 16px 0 10px; font-size: 14.5px; font-weight: 700; }
 .mini { width: 100%; text-align: left; }
+
+/* favourite stores bar: 全部 + favourites (swipe, tap to switch), then 管理 */
+.pz-stores { flex: none; position: relative; display: flex; gap: 8px; margin-top: 12px; padding: 3px 20px 2px 21px; overflow-x: auto; scrollbar-width: none; }
+.pz-stores::-webkit-scrollbar { display: none; }
+.pz-st-tabs { flex: none; display: flex; gap: 8px; }
+.pz-st { flex: none; width: 60px; display: flex; flex-direction: column; align-items: center; gap: 5px; color: #59524C; }
+.pz-st-l { max-width: 66px; font-size: 10px; line-height: 13px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pz-st.is-on .pz-st-l { color: #1C1A18; font-weight: 700; }
+.pz-st .st-logo { box-shadow: 0 0 0 1px rgba(60, 45, 35, .08); transition: box-shadow .2s var(--ease); }
+.pz-st.is-on .st-logo { box-shadow: 0 0 0 2px #FAF6F0, 0 0 0 3.6px #393532; }
+.st-logo { width: 46px; height: 46px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--st-bg, #F1ECE6); color: var(--st-fg, #1C1A18); font-weight: 700; font-size: 14px; letter-spacing: .04em; }
+.st-logo.is-word { font-family: "Didot", "Bodoni 72", "Times New Roman", serif; font-weight: 400; font-size: 12.5px; letter-spacing: .03em; }
+.st-logo--all { background: #F1ECE6; color: #393532; }
+.pz-st--manage .st-logo--add { background: transparent; color: #8A837C; box-shadow: inset 0 0 0 1.2px #CDC3B9; }
+.st-logo--md { width: 40px; height: 40px; font-size: 12.5px; }
+.st-logo--md.is-word { font-size: 10.5px; }
+.st-logo--lg { width: 54px; height: 54px; font-size: 16px; }
+.st-logo--lg.is-word { font-size: 13.5px; }
+
+/* feed head: platform banners (全部) or the chosen store */
+.pz-banners { position: relative; margin-bottom: 12px; }
+.pz-ban-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; border-radius: 12px; }
+.pz-ban-track::-webkit-scrollbar { display: none; }
+.pz-ban { flex: 0 0 100%; display: block; aspect-ratio: 2.95; scroll-snap-align: start; border-radius: 12px; overflow: hidden; background: #E3DBD2; }
+.pz-ban img, .pz-shop-ban img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pz-ban-dots { position: absolute; left: 0; right: 0; bottom: 7px; display: flex; justify-content: center; gap: 5px; pointer-events: none; }
+.pz-ban-dots i { width: 5px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .6); transition: width .2s var(--ease); }
+.pz-ban-dots i.is-on { width: 12px; background: #fff; }
+.pz-shop-ban { display: block; width: 100%; aspect-ratio: 2.31; margin-bottom: 12px; border-radius: 12px; overflow: hidden; background: #E3DBD2; }
+.pz-shop { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 12px; border-radius: 14px; background: #F2EDE7; }
+.pz-shop-main, .pz-srow-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pz-shop-main b, .pz-srow-main b { font-size: 13.2px; color: #1E1C1A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pz-shop-main em, .pz-srow-main em { font-style: normal; font-size: 11px; color: #6F675F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pz-shop-go { flex: none; display: inline-flex; align-items: center; gap: 2px; height: 32px; padding: 0 9px 0 12px; border-radius: 999px; background: #FFFDF9; color: #393532; font-size: 11.5px; }
+
+/* search results: matching stores, then matching products */
+.pz-sec { margin: 2px 2px 8px; font-size: 12.5px; font-weight: 700; color: #3A3532; letter-spacing: .02em; }
+.pz-srows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.pz-srow { position: relative; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; border-radius: 14px; background: #FBF8F3; box-shadow: 0 1px 2px rgba(90, 70, 50, .04); }
+.pz-srow-open { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.pz-sfav { position: relative; z-index: 2; flex: none; min-width: 62px; height: 32px; padding: 0 12px; border-radius: 999px; background: #393532; color: #fff; font-size: 12px; font-weight: 600; }
+.pz-sfav.is-on { background: #F1ECE6; color: #59524C; }
+.pz-none { padding: 30px 0; text-align: center; color: var(--text-3); font-size: 13px; }
+
+/* store sheet, 秋日灵感穿搭 picks and 管理 sheet */
+.ov--shop .mini-title, .ov--shop .mini-sub { display: block; }
+.ss-head { display: flex; align-items: center; gap: 12px; }
+.ss-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ss-main b { font-size: 16px; }
+.ss-main span { font-size: 12.5px; color: var(--text-2); }
+.ss-main em { font-style: normal; font-size: 11.5px; color: var(--text-3); }
+.ss-actions { margin-top: 14px; }
+.ss-actions .btn { gap: 6px; }
+.ss-h { margin: 18px 0 10px; font-size: 14px; font-weight: 700; }
+.ms-list { display: flex; flex-direction: column; gap: 8px; }
+.ms-row { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; border-radius: 14px; background: var(--card); }
+.ms-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ms-main b { font-size: 13.5px; }
+.ms-main em { font-style: normal; font-size: 11.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ms-empty { padding: 14px; border-radius: 14px; background: var(--card); color: var(--text-3); font-size: 13px; text-align: center; }

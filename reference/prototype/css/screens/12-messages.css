@@ -1,0 +1,16 @@
+/* 商家消息 — chats with stores (from 购物广场) */
+.msg-scroll { padding-top: 6px; }
+.msg-list { display: flex; flex-direction: column; gap: 8px; }
+.msg-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border-radius: 16px; background: var(--card); text-align: left; }
+.msg-face { position: relative; flex: none; }
+.msg-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--chip); color: var(--ink-3); }
+.st-logo--msg { width: 44px; height: 44px; font-size: 13.5px; }
+.st-logo--msg.is-word { font-size: 11.5px; }
+.msg-dot { position: absolute; top: -3px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #C8473D; color: #fff; font-size: 10.5px; font-weight: 700; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px var(--card); }
+.msg-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.msg-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.msg-top b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msg-top i { flex: none; font-style: normal; font-size: 11px; color: var(--text-4); }
+.msg-main em { font-style: normal; font-size: 12.5px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msg-h { margin: 18px 4px 10px; font-size: 13px; font-weight: 700; color: var(--text-2); }
+.msg-empty { padding-top: 40px; }
