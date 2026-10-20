@@ -100,4 +100,4 @@ All imagery comes from your asset kit and reference screens. No stock or generat
 - Only the default colour of each product is photographed. Picking another colour changes the labels, not the photo.
 - Look renders and small-item photos are upscaled and softer than the base avatar.
 - New secondary screens (我的订单, 物流跟踪, 我的形象, 设置 and the rest) had no reference design. They reuse the existing card, list and type styles.
-- Fonts are subset. After adding new Chinese copy, run `tools/subset_fonts.py` (see README). Not yet re-run for the 个人衣橱 update: 伴侣命妈把操旅爱爸瞬组键集 (搭配集, 穿搭瞬间, 一键试穿这套, …) fall back to the system font until then.
+- Fonts are subset. After adding new Chinese copy, run `tools/subset_fonts.py` (see README); until then, new characters fall back to the system font.
