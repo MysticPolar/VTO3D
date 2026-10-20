@@ -73,7 +73,7 @@ tools/                  font subsetting + the asset pipeline used to prepare ima
   pip install fonttools brotli
   python3 tools/subset_fonts.py
   ```
-  This needs Noto Sans CJK and Inter installed on the machine (the script lists the paths it expects). Until you re-run it, new characters fall back to the system font (PingFang SC / Microsoft YaHei).
+  This needs Noto Sans CJK **2.004** (`NotoSansCJK-{Regular,Medium,Bold,Black}.ttc` from [noto-cjk Sans2.004](https://github.com/notofonts/noto-cjk/tree/Sans2.004/Sans/OTC) or the `fonts-noto-cjk` package), read from `$VT_FONTS_SRC`, the repo's git-ignored `fonts-src/`, `~/.cache/vto3d/fonts/noto-cjk-2.004/` or the Debian/Ubuntu font folders. Another version would change the existing glyphs and line metrics; the script warns when it does. Inter is optional: it is cut to a fixed Latin range that new copy never changes. The script fails if any collected character the source has is missing from the result. Until you re-run it, new characters fall back to the system font (PingFang SC / Microsoft YaHei).
 - Demo state (setup flag, digital avatars with their wardrobes, 搭配集 and 穿搭瞬间, orders, favourites, profile, addresses, chat, uploads, the 首页 backdrop) is stored in `localStorage` under `vt-prototype-state-v1`. 首页's 我的上传 (garment photos for try-on) lives in `sessionStorage` under `vt-fit-uploads-v1`, so it lasts for the browser session only.
 
 See `docs/REPORT.md` for which features are real and which are simulated.
