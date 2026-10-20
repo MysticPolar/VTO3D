@@ -1,26 +1,61 @@
-/* 购物广场 — Shopping Plaza (primary tab 2) */
+/* 购物广场 — Shopping Plaza (primary tab 2)
+   Top to bottom: search over every store and product · the user's favourite stores
+   (全部 + favourites; swipe, tap to switch) · category chips · the feed: a banner for
+   全部 or the chosen store, then its products in the chosen category.
+   The chat icon at the top right opens 商家消息 (chats with stores). */
 (function () {
   const VT = window.VT;
   const I = (n, o) => VT.icon(n, o);
   const D = () => VT.data;
-  // image heights of the first six cards follow the reference feed (masonry-style rows)
-  const REF_H = { 'knit-cardigan': 165, 'straight-jeans': 165, 'striped-shirt': 142.3, 'brown-blazer': 142.3, 'basic-cami': 83.7, 'pleated-skirt': 83.7 };
 
+  /* ---------- stores ---------- */
+  const favStores = (s) => (s.storeFavs || []).map((id) => D().storeById[id]).filter(Boolean);
+  const isFavStore = (s, id) => (s.storeFavs || []).includes(id);
+  /** the store the feed shows: a favourite, else 全部 */
+  const curStore = (s) => (s.plaza.store && isFavStore(s, s.plaza.store) ? s.plaza.store : 'all');
+  const query = (s) => (s.plaza.q || '').trim();
+  const storeProducts = (id) => D().plazaOrder.map((pid) => D().byId[pid]).filter((p) => D().storeOf(p).id === id);
+
+  function logo(st, cls) {
+    return `<span class="st-logo ${st.mono.length > 2 ? 'is-word' : ''} ${cls || ''}" style="--st-bg:${st.bg};--st-fg:${st.fg}" aria-hidden="true">${VT.esc(st.mono)}</span>`;
+  }
+
+  function storeBar(s) {
+    const cur = curStore(s);
+    const favs = favStores(s);
+    const tab = (id, label, face) => `<button type="button" role="tab" class="pz-st ${cur === id ? 'is-on' : ''}" aria-selected="${cur === id}" data-act="store" data-store="${id}">${face}<span class="pz-st-l">${VT.esc(label)}</span></button>`;
+    return `<div class="pz-st-tabs" role="tablist" aria-label="收藏的商家">
+        ${tab('all', '全部', `<span class="st-logo st-logo--all" aria-hidden="true">${I('grid', { size: 20, stroke: 1.6 })}</span>`)}
+        ${favs.map((st) => tab(st.id, st.name, logo(st))).join('')}
+      </div>
+      <button type="button" class="pz-st pz-st--manage" data-act="manage"><span class="st-logo st-logo--add" aria-hidden="true">${I('plus', { size: 18, stroke: 1.7 })}</span><span class="pz-st-l">${favs.length ? '管理' : '收藏商家'}</span></button>`;
+  }
+
+  /* ---------- feed ---------- */
+  /** products for the feed: search covers every store; otherwise the chosen store */
   function list(s) {
-    const q = (s.plaza.q || '').trim().toLowerCase();
+    const q = query(s).toLowerCase();
+    const st = q ? 'all' : curStore(s);
     return D().plazaOrder.map((id) => D().byId[id]).filter((p) => {
+      if (st !== 'all' && D().storeOf(p).id !== st) return false;
       if (!D().inCat(p, s.plaza.cat)) return false;
       if (!q) return true;
-      return [p.name, p.cardName, p.tags, p.brand, p.colors.map((c) => c.name).join('')].join(' ').toLowerCase().includes(q);
+      return [p.name, p.cardName, p.tags, p.brand, D().storeOf(p).full, p.colors.map((c) => c.name).join('')].join(' ').toLowerCase().includes(q);
     });
   }
 
-  function card(p, s, i, filtered) {
+  function storeHits(q) {
+    const k = q.toLowerCase();
+    return D().stores.filter((st) => [st.name, st.full, st.tagline].join(' ').toLowerCase().includes(k));
+  }
+
+  function card(p, s, i) {
     const fav = VT.store.h.isFav(s, p.id);
-    const h = !filtered && REF_H[p.id] ? REF_H[p.id] : (p.small ? 150 : 158);
-    return `<li class="pz-card">
+    const src = p.img.plaza || p.img.card;
+    const cls = src.includes('/models/') ? 'is-model' : p.small ? 'is-small' : p.cardFocus === 'top' ? 'is-top' : '';
+    return `<li class="pz-card" data-pid="${p.id}">
       <button type="button" class="pz-open" data-act="nav" data-to="product" data-pid="${p.id}" aria-label="查看 ${p.name}，¥${p.price}"></button>
-      <div class="pz-img ${p.small ? 'is-small' : ''}" style="height:${h}px">${VT.ui.img(p.img.card, p.name, '', i < 6 ? '' : 'loading="lazy"')}</div>
+      <div class="pz-img ${cls}">${VT.ui.img(src, p.name, '', i < 6 ? '' : 'loading="lazy"')}</div>
       ${VT.ui.heart(p.id, fav, { cls: 'pz-heart', size: 23, stroke: 1.55 })}
       <div class="pz-meta">
         <h3>${p.cardName}</h3>
@@ -30,13 +65,67 @@
     </li>`;
   }
 
-  function grid(s) {
-    const items = list(s);
-    const filtered = s.plaza.cat !== 'all' || !!(s.plaza.q || '').trim();
-    if (!items.length) {
-      return `<div class="pz-empty">${I('search', { size: 30, stroke: 1.4 })}<p>没有找到「${VT.esc(s.plaza.q)}」相关的单品</p><button type="button" class="btn btn--ghost btn--sm" data-act="clear">清除搜索</button></div>`;
+  function storeRow(st, s) {
+    const on = isFavStore(s, st.id);
+    return `<li class="pz-srow">
+      <button type="button" class="pz-srow-open" data-act="store-info" data-store="${st.id}" aria-label="查看店铺 ${VT.esc(st.full)}"></button>
+      ${logo(st, 'st-logo--md')}
+      <span class="pz-srow-main"><b>${VT.esc(st.full)}</b><em>${VT.esc(st.tagline)} · 在售 ${storeProducts(st.id).length} 件</em></span>
+      ${favBtn(st, on)}
+    </li>`;
+  }
+
+  /** 收藏 / 已收藏 pill used in search results and the manage sheet */
+  function favBtn(st, on) {
+    return `<button type="button" class="pz-sfav ${on ? 'is-on' : ''}" data-act="sfav" data-store="${st.id}" aria-pressed="${on}">${on ? '已收藏' : '收藏'}<span class="sr-only">${VT.esc(st.name)}</span></button>`;
+  }
+
+  function banners() {
+    const B = 'assets/plaza/banners/';
+    const slides = [
+      { src: B + 'platform-new-season.webp', label: 'NEW SEASON 秋日灵感穿搭，探索本季精选单品' },
+      { src: B + 'platform-autumn.webp', label: '秋日灵感穿搭，精选单品，定义新季风格' },
+    ];
+    return `<div class="pz-banners">
+      <div class="pz-ban-track" data-keep-scroll="pz-ban">${slides.map((b, i) => `<button type="button" class="pz-ban" data-act="season" aria-label="${b.label}">${VT.ui.img(b.src, '', '', i ? 'loading="lazy"' : '')}</button>`).join('')}</div>
+      <div class="pz-ban-dots" aria-hidden="true">${slides.map((b, i) => `<i class="${i ? '' : 'is-on'}"></i>`).join('')}</div>
+    </div>`;
+  }
+
+  function storeHead(st) {
+    if (st.banner) {
+      return `<button type="button" class="pz-shop-ban" data-act="store-info" data-store="${st.id}" aria-label="${VT.esc(st.bannerAlt)}，进入店铺">${VT.ui.img(st.banner, '')}</button>`;
     }
-    return `<ul class="pz-grid">${items.map((p, i) => card(p, s, i, filtered)).join('')}</ul>`;
+    return `<div class="pz-shop">${logo(st, 'st-logo--md')}
+      <span class="pz-shop-main"><b>${VT.esc(st.full)}</b><em>${VT.esc(st.tagline)} · 在售 ${storeProducts(st.id).length} 件</em></span>
+      <button type="button" class="pz-shop-go" data-act="store-info" data-store="${st.id}">店铺详情${I('chevron-right', { size: 14, stroke: 1.8 })}</button></div>`;
+  }
+
+  const empty = (msg, btn, act) => `<div class="pz-empty">${I('search', { size: 30, stroke: 1.4 })}<p>${msg}</p><button type="button" class="btn btn--ghost btn--sm" data-act="${act}">${btn}</button></div>`;
+  const grid = (items, s) => `<ul class="pz-grid">${items.map((p, i) => card(p, s, i)).join('')}</ul>`;
+
+  function feed(s) {
+    const q = query(s);
+    const items = list(s);
+    if (q) {
+      const hits = storeHits(q);
+      if (!hits.length && !items.length) return empty(`没有找到「${VT.esc(q)}」相关的商家或单品`, '清除搜索', 'clear');
+      return `${hits.length ? `<h2 class="pz-sec">相关商家</h2><ul class="pz-srows">${hits.map((st) => storeRow(st, s)).join('')}</ul>` : ''}
+        ${items.length ? `${hits.length ? '<h2 class="pz-sec">相关商品</h2>' : ''}${grid(items, s)}` : `<p class="pz-none">没有找到「${VT.esc(q)}」相关的单品</p>`}`;
+    }
+    const cur = curStore(s);
+    const head = cur === 'all' ? banners() : storeHead(D().storeById[cur]);
+    if (!items.length) {
+      const cat = D().plazaCats.find((c) => c.id === s.plaza.cat);
+      return head + empty(`${cur === 'all' ? '暂无' : '这家店暂无'}「${cat ? cat.label : ''}」商品`, '查看全部分类', 'allcats');
+    }
+    return head + grid(items, s);
+  }
+
+  /* ---------- screen ---------- */
+  function msgBtn(s) {
+    const n = VT.storeChat ? VT.storeChat.unread(s) : 0;
+    return `<button type="button" class="icon-btn pz-msg" data-act="nav" data-to="messages" aria-label="商家消息${n ? `，${n} 条未读` : ''}">${I('chat-dots', { size: 24, stroke: 1.75 })}${n ? `<span class="pz-badge" aria-hidden="true">${n > 99 ? '99+' : n}</span>` : ''}</button>`;
   }
 
   VT.screens.plaza = {
@@ -49,54 +138,53 @@
           <h1 class="pz-title">购物广场</h1>
           <div class="pz-actions">
             ${VT.ui.iconBtn('bag', '购物袋', 'nav', { attrs: 'data-to="checkout"', size: 24, stroke: 1.75, cls: 'pz-bag' })}
-            ${VT.ui.iconBtn('bell', '消息通知', 'notices', { size: 24, stroke: 1.75, cls: 'pz-bell' })}
+            ${msgBtn(s)}
           </div>
         </header>
         <div class="pz-search">
           <label class="pz-search-box">${I('search', { size: 19, stroke: 1.7 })}
-            <input type="search" placeholder="搜索品牌、风格或单品..." value="${VT.esc(s.plaza.q)}" data-input="search" data-focus-key="pz-q" aria-label="搜索品牌、风格或单品" enterkeyhint="search">
+            <input type="search" placeholder="搜索商家、品牌或单品..." value="${VT.esc(s.plaza.q)}" data-input="search" data-focus-key="pz-q" aria-label="搜索商家、品牌或单品" enterkeyhint="search">
           </label>
           <button type="button" class="pz-scan" data-act="scan" aria-label="拍照找同款">${I('scan', { size: 18, stroke: 1.7 })}</button>
         </div>
+        <div class="pz-stores" data-keep-scroll="pz-stores">${storeBar(s)}</div>
         <div class="pz-chips" role="tablist" aria-label="商品分类" data-keep-scroll="pz-chips">
           ${D().plazaCats.map((c) => `<button type="button" role="tab" class="chip ${c.id === s.plaza.cat ? 'is-on' : ''}" aria-selected="${c.id === s.plaza.cat}" data-act="cat" data-cat="${c.id}">${c.label}</button>`).join('')}
         </div>
-        <div class="scroll pz-scroll" data-keep-scroll="pz">${grid(s)}</div>
+        <div class="scroll pz-scroll" data-keep-scroll="pz">${feed(s)}</div>
         ${VT.ui.tabBar('plaza')}`;
     },
+    mount(app, el) {
+      if (el._pzBound) return;
+      el._pzBound = true;
+      // banner dots follow the swipe (scroll events don't bubble, so listen while capturing)
+      el.addEventListener('scroll', (ev) => {
+        const t = ev.target;
+        if (!t.classList || !t.classList.contains('pz-ban-track')) return;
+        const i = Math.round(t.scrollLeft / Math.max(1, t.clientWidth));
+        t.parentElement.querySelectorAll('.pz-ban-dots i').forEach((d, k) => d.classList.toggle('is-on', k === i));
+      }, true);
+    },
     actions: {
-      cat(app, el) {
-        VT.store.update((s) => { s.plaza.cat = el.dataset.cat; });
-        const root = app.screenEl();
-        root.querySelectorAll('.pz-chips .chip').forEach((c) => { const on = c.dataset.cat === el.dataset.cat; c.classList.toggle('is-on', on); c.setAttribute('aria-selected', on); });
-        const sc = root.querySelector('.pz-scroll');
-        sc.innerHTML = grid(app.s);
-        sc.scrollTop = 0;
-      },
+      store(app, el) { selectStore(app, el.dataset.store); },
+      cat(app, el) { setCat(app, el.dataset.cat); },
+      allcats(app) { setCat(app, 'all'); },
       search(app, el) {
-        VT.store.update((s) => { s.plaza.q = el.value; });
-        app.screenEl().querySelector('.pz-scroll').innerHTML = grid(app.s);
+        const reset = !!el.value.trim() && curStore(app.s) !== 'all';
+        // search covers every store, so the bar goes back to 全部 while searching
+        VT.store.update((s) => { s.plaza.q = el.value; if (reset) s.plaza.store = 'all'; });
+        const root = app.screenEl();
+        if (reset) updateBar(root, app.s);
+        root.querySelector('.pz-scroll').innerHTML = feed(app.s);
       },
       clear(app) {
         VT.store.update((s) => { s.plaza.q = ''; s.plaza.cat = 'all'; });
         app.refresh();
       },
-      notices(app) {
-        const ov = app.sheet({
-          title: '消息通知',
-          html: `<ul class="notice-list">
-            <li><button type="button" data-act="go-product"><span class="notice-ic">${I('heart', { size: 18 })}</span><span><b>心愿单降价提醒</b><em>你关注的「条纹亚麻衬衫」本周可用 ¥20 优惠券</em><i>10 分钟前</i></span></button></li>
-            <li><button type="button" data-act="go-orders"><span class="notice-ic">${I('truck', { size: 18 })}</span><span><b>订单运输中</b><em>你的订单预计 7月18日 送达，点击查看物流</em><i>今天 08:32</i></span></button></li>
-            <li><button type="button" data-act="go-stylist"><span class="notice-ic">${I('sparkle', { size: 18 })}</span><span><b>AI 造型师</b><em>为你准备了 3 套朋友聚会穿搭，快去看看</em><i>昨天</i></span></button></li>
-          </ul>`,
-          actions: {
-            'go-product': () => app.go('product', { pid: 'striped-shirt' }),
-            'go-orders': () => app.open('orders', { oid: D().seedOrder.id }, { anim: 'fade' }), // lives under 我的 → 我的订单
-            'go-stylist': () => app.go('stylist'),
-          },
-        });
-        return ov;
-      },
+      manage(app) { manageStores(app); },
+      'store-info'(app, el) { openStore(app, el.dataset.store); },
+      sfav(app, el) { toggleFav(app, el.dataset.store); },
+      season(app) { seasonPicks(app); },
       scan(app) {
         const ov = app.sheet({
           title: '拍照找同款',
@@ -122,4 +210,154 @@
       },
     },
   };
+
+  /* ---------- behaviour ---------- */
+  function updateBar(root, s) {
+    const bar = root.querySelector('.pz-stores');
+    const x = bar.scrollLeft;
+    bar.innerHTML = storeBar(s);
+    bar.scrollLeft = x;
+  }
+
+  function selectStore(app, id) {
+    if (query(app.s)) {
+      // tapping a store leaves the search and shows that store
+      VT.store.update((s) => { s.plaza.q = ''; s.plaza.store = id; });
+      app.refresh();
+    } else {
+      VT.store.update((s) => { s.plaza.store = id; });
+      const root = app.screenEl();
+      root.querySelectorAll('.pz-st[data-store]').forEach((b) => { const on = b.dataset.store === id; b.classList.toggle('is-on', on); b.setAttribute('aria-selected', on); });
+      root.querySelector('.pz-scroll').innerHTML = feed(app.s);
+    }
+    const root = app.screenEl();
+    root.querySelector('.pz-scroll').scrollTop = 0;
+    // keep the chosen store in view
+    const bar = root.querySelector('.pz-stores');
+    const b = bar.querySelector(`.pz-st[data-store="${id}"]`);
+    if (b) {
+      if (b.offsetLeft < bar.scrollLeft) bar.scrollLeft = b.offsetLeft - 16;
+      else if (b.offsetLeft + b.offsetWidth > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = b.offsetLeft + b.offsetWidth - bar.clientWidth + 16;
+    }
+  }
+
+  function setCat(app, id) {
+    VT.store.update((s) => { s.plaza.cat = id; });
+    const root = app.screenEl();
+    root.querySelectorAll('.pz-chips .chip').forEach((c) => { const on = c.dataset.cat === id; c.classList.toggle('is-on', on); c.setAttribute('aria-selected', on); });
+    const sc = root.querySelector('.pz-scroll');
+    sc.innerHTML = feed(app.s);
+    sc.scrollTop = 0;
+  }
+
+  /** favourite / unfavourite a store; favourites go to the front of the bar */
+  function toggleFav(app, id) {
+    const st = D().storeById[id];
+    if (!st) return false;
+    let on = false;
+    VT.store.update((s) => {
+      const favs = s.storeFavs || (s.storeFavs = []);
+      const i = favs.indexOf(id);
+      if (i >= 0) { favs.splice(i, 1); if (s.plaza.store === id) s.plaza.store = 'all'; }
+      else { favs.unshift(id); on = true; }
+    });
+    app.toast(on ? `已收藏店铺「${st.name}」` : `已取消收藏「${st.name}」`);
+    const el = app.screenEl();
+    if (el && el.dataset.screen === 'plaza') app.refresh();
+    return on;
+  }
+
+  const mini = (p) => `<button type="button" class="mini" data-act="go" data-pid="${p.id}">${VT.ui.img(p.img.plaza || p.img.card, p.name)}<span class="mini-main"><span class="mini-title">${p.name}</span><span class="mini-sub">${p.tags}</span></span>${VT.ui.price(p.price)}</button>`;
+
+  /** store sheet: details, 收藏店铺, 联系商家 and every product it sells */
+  function openStore(app, id) {
+    const st = D().storeById[id];
+    if (!st) return null;
+    const items = storeProducts(id);
+    const fav = () => {
+      const on = isFavStore(app.s, id);
+      return `<button type="button" class="btn ${on ? 'btn--ghost' : 'btn--dark'} btn--lg js-sfav" data-act="sfav" aria-pressed="${on}">${I(on ? 'heart-filled' : 'heart', { size: 19 })}${on ? '已收藏' : '收藏店铺'}</button>`;
+    };
+    const ov = app.sheet({
+      title: st.full,
+      cls: 'ov--shop',
+      html: `<div class="ss-head">${logo(st, 'st-logo--lg')}<div class="ss-main"><b>${VT.esc(st.name)}</b><span>${VT.esc(st.tagline)}</span><em>在售 ${items.length} 件 · 店铺评分 ${st.rating.toFixed(1)}</em></div></div>
+        <div class="sheet-actions ss-actions"><button type="button" class="btn btn--ghost btn--lg" data-act="chat">${I('chat-dots', { size: 19 })}联系商家</button>${fav()}</div>
+        <h4 class="ss-h">店铺商品</h4>
+        <div class="opt-list">${items.map(mini).join('')}</div>
+        <p class="sheet-note">演示数据</p>`,
+      actions: {
+        sfav: () => { toggleFav(app, id); ov.querySelector('.js-sfav').outerHTML = fav(); },
+        chat: () => { app.closeOverlay(ov, true); VT.storeChat.open(app, id); },
+        go: (el) => app.go('product', { pid: el.dataset.pid }),
+      },
+    });
+    return ov;
+  }
+
+  /** 管理: unfavourite stores, or favourite one of the others */
+  function manageStores(app) {
+    const body = () => {
+      const s = app.s;
+      const favs = favStores(s);
+      const others = D().stores.filter((st) => !isFavStore(s, st.id));
+      const row = (st, on) => `<li class="ms-row">${logo(st, 'st-logo--md')}<span class="ms-main"><b>${VT.esc(st.name)}</b><em>${VT.esc(st.tagline)}</em></span>${favBtn(st, on)}</li>`;
+      return `<p class="sheet-lead">收藏的商家会显示在购物广场顶部，左右滑动、点击即可切换。</p>
+        <h4 class="ss-h">已收藏 ${favs.length}</h4>
+        ${favs.length ? `<ul class="ms-list">${favs.map((st) => row(st, true)).join('')}</ul>` : '<p class="ms-empty">还没有收藏的商家</p>'}
+        ${others.length ? `<h4 class="ss-h">推荐商家</h4><ul class="ms-list">${others.map((st) => row(st, false)).join('')}</ul>` : ''}`;
+    };
+    const ov = app.sheet({
+      title: '收藏的商家',
+      html: `<div class="js-ms">${body()}</div>`,
+      actions: {
+        sfav: (el) => {
+          const id = el.dataset.store;
+          toggleFav(app, id);
+          ov.querySelector('.js-ms').innerHTML = body();
+          const again = ov.querySelector(`.pz-sfav[data-store="${id}"]`);
+          if (again) again.focus({ preventScroll: true });
+        },
+      },
+    });
+    return ov;
+  }
+
+  /** the platform banners' picks */
+  function seasonPicks(app) {
+    const items = D().seasonPicks.map((id) => D().byId[id]).filter(Boolean);
+    app.sheet({
+      title: '秋日灵感穿搭',
+      cls: 'ov--shop',
+      html: `<p class="sheet-lead">本季精选单品 · 演示数据</p><div class="opt-list">${items.map(mini).join('')}</div>`,
+      actions: { go: (el) => app.go('product', { pid: el.dataset.pid }) },
+    });
+  }
+
+  /** system notices (price drops, shipping, AI 造型师): first row of 商家消息 */
+  function notices(app) {
+    return app.sheet({
+      title: '消息通知',
+      html: `<ul class="notice-list">
+        <li><button type="button" data-act="go-product"><span class="notice-ic">${I('heart', { size: 18 })}</span><span><b>心愿单降价提醒</b><em>你关注的「条纹亚麻衬衫」本周可用 ¥20 优惠券</em><i>10 分钟前</i></span></button></li>
+        <li><button type="button" data-act="go-orders"><span class="notice-ic">${I('truck', { size: 18 })}</span><span><b>订单运输中</b><em>你的订单预计 7月18日 送达，点击查看物流</em><i>今天 08:32</i></span></button></li>
+        <li><button type="button" data-act="go-stylist"><span class="notice-ic">${I('sparkle', { size: 18 })}</span><span><b>AI 造型师</b><em>为你准备了 3 套朋友聚会穿搭，快去看看</em><i>昨天</i></span></button></li>
+      </ul>`,
+      actions: {
+        'go-product': () => app.go('product', { pid: 'striped-shirt' }),
+        'go-orders': () => app.open('orders', { oid: D().seedOrder.id }, { anim: 'fade' }), // lives under 我的 → 我的订单
+        'go-stylist': () => app.go('stylist'),
+      },
+    });
+  }
+
+  /** refresh the unread badge when chats change while 购物广场 is on screen */
+  function syncBadge(app) {
+    const el = app.screenEl();
+    if (!el || el.dataset.screen !== 'plaza') return;
+    const b = el.querySelector('.pz-msg');
+    if (b) b.outerHTML = msgBtn(app.s);
+  }
+
+  VT.plaza = { openStore, manageStores, toggleFav, notices, logo, syncBadge };
 })();

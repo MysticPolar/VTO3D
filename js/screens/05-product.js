@@ -131,14 +131,9 @@
         });
       },
       brand(app) {
+        // the brand is a store: the same sheet as 购物广场 (收藏店铺, 联系商家, its products)
         const p = D().byId[pidOf(app)];
-        const same = D().products.filter((x) => x.id !== p.id && x.cat === p.cat).slice(0, 3);
-        const ov = app.sheet({
-          title: p.brand,
-          html: `<p class="sheet-lead">品牌店铺 · 演示数据。以下为同品类在售单品：</p>
-            <div class="opt-list">${same.map((x) => `<button type="button" class="mini" data-act="go" data-pid="${x.id}">${VT.ui.img(x.img.card, x.name)}<span class="mini-main"><span class="mini-title">${x.name}</span><span class="mini-sub">${x.tags}</span></span>${VT.ui.price(x.price)}</button>`).join('')}</div>`,
-          actions: { go: (el) => { app.closeOverlay(ov, true); app.go('product', { pid: el.dataset.pid }); } },
-        });
+        VT.plaza.openStore(app, D().storeOf(p).id);
       },
       async share(app) {
         const p = D().byId[pidOf(app)];

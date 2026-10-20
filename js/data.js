@@ -15,7 +15,7 @@
     // — the six products shown in the reference plaza (keep order) —
     {
       id: 'knit-cardigan', name: '针织开衫外套', cardName: '针织开衫外套', tags: '柔软亲肤 · 百搭基础款', coTags: '柔软亲肤  百搭基础款',
-      price: 299, cat: 'outer', brand: 'Soft Archive', rating: 4.7, reviews: 268,
+      price: 299, cat: 'outer', brand: 'ZARA', rating: 4.7, reviews: 268,
       desc: '细腻柔软的羊毛混纺针织，宽松落肩版型，单穿或叠穿都轻松自在。',
       colors: [C('cream', '奶油白', '#EFE7DC', '奶油白'), C('oat', '燕麦色', '#B9A99C', '燕麦色'), C('cocoa', '可可棕', '#7A5A48', '可可棕'), C('black', '黑色', '#222020', '黑色'), C('grey', '雾灰色', '#A7A29C', '雾灰色'), C('sage', '鼠尾草绿', '#A9AE97', '鼠尾草绿')],
       dots: ['#F0E9E1', '#B9AA9E', '#7A5A48', '#1F1D1C'], dotsMore: 2,
@@ -24,7 +24,7 @@
     },
     {
       id: 'straight-jeans', name: '高腰直筒牛仔裤', cardName: '高腰直筒牛仔裤', tags: '显瘦版型 · 经典百搭', coTags: '显瘦版型  经典百搭',
-      price: 259, cat: 'bottom', brand: 'Linea Denim', rating: 4.8, reviews: 512,
+      price: 259, cat: 'bottom', brand: 'ZARA', rating: 4.8, reviews: 512,
       desc: '高腰直筒剪裁，柔软微弹的水洗丹宁，拉长腿部比例，四季百搭。',
       colors: [C('light', '浅蓝色', '#9FB7D5', '浅蓝'), C('mid', '中蓝色', '#5E7FA6', '中蓝'), C('indigo', '靛蓝色', '#3E4E66', '靛蓝'), C('black', '黑色', '#222020', '黑色'), C('ecru', '米白色', '#EAE3D8', '米白')],
       dots: ['#9DB6D6', '#5D7DA3', '#3D4C63', '#1F1D1C'], dotsMore: 1,
@@ -44,7 +44,7 @@
     },
     {
       id: 'brown-blazer', name: '气质西装外套', cardName: '气质西装外套', tags: '职场通勤 · 高级质感', coTags: '职场通勤  高级质感',
-      price: 399, cat: 'outer', brand: 'Mono Atelier', rating: 4.7, reviews: 186,
+      price: 399, cat: 'outer', brand: 'ZARA', rating: 4.7, reviews: 186,
       desc: '微廓形单排扣设计，挺括有型的精纺面料，通勤与周末都得体。',
       colors: [C('taupe', '灰褐色', '#A39283', '灰褐'), C('brown', '深棕色', '#3D2A20', '深棕'), C('black', '黑色', '#141414', '黑色'), C('grey', '中灰色', '#9C9C9C', '中灰'), C('camel', '驼色', '#B88B62', '驼色')],
       dots: ['#A39283', '#3D2A20', '#111111', '#9C9C9C'], dotsMore: 1,
@@ -163,6 +163,12 @@
       desc: '18K 镀金黄铜，粗圆环造型，轻盈不坠耳。', sizes: ['均码'], defaultSize: '均码',
       colors: [C('gold', '金色', '#C9A25A', '金色')], dots: ['#C9A25A'], dotsMore: 0,
       img: { card: A + 'items/gold-hoops.webp', tile: A + 'items/gold-hoops.webp', thumb: A + 'items/gold-hoops.webp', hd: A + 'items/gold-hoops.webp', item: A + 'items/gold-hoops.webp' }, gallery: [A + 'items/gold-hoops.webp'], small: true },
+
+    // — 购物广场 asset pack: the ZARA look's maxi skirt (model photo only) —
+    { id: 'maxi-skirt', name: '垂坠半身长裙', cardName: '垂坠半身长裙', tags: '温柔垂坠 · 显高显瘦', price: 359, cat: 'bottom', brand: 'ZARA', rating: 4.8, reviews: 207,
+      desc: '轻盈垂坠的醋酸混纺面料，高腰 A 字长裙摆，行走间灵动飘逸，搭配针织开衫温柔又有质感。',
+      colors: [C('cream', '奶油白', '#EFE6D6', '奶油白'), C('oat', '燕麦色', '#CDBFAE', '燕麦'), C('black', '黑色', '#1E1E1E', '黑色')], dots: ['#EFE6D6', '#CDBFAE', '#1E1E1E'], dotsMore: 0,
+      img: { card: 'assets/plaza/models/maxi-skirt.webp', tile: 'assets/plaza/models/maxi-skirt.webp', thumb: 'assets/plaza/models/maxi-skirt.webp', hd: 'assets/plaza/models/maxi-skirt.webp' }, gallery: ['assets/plaza/models/maxi-skirt.webp'] },
   ];
 
   const byId = {};
@@ -172,6 +178,40 @@
     p.gallery = p.gallery || [p.img.hd];
     byId[p.id] = p;
   });
+
+  /* 购物广场 card imagery from the plaza asset pack: model photos where the pack has
+     one (also added to the product gallery), otherwise the cleaned-up flat shots */
+  const P = 'assets/plaza/';
+  ['knit-cardigan', 'straight-jeans', 'brown-blazer'].forEach((id) => {
+    byId[id].img.plaza = P + 'models/' + id + '.webp';
+    byId[id].gallery.splice(1, 0, byId[id].img.plaza);
+  });
+  ['striped-shirt', 'black-blazer', 'pleated-skirt', 'white-tee', 'taupe-coat', 'white-sneakers', 'brown-tote', 'black-cardigan', 'white-shirt']
+    .forEach((id) => { byId[id].img.plaza = P + 'cards/' + id + '.webp'; });
+
+  /* ---------- stores (商家): every product belongs to the store of its brand ---------- */
+  const stores = [
+    { id: 'zara', name: 'ZARA', full: 'ZARA 官方旗舰店', tagline: '简约与质感的日常时装', mono: 'ZARA', bg: '#1C1A18', fg: '#FFFFFF', rating: 4.9, banner: P + 'banners/zara.webp', bannerAlt: 'ZARA 2024 秋冬系列：简约与质感的日常时装' },
+    { id: 'soft-archive', name: 'Soft Archive', full: 'Soft Archive 官方店', tagline: '柔软针织 · 基础衣橱', mono: 'SA', bg: '#E6DACB', fg: '#5B4A3C', rating: 4.8 },
+    { id: 'linea-studio', name: 'Linea Studio', full: 'Linea Studio 官方店', tagline: '法式温柔 · 日常优雅', mono: 'LS', bg: '#D5CABD', fg: '#3E3631', rating: 4.8 },
+    { id: 'mono-atelier', name: 'Mono Atelier', full: 'Mono Atelier 官方店', tagline: '利落剪裁 · 摩登通勤', mono: 'MA', bg: '#2F2B28', fg: '#F3EDE6', rating: 4.8 },
+    { id: 'forma', name: 'Forma', full: 'Forma 官方旗舰店', tagline: '鞋包配饰 · 简约实用', mono: 'F', bg: '#B89B7E', fg: '#FFFFFF', rating: 4.7 },
+    { id: 'reformation', name: 'Reformation', full: 'Reformation 官方旗舰店', tagline: '轻盈面料 · 经典衬衫', mono: 'R', bg: '#F1ECE6', fg: '#1C1A18', rating: 4.8 },
+    { id: 'linea-denim', name: 'Linea Denim', full: 'Linea Denim 官方店', tagline: '经典丹宁 · 自在随性', mono: 'LD', bg: '#5E7FA6', fg: '#FFFFFF', rating: 4.7 },
+  ];
+  const storeById = Object.fromEntries(stores.map((st) => [st.id, st]));
+  const storeByBrand = Object.fromEntries(stores.map((st) => [st.name, st]));
+  const storeOf = (p) => storeByBrand[p.brand] || stores[0];
+  /* stores the demo user has already favourited, in the order the 购物广场 bar shows them */
+  const seedStoreFavs = ['zara', 'soft-archive', 'linea-studio', 'mono-atelier', 'forma'];
+  /* chats with stores (商家消息); `at` orders the list, newest first */
+  const storeChatSeed = {
+    zara: { unread: 1, at: 3, msgs: [{ me: false, text: '您收藏的店铺上新啦！2024 秋冬系列已上线，收藏店铺的顾客可领取 ¥30 新品券～', t: '10:24' }] },
+    'mono-atelier': { unread: 0, at: 2, msgs: [{ me: true, text: '黑色西装外套还有 S 码吗？', t: '昨天' }, { me: false, text: '亲，黑色 S 码有现货，下单后 48 小时内发货哦～', t: '昨天' }] },
+    forma: { unread: 0, at: 1, msgs: [{ me: false, text: '您的小白板鞋已送达，穿着还合适吗？有任何问题随时联系我们～', t: '7月13日' }] },
+  };
+  /* the platform banners' 「探索」 picks */
+  const seasonPicks = ['taupe-coat', 'knit-cardigan', 'maxi-skirt', 'brown-blazer', 'brown-sweater', 'black-cardigan', 'pleated-skirt'];
 
   /* ---------- category systems (each screen in the reference uses its own labels) ---------- */
   const plazaCats = [
@@ -236,7 +276,7 @@
   ];
   /* the plaza feed order: reference six first, then the rest of the catalog */
   const plazaOrder = ['knit-cardigan', 'straight-jeans', 'striped-shirt', 'brown-blazer', 'basic-cami', 'pleated-skirt',
-    'black-blazer', 'satin-slip-dress', 'white-shirt', 'beige-trousers', 'taupe-coat', 'brown-tote', 'beige-blazer', 'white-sneakers',
+    'maxi-skirt', 'black-blazer', 'satin-slip-dress', 'white-shirt', 'beige-trousers', 'taupe-coat', 'brown-tote', 'beige-blazer', 'white-sneakers',
     'brown-sweater', 'denim-jacket', 'bow-blouse', 'black-handbag', 'black-cardigan', 'white-tee', 'oxford-shirt', 'black-pumps',
     'grey-hoodie', 'utility-jacket', 'black-sweater', 'ribbed-tank', 'strappy-heels', 'gold-hoops'];
 
@@ -281,7 +321,7 @@
   const seedOrders = [
     seedOrder,
     {
-      id: 'VT20260717203305', shop: 'Mono Atelier 官方店',
+      id: 'VT20260717203305', shop: 'ZARA 官方旗舰店',
       p: 'brown-blazer', title: '灰褐气质西装外套', color: 'taupe', colorLabel: '灰褐', size: 'S', qty: 1, price: 399,
       paid: 379, coupon: 20, shipping: 0, payment: 'wechat', address: 'a1',
       status: -1, progress: 1, eta: '付款后 3 天内', payBy: '7月18日 20:33',
@@ -372,6 +412,7 @@
 
   VT.data = {
     products, byId, plazaCats, wardrobeCats, inCat, fitCats, fitCatsAll, slotOf, renders, looks, lookById,
+    stores, storeById, storeOf, seedStoreFavs, storeChatSeed, seasonPicks,
     seedWardrobe, plazaOrder, addresses, shippingOptions, payments, seedOrder, seedOrders, seedReturns,
     orderStatus, orderFilters, seedFavorites, seedHistory, faqs,
     chatSeed, chatSuggestions, chatReplies, chatFallback,
@@ -389,6 +430,7 @@
       { id: 'onboarding', title: '启动页', from: '首次启动' },
       { id: 'avatar', title: '上传照片 · 创建数字分身', from: '首次启动 / 我的形象' },
       { id: 'product', title: '商品详情', from: '购物广场' },
+      { id: 'messages', title: '商家消息', from: '购物广场' },
       { id: 'checkout', title: '结算下单', from: '商品详情' },
       { id: 'orderlist', title: '我的订单', from: '我的' },
       { id: 'orders', title: '订单详情', from: '我的订单' },

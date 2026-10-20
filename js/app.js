@@ -31,7 +31,7 @@
      build a sensible back path when a screen is opened directly (simulator, deep link) */
   const PARENT = {
     onboarding: null,
-    product: 'plaza', checkout: 'product',
+    product: 'plaza', checkout: 'product', messages: 'plaza',
     orderlist: 'profile', orders: 'orderlist', tracking: 'orders', returns: 'orders',
     avatarhub: 'profile', editprofile: 'profile', addresses: 'profile', payments: 'profile',
     notifications: 'profile', settings: 'profile', privacy: 'settings', help: 'profile',

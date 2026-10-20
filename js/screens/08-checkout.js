@@ -237,7 +237,7 @@
     const hm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
     const id = `VT${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
     const order = {
-      id, shop: p.brand + ' 官方旗舰店', p: p.id, title: lineTitle(p, color), color: color.id, colorLabel: color.short, size: c.size, qty: c.qty, price: p.price,
+      id, shop: D().storeOf(p).full, p: p.id, title: lineTitle(p, color), color: color.id, colorLabel: color.short, size: c.size, qty: c.qty, price: p.price,
       paid: t.total, coupon: t.coupon, shipping: t.ship, payment: s.checkout.payment, address: s.checkout.address,
       status: 0, progress: 1, eta: md(due),
       steps: [{ label: '已下单', time: `${md(now)} ${hm(now)}` }, { label: '已发货', time: '待发货' }, { label: '运输中', time: '—' }, { label: '预计送达', time: md(due) }],
