@@ -10,6 +10,7 @@ import type {
   Address,
   AddressInput,
   Avatar,
+  AvatarCreateInput,
   AvatarJob,
   AvatarPhotoKind,
   Banner,
@@ -128,20 +129,23 @@ export interface Api {
     clear(): Promise<void>;
   };
 
+  /** DRAFT: every avatar has its own wardrobe; the calls name it (HANDOFF §9.15) */
   wardrobe: {
     /** stored order: seed order, new items first (never re-sorted by date) */
-    list(): Promise<WardrobeItem[]>;
+    list(avatarId: string): Promise<WardrobeItem[]>;
     /** 加入衣橱. If the product is already there, only its colour and size change (isNew false). */
-    add(productId: string, choice: WardrobeChoice): Promise<{ item: WardrobeItem; isNew: boolean }>;
-    upload(input: WardrobeUploadInput): Promise<WardrobeItem>;
-    setFav(uid: string, fav: boolean): Promise<void>;
+    add(avatarId: string, productId: string, choice: WardrobeChoice): Promise<{ item: WardrobeItem; isNew: boolean }>;
+    /** 个人衣橱's 添加衣物, and 首页's 加入衣橱 for a 我的上传 photo */
+    upload(avatarId: string, input: WardrobeUploadInput): Promise<WardrobeItem>;
+    setFav(avatarId: string, uid: string, fav: boolean): Promise<void>;
     /** rejects with VALIDATION for 'owned' items */
-    remove(uid: string): Promise<void>;
+    remove(avatarId: string, uid: string): Promise<void>;
   };
 
   fitting: {
-    /** the on-body image for an outfit (mock: pickRender, HANDOFF §9.3) */
-    render(outfit: Outfit): Promise<RenderResult>;
+    /** the on-body image of that avatar wearing an outfit (mock: pickRender, HANDOFF §9.3; every avatar
+     *  renders as the preset model). DRAFT: `avatarId` is new. */
+    render(avatarId: string, outfit: Outfit): Promise<RenderResult>;
   };
 
   stylist: {
@@ -154,18 +158,31 @@ export interface Api {
     suggestions(): Promise<string[]>;
   };
 
+  /** DRAFT: the account's digital avatars, 本人 first (HANDOFF §9.15, §13.1 #14) */
+  avatars: {
+    list(): Promise<Avatar[]>;
+    /** 新建数字分身: creates the avatar from the picked photos and starts generating it. Cancelling the
+     *  job removes the avatar again, so a cancelled creation leaves nothing behind. */
+    create(input: AvatarCreateInput): Promise<{ avatar: Avatar; job: AvatarJob }>;
+    /** rejects with VALIDATION for 本人 (rename the profile instead) */
+    rename(avatarId: string, name: string): Promise<Avatar>;
+    /** deletes the avatar with its photos and wardrobe; rejects with VALIDATION for 本人 */
+    remove(avatarId: string): Promise<void>;
+  };
+
+  /** DRAFT: one avatar's photos, generation and body data; the calls name the avatar */
   avatar: {
-    get(): Promise<Avatar>;
+    get(avatarId: string): Promise<Avatar>;
     /** stores a photo (already downscaled); a ready avatar becomes 'stale' */
-    uploadPhoto(kind: AvatarPhotoKind, image: Blob, fileName: string): Promise<Avatar>;
+    uploadPhoto(avatarId: string, kind: AvatarPhotoKind, image: Blob, fileName: string): Promise<Avatar>;
     /** use the preset demo avatar without generating (跳过, 登录, 试穿 before setup) */
-    useDemo(): Promise<Avatar>;
+    useDemo(avatarId: string): Promise<Avatar>;
     /** start generating from the stored photos (samples stand in for missing ones) */
-    generate(): Promise<AvatarJob>;
+    generate(avatarId: string): Promise<AvatarJob>;
     job(jobId: string): Promise<AvatarJob>;
     cancel(jobId: string): Promise<void>;
-    body(): Promise<Body>;
-    updateBody(body: Body): Promise<Body>;
+    body(avatarId: string): Promise<Body>;
+    updateBody(avatarId: string, body: Body): Promise<Body>;
   };
 
   checkout: {

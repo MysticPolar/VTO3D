@@ -41,7 +41,7 @@ A Chinese-market (zh-CN) shopping app built around a digital avatar (数字分�
 
 | Tab | Route | What it is |
 |---|---|---|
-| 首页 | `/home` | Virtual fitting room: dress the avatar in garments, switch categories, open the camera preview |
+| 首页 | `/home` | Virtual fitting room: dress the active digital avatar in garments, switch categories, try on photos of your own garments (temporary until 加入衣橱), switch avatar (切换角色) and backdrop (切换场景), open the camera preview |
 | 购物广场 | `/plaza` | Shop: search over every store and product, a bar of favourite stores, categories, product grid → product → checkout; store sheets; 商家消息 (chats with stores) |
 | 个人衣橱 | `/wardrobe` | Clothes the user owns or collected; queue items to try on; upload own garments |
 | AI造型师 | `/stylist` | Chat that suggests looks (scripted for now) |
@@ -168,6 +168,7 @@ This is the prototype's model (`reference/prototype/js/app.js`), expressed as UR
 | `help` | `help` | `/me`, `o/:oid` |
 | `avatar` | `avatarhub` | `/me` |
 | `upload` | `avatar` (我的形象 context) | `avatar` |
+| `avatars/new` (+ `?name=`) | `avatar` (new-avatar context, 切换角色 → 新建数字分身) | `/home`, `/wardrobe` (proposed, §13.1 #13) |
 | `profile` · `notifications` | `editprofile` · `notifications` | `/me`, `settings` |
 | `payments` · `settings` · `favorites` · `history` | same ids | `/me` |
 | `privacy` | `privacy` | `settings` |
@@ -222,9 +223,10 @@ How each prototype call maps: `app.go(secondaryId)` → `push`; `app.go(tabId, {
 
 | Kind | Where | Examples |
 |---|---|---|
-| Server state (will live on the backend) | TanStack Query, through `src/api/hooks` only | catalog, stores, favourites, favourite stores, saved looks, wardrobe, orders, returns, addresses, profile, body data, avatar, settings, chat history, store chats, browsing history |
-| Client state | Zustand, persisted to `localStorage` key `vto-web-state-v1` | `session` (`setupDone`), `fitting` (active category, outfit, try-on queue), `drafts` (product colour/size choices, checkout draft), `ui` (plaza category, query and chosen store, wardrobe category) |
-| In memory only | Zustand without persist, or component state | `nav.lastPath` per tab, overlay stack, toasts, unsent stylist text |
+| Server state (will live on the backend) | TanStack Query, through `src/api/hooks` only | catalog, stores, favourites, favourite stores, saved looks, wardrobe, orders, returns, addresses, profile, digital avatars (each with its own photos, body data and wardrobe, §9.15), settings, chat history, store chats, browsing history |
+| Client state | Zustand, persisted to `localStorage` key `vto-web-state-v1` | `session` (`setupDone`), `fitting` (active avatar, active category, each avatar's outfit and try-on queue), `ui.fitScene` (the 首页 backdrop), `drafts` (product colour/size choices, checkout draft), `ui` (plaza category, query and chosen store, wardrobe category) |
+| This browser session | Zustand persisted to `sessionStorage` key `vto-web-session-v1` | `fitting.uploads` (我的上传: downscaled JPEG data URLs with name and category, §9.2); they never reach the backend until 加入衣橱 |
+| In memory only | Zustand without persist, or component state | `nav.lastPath` per tab, overlay stack, toasts, unsent stylist text, the 首页 rail source (推荐 / 我的上传) |
 | Mock database | `src/api/mock/db.ts`: JSON in `localStorage` key `vto-web-db-v1`; uploaded image blobs in IndexedDB (`idb-keyval`, store `vto-web-blobs`) served as object URLs | everything in the first row |
 
 - Mutations the prototype shows instantly (hearts, switches, wardrobe add/remove, default address, queue changes) are optimistic: update the cache at once, roll back and toast on error.
@@ -248,8 +250,10 @@ Copy `reference/prototype/css/tokens.css` into `src/styles/tokens.css` unchanged
 | `--me-band` / `--me-card` | `#F0E7DE` / `#FDF9F4` | 我的 header band and cards |
 | `--backdrop` | `#241D19` | desktop backdrop |
 | `--focus` | `#8A6F5A` | focus ring (`css/base.css:36`) |
+| `--coral-soft` / `--coral` / `--coral-line` | `#F3D5CD` / `#D9897A` / `#D48B7A` | 首页: the 开启视频试衣 pill and its circle; the selected garment's ring |
+| `--seg-on` | `#5B4B42` | 首页: the selected 推荐 / 我的上传 tab |
 
-Palette rules from the original brief still apply: quiet luxury, no gradients beyond the prototype's existing fade-outs, no neon, glow or glassmorphism.
+Palette rules from the original brief still apply: quiet luxury, no gradients beyond the prototype's existing fade-outs, no neon, glow or glassmorphism. The 首页 update (20 Oct 2026) adds a muted coral as the second accent after the yellow dot; it is used only for video try-on and the selected garment on 首页.
 
 ### 5.2 Typography and fonts
 
@@ -299,7 +303,7 @@ Port these from `reference/prototype/css/components.css` and `js/ui.js` into `sr
 - **Actions:** `Button` (dark / light / ghost / beige variants as in the prototype), `IconButton` (44 × 44 target), `HeartButton` (with pop animation, `aria-pressed`, 「收藏」/「取消收藏」 labels), `Chip`, `ChipRow` (horizontal scroll), `Segmented`, `Stepper` (quantity).
 - **Lists and settings:** `ListGroup`, `ListRow` (icon, label, value, sub-label, chevron), `ToggleRow` + `Switch` (`role="switch"`, `aria-checked`), `KeyValue` (price breakdown, order info).
 - **Commerce:** `Price` (one ¥ formatter with thousands separators, §9.4), `ColorDots` (incl. the stripe swatch and the 「+N」 overflow), `ProductCard`, `WardrobeTile`, `LookCard`, `OrderCard`, `MiniItem`, `StatusTracker` (4-step order tracker), `Timeline` (logistics).
-- **Overlays:** `OverlayHost`, `Sheet` (grab bar, title, close; `full` variant), `Dialog` (returns a promise like `app.dialog`), `Layer` (full-screen), `Toast` (`role="status"`, optional action).
+- **Overlays:** `OverlayHost`, `Sheet` (grab bar, title, close; `full` variant), `Dialog` (returns a promise like `app.dialog`), `Layer` (full-screen), `Menu` (a small menu anchored above its trigger, with a tail: 首页's 拍照), `Toast` (`role="status"`, optional action).
 - **Forms:** `Field`, `TextArea`, `ImagePicker` (wraps `<input type="file" accept="image/*">` + the §9.9 pipeline).
 - **Feedback:** `Spinner`, `ProgressBar`, `EmptyState`, `Skeleton`, `ErrorState` (§5.8), `DemoNote` (renders only when `isDemo()`).
 
@@ -373,8 +377,11 @@ Porting method per screen:
 | `addresses` | `addresses.*` |
 | `profile` | `profile.*` |
 | `avatarPrefs`, `notify`, `privacy`, `prefs` | `settings.get` / `update` |
-| `fit.cat`, `fit.outfit` | Zustand `fitting.category`, `fitting.outfit` (persisted); the image comes from `fitting.render(outfit)` |
-| `tryQueue` | Zustand `fitting.queue` (wardrobe uids, persisted) |
+| `fit.cat`, `fit.outfit` | Zustand `fitting.category` (shared) and `fitting.outfit[avatarId]` (per avatar), persisted; the image comes from `fitting.render(outfit)` |
+| `tryQueue` | Zustand `fitting.queue[avatarId]` (wardrobe uids, persisted) |
+| `avatars`, `activeAvatar` | `avatars.list` / `create` / `rename` / `remove` (draft contract, §13.1 #14); the active avatar's id in Zustand `fitting.avatarId` (persisted). `avatar`, `body` and `wardrobe` are that avatar's (§9.15) |
+| `fitScene` | Zustand `ui.fitScene` (persisted) |
+| 我的上传 (`sessionStorage['vt-fit-uploads-v1']`) | Zustand `fitting.uploads`, persisted to `sessionStorage` (§4.4) |
 | `plaza.cat`, `plaza.q`, `plaza.store`, `wardrobeCat` | Zustand `ui` (persisted) |
 | `storeFavs` | `stores.favorites` / `setFavorite` |
 | `storeChats` | `storeChats.list` / `open` / `send` / `markRead` |
@@ -418,6 +425,7 @@ Prototype screen id ↔ web route ↔ component. Use the prototype id in `data-s
 | `onboarding` | 启动页 | `/welcome` | `routes/Welcome` | `onboarding` |
 | `avatar` | 上传照片，创建数字分身 | `/welcome/avatar` (first launch) | `routes/AvatarUpload` | `avatar` |
 | `avatar` | (same screen, 我的形象 context) | `/me/avatar/upload` | `routes/AvatarUpload` | `avatar&from=profile` |
+| `avatar` | (same screen, new-avatar context) | `/home/avatars/new?name=…` (proposed) | `routes/AvatarUpload` | — (same layout as `avatar`; covered by its acceptance checks) |
 | `product` | 商品详情 | `<parent>/p/:pid`, canonical `/plaza/p/:pid` | `routes/Product` | `product&pid=striped-shirt` |
 | `checkout` | 结算下单 | `<parent>/p/:pid/checkout` | `routes/Checkout` | `checkout` |
 | `messages` | 商家消息 | `/plaza/messages` (proposed) | `routes/Messages` | `messages` |
@@ -464,9 +472,12 @@ Port these as plain functions in `src/features/` (used by the mock and, where no
 
 - Seven slots: `top`, `bottom`, `dress`, `outer`, `shoes`, `bag`, `acc`. A product's slot is its category (`data.slotOf`), not the 首页 menu it was picked from (「上装」 lists black-blazer, which fills `outer`; three more outer garments in its full list show only while selected).
 - **Toggle on 首页:** tapping a selected item removes it; tapping another item for an occupied slot replaces it. A `dress` clears `top` and `bottom`; a `top` or `bottom` clears `dress`. `outer`, `shoes`, `bag`, `acc` combine with anything.
-- **首页 rail** (`screens/03-fitting.js:46-59`; `data.fitCatsAll` filtered into `data.fitCats` at `data.js:253-256`): each category lists, in the order of its full list (`data.fitCatsAll`), the garments that at least one render wears, plus any selected garment, which stays until it is tapped off. With nothing selected that is 10 of the 28 try-on garments: 上装 black-blazer, basic-cami · 下装 straight-jeans · 连衣裙 satin-slip-dress · 外套 black-blazer · 鞋履 white-sneakers, black-pumps, strappy-heels · 包包 brown-tote, black-handbag · 配饰 gold-hoops. Cases: `{top: grey-hoodie}` → 上装 [black-blazer, basic-cami, grey-hoodie]; `{outer: knit-cardigan}` → 上装 [knit-cardigan, black-blazer, basic-cami] and 外套 [black-blazer, knit-cardigan]; `{bottom: maxi-skirt}` → 下装 [straight-jeans], because maxi-skirt is in no full list (§13.2 #35). A render added to the seed brings the garments it wears back to the rail.
+- **首页 rail, 推荐** (`screens/03-fitting.js`, `recItems`): each category lists every garment of its full list (`data.fitCatsAll`): first the ones at least one render wears (`data.fitCats`, `data.js:253-256`), then the rest, each group in list order. That is all 28 try-on garments; the image-ready ones are 上装 black-blazer, basic-cami · 下装 straight-jeans · 连衣裙 satin-slip-dress · 外套 black-blazer · 鞋履 white-sneakers, black-pumps, strappy-heels · 包包 brown-tote, black-handbag · 配饰 gold-hoops. Cases: 上装 → [black-blazer, basic-cami, knit-cardigan, striped-shirt, beige-blazer, oxford-shirt, utility-jacket, grey-hoodie, black-sweater, bow-blouse, white-tee, white-shirt, brown-sweater, ribbed-tank]; 外套 → [black-blazer, beige-blazer, knit-cardigan, brown-blazer, taupe-coat, black-cardigan, denim-jacket, utility-jacket]; 下装 → [straight-jeans, pleated-skirt, beige-trousers] (maxi-skirt is in no full list, §13.2 #35). A render added to the seed moves the garments it wears to the front. (From 051585b until the 首页 update of 20 Oct 2026 the rail listed only the image-ready garments.)
 - **`applyTryOn(outfit, productIds)`** (`VT.tryOn`, `screens/05-product.js:197`), used by 试穿上身, the wardrobe queue, look cards and 我的收藏: applies each product in order with the rules above, merging into the current outfit; sets the 首页 menu category to the first try-on category whose full list contains the first product, skipping 「上装」 unless that product is a `top` or `outer` garment (`:211`), so a garment without a render still opens its own category and stays on the rail while selected; leaves the category as it is when no list contains the product; if the avatar isn't ready, calls `avatar.useDemo()`; then `jumpToTab('home')`. 420 ms later it toasts 「已为你的数字分身换上所选单品」, or, if any sent product is in `missing`, 「演示版暂无「{name}」的上身图，已加入当前搭配」 (3000 ms) naming the first such product.
 - **Toasts when toggling on 首页:** added and missing → 「演示版暂无「{name}」的上身图，已加入当前搭配」 (2800 ms); added and shown → 「已试穿：{name}」; removed → no toast.
+- **我的上传, temporary uploads** (首页 → 拍照; SCREENS.md 首页): a confirmed photo (§9.9) becomes `{ id, image, name, category }` at the front of the session's uploads (name at most 16 characters, blank → 「我的衣物」; category = one of the seven 首页 categories, default the active one). It fills the slot of its category (上装 → top, 下装 → bottom, 连衣裙 → dress, 外套 → outer, 鞋履 → shoes, 包包 → bag, 配饰 → acc) with the slot rules above, as `up:{id}`. `pickRender` always counts it as missing, so it is never drawn: the render changes only when the slot rules take something else off. Putting one on (confirming, or tapping its tile) toasts 「演示版暂无「{name}」的上身图，已加入临时试穿」 (2800 ms). Uploads last for the browser session, are shared by all avatars and never reach a wardrobe on their own; outfit entries whose upload is gone (a new session) are dropped.
+- **加入衣橱** (the 临时试穿 card): saves the newest worn upload to the **active avatar's** wardrobe (`wardrobe.upload` with the image, name and category; front of the list; the wardrobe filter goes back to 全部). Once per avatar: the button reads 已在衣橱 while that avatar's wardrobe holds the item saved from it, and comes back if the item is removed. Toast 「已加入个人衣橱」, or 「已加入「{avatar name}」的衣橱」 with more than one avatar, with the action 「去看看」 → `jumpToTab('wardrobe')`.
+- Cases: confirm a jacket photo under 外套 → outfit `{outer: up:…}`, render stays base, the rail shows 我的上传, the wardrobe is unchanged; 加入衣橱 → wardrobe +1 (`source: 'uploaded'`), button 已在衣橱; a 上装 upload over `{dress: satin-slip-dress}` → `{top: up:…}` and the render goes from look3 to base; the next session → 我的上传 empty, `{outer: up:…}` dropped, the saved wardrobe item stays.
 - **Wardrobe 「去试衣间」:** takes the queue in order, drops uploaded items, empties the queue, then `applyTryOn`. If nothing is left: toast 「所选衣物暂不支持试穿」 and stay.
 - Cases: `{}` + [black-blazer] → `{outer}`; `{top: basic-cami, bottom: straight-jeans}` + [satin-slip-dress] → `{dress}` only; `{dress}` + [striped-shirt] → `{top: striped-shirt}`; Look 1 items → `{top: basic-cami, bottom: straight-jeans, bag: brown-tote, shoes: white-sneakers}`. Menu category after `applyTryOn`: grey-hoodie, utility-jacket, knit-cardigan, black-blazer → `upper`; brown-blazer, taupe-coat → `outer`; pleated-skirt → `lower`; maxi-skirt → unchanged.
 
@@ -564,6 +575,7 @@ One shared pipeline in `src/features/images`: check type → check size → deco
 |---|---|---|
 | Avatar photos (全身照, 生活照) | longest side ≤ 900 px, JPEG 0.8 | `screens/02-avatar.js:47` |
 | Wardrobe garment | ≤ 520 px, JPEG 0.82 | `screens/06-wardrobe.js:215` |
+| 首页 garment photo (从相册上传, the phone camera, or a 拍摄衣服 frame) | ≤ 520 px, JPEG 0.82 | `screens/03-fitting.js` (`readImage`), `camera.js` (`capture`) |
 | Stylist photo | ≤ 420 px, JPEG 0.8 | `screens/07-stylist.js:151` |
 | Return evidence (max 3) | ≤ 360 px, JPEG 0.78 | `screens/09-orders.js:281` |
 | Profile photo | centre square, 320 × 320, JPEG 0.82 | `screens/10-profile.js:12` |
@@ -587,6 +599,7 @@ Errors, the same for every picker (§13.2 #21, #30): not `image/*` → 「请选
 
   The prototype's embedded-preview error (「当前页面无法使用摄像头」) is dropped.
 - **Stop rule:** every track stops and the video is cleared when the layer closes for any reason (✕, 暂不开启, 返回试衣间, Esc, browser back, any navigation), when 首页 is hidden (tab switch), and on `visibilitychange` to hidden. Every start, retry and switch stops the previous stream first. Keep a `closed` flag: a stream that resolves after closing is stopped at once.
+- **拍摄衣服** (首页 → 拍照; `camera.js`, `capture`): on touch devices (`pointer: coarse`) a file input with `capture="environment"` opens the phone's own camera. Elsewhere an in-app layer starts `getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })` at once (no intro): 「正在打开摄像头…」, then the live preview with a shutter (mirrored only when the track reports `user`), or an error from the table above with 「重试」 and 「从相册上传」. The shutter takes the current frame, unmirrored, through §9.9's 首页 garment rule and closes the layer. The stop rule above applies to this layer too.
 
 ### 9.11 Timings
 
@@ -651,6 +664,19 @@ Added with the 购物广场 stores redesign (prototype commit 514de38). Screens:
   - Cases: 「什么时候发货？」 → 1; 「尺码怎么选？」 → 2; 「有优惠券吗？」 → 3; 「可以退货吗？」 and 「可以换颜色吗」 → 4; 「这件会起球吗？」 → 5; 「退货多久能退款？」 → 1 (order wins); 「手机号码多少」 → 2 (「码」 alone matches); 「多少钱？」 and 「你好」 → fallback.
 - The merchant chat on 订单详情 and the service chat (§9.11) are separate from the store chats: nothing is stored, and they never appear in 商家消息 (§13.2 #36).
 
+### 9.15 Digital avatars (切换角色)
+
+Added with the 首页 update (20 Oct 2026; `js/store.js` `VT.store.avatars`). Screens: SCREENS.md 首页, 上传照片 (`new` context), 个人衣橱, 我的形象.
+
+- **An avatar owns** its photos, status and generation time (`avatar`), body data (`body`), its wardrobe, its 首页 outfit and its try-on queue. **Shared by all avatars:** the avatar preferences (`avatarPrefs`, in `Settings`), the profile, favourites and saved looks, browsing history, orders and returns, addresses, the checkout draft, the stylist chat, favourite stores and store chats, settings, the 首页 category, the backdrop (`fitScene`) and 我的上传.
+- **Seed:** one avatar, 本人 (`id: 'me'`, `self: true`), named after the profile nickname. 本人 can't be renamed here (the nickname is edited in 我的资料) or deleted.
+- **Create** (切换角色 → 新建数字分身: a name, required, at most 8 characters, else 「请填写名称」 → the upload screen in the `new` context → generate): the avatar is created only when generation finishes, with the uploaded photos (or none), status `ready`, an empty wardrobe, outfit and queue and the default body data (165 cm · 48 kg · M · 37); it becomes the active avatar. Cancelling or leaving before that creates nothing.
+- **Switch:** the chosen avatar becomes active, and every screen reads its data: the 首页 outfit and render, 个人衣橱, the counts on 我的, 我的形象, the stylist's wardrobe sets, the wardrobe side effect of buying (§9.4) and 加入衣橱. Toast 「已切换到「{name}」」.
+- **Rename / delete** (我的形象, for an avatar other than 本人): rename → 「名称已保存」; delete, after its dialog, removes the avatar and all its data, switches back to 本人 and toasts 「已删除「{name}」，已切换回本人」.
+- 「重新体验首次启动」 switches back to 本人 first; 「清除已上传的照片」 clears every avatar's photos; 「重置演示数据」 leaves only 本人.
+- **[demo]** Every avatar renders as the preset model, because avatar generation is simulated (§9.13): a second avatar looks the same on 首页 and in 我的形象, and the 切换角色 sheet says so (「演示版的数字分身均使用示例模特形象」).
+- Cases: seed → [本人], active 本人, wardrobe 15; create 「家人」 → [本人, 家人], active 家人, wardrobe 0, outfit `{}`; switch to 本人 → wardrobe 15 and the outfit she had; 加入衣橱 while 家人 is active → only 家人's wardrobe grows; delete 家人 while active → [本人], active 本人.
+
 ---
 
 ## 10. Quality bar
@@ -674,14 +700,14 @@ Added with the 购物广场 stores redesign (prototype commit 514de38). Screens:
 - The flows that start from the simulator's side list start from a URL instead.
 - Use the fixtures in `reference/acceptance/fixtures/` (`me_full.jpg`, `me_face.jpg`, `my_jacket.jpg`, `not_image.txt`). The camera checks run in Chromium with `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream` and the camera permission granted.
 - Run the suite with `reducedMotion: 'reduce'` (faster timers), except the transition tests.
-- The prototype's test has 113 checks. The 首页 rail checks 「首页 rail lists only garments with a render」 and 「selected garment without a render shows until tapped off」 came with 051585b; the prototype sends the garment through `VT.tryOn`, so the web test sends it from a screen instead (个人衣橱's 「试穿这件」 on striped-shirt works before 商品详情 exists).
+- The prototype's test has 122 checks. The 首页 update (20 Oct 2026) replaced 「首页 rail lists only garments with a render」 with 「首页 rail lists image-ready garments first」 and 「selected garment without a render shows until tapped off」 with 「garment without a render can be tapped off」; the prototype sends the garment through `VT.tryOn`, so the web test sends it from a screen instead (个人衣橱's 「试穿这件」 on striped-shirt works before 商品详情 exists). It also added nine checks that run last, in a fresh 390 × 844 context with the fake camera and empty storage: 「首页 header: 切换角色 · 切换场景 · 开启视频试衣」, 「拍照 opens 拍摄衣服 / 从相册上传」, 「upload → 我的上传, tried on, not in the wardrobe」, 「加入衣橱 saves the upload once」, 「我的上传 lasts for the browser session」, 「拍摄衣服 captures a photo (getUserMedia)」, 「切换场景 changes the backdrop」, 「新建数字分身: its own empty wardrobe, now active」, 「切换角色 back to 本人 restores her wardrobe」. Port them as one serial file, like the 购物广场 stores block.
 - The 购物广场 stores block (11 checks, 514de38) runs last in the prototype, in the mobile context, from the seed with setup done. Its checks build on each other's state (a store favourited from search and removed again in 管理, the ZARA chat read and answered), so port them as one serial file that starts from `devtools.reset()` with `setupDone`: 「plaza: store bar = 全部 + favourite stores only」, 「plaza: 全部 shows every store, with the platform banner」, 「plaza: a favourite store shows only its products」, 「plaza: category narrows the chosen store」, 「plaza: search covers every store and product」, 「plaza: favouriting a store from search adds it to the bar」, 「plaza: 管理 removes a store from the bar」, 「plaza: chat icon opens 商家消息」, 「plaza: store chat replies and clears unread」, 「plaza: back from 商家消息 → 购物广场」, 「product brand opens its store sheet」. The store reply takes 900 ms even with reduced motion (§9.11).
 
 ### 10.2 Visual baselines
 
 `pnpm visual:baseline` (script `scripts/visual/capture-prototype.ts`) serves `reference/prototype/` on a free port and screenshots each `?app=<id>&<params>` URL from §8 into `e2e/visual/__baseline__/<id>.png` (the second variants are `avatar-profile.png`, `returns-progress.png`; the first `returns` row is `returns.png`). `pnpm visual` screenshots the same screens from the web app and compares with `expect(screenshot).toMatchSnapshot('<id>.png')` (`snapshotPathTemplate` points at `__baseline__`). **Never run the visual suite with `--update-snapshots`**: that would overwrite the prototype baselines with the app's own screenshots. Commit the baselines.
 
-The baselines Phase 0 captured predate the 购物广场 stores redesign (prototype commit 514de38): `plaza` changed with it, `orderlist` too (the unpaid order's shop is now 「ZARA 官方旗舰店」), and `messages` is new. Re-capture them all from 514de38 or later, adding the `messages` row (`?app=messages`), before Phase 3 compares anything.
+The baselines Phase 0 captured predate the 购物广场 stores redesign (prototype commit 514de38): `plaza` changed with it, `orderlist` too (the unpaid order's shop is now 「ZARA 官方旗舰店」), and `messages` is new. Re-capture them all from 514de38 or later, adding the `messages` row (`?app=messages`), before Phase 3 compares anything. The 首页 update (20 Oct 2026) changed `fitting` (and its inset crop); it was re-captured in the same change.
 
 **Inset check.** `pnpm visual` also renders each screen at `--top-inset: 0` in a 390 × 800 viewport and compares it with the same baseline cropped to y ≥ 44 (same threshold). This catches top offsets that were converted wrongly (§4.2). 首页 and 启动页 have full-bleed photos that don't move, so review those two by eye.
 
@@ -742,11 +768,11 @@ Done when:
 
 ### Phase 3 · The five tab screens
 
-首页, 购物广场, 个人衣橱, AI造型师, 我的, with all their sheets, at full fidelity (SCREENS.md). 购物广场's sheets include the store sheet, 管理 (「收藏的商家」) and 「秋日灵感穿搭」; its secondary screen 商家消息, with the 「消息通知」 sheet and the store chat sheet (which the store sheet's 「联系商家」 also opens), is built here too. Includes the image pipeline (§9.9) for garment upload and the stylist photo. The camera layer waits for Phase 6: until then the camera button opens the layer's permission explainer only.
+首页, 购物广场, 个人衣橱, AI造型师, 我的, with all their sheets, at full fidelity (SCREENS.md). 购物广场's sheets include the store sheet, 管理 (「收藏的商家」) and 「秋日灵感穿搭」; its secondary screen 商家消息, with the 「消息通知」 sheet and the store chat sheet (which the store sheet's 「联系商家」 also opens), is built here too. Includes the image pipeline (§9.9) for garment upload, the stylist photo and 首页's 拍照. 首页 includes 切换场景, the 推荐 / 我的上传 rail, the 拍照 menu, 确认衣物照片, 我的上传 and 加入衣橱; 切换角色's sheet is built here and its 新建数字分身 flow in Phase 4 with the upload screen (add the `avatars/new` route, §13.1 #13, to the grammar then). The camera layer and the 拍摄衣服 layer wait for Phase 6: until then the camera button opens the layer's permission explainer only, and 拍摄衣服 opens the file picker.
 
 Done when:
 - [ ] Visual diff ≤ 2% for `fitting`, `plaza`, `wardrobe`, `stylist`, `profile`, `messages`.
-- [ ] Acceptance: 「outfit change: blazer → look2 render」, 「outfit change: dress → look3 render」, 「首页 rail lists only garments with a render」, 「honest toast for garments without imagery」, 「selected garment without a render shows until tapped off」 (both sent from 个人衣橱 until 商品详情 exists, §10.1), 「plaza search」, 「plaza scroll kept after switching tabs」, 「plaza heart toggles」, 「plaza: store bar = 全部 + favourite stores only」, 「plaza: 全部 shows every store, with the platform banner」, 「plaza: a favourite store shows only its products」, 「plaza: category narrows the chosen store」, 「plaza: search covers every store and product」, 「plaza: favouriting a store from search adds it to the bar」, 「plaza: 管理 removes a store from the bar」, 「plaza: chat icon opens 商家消息」, 「plaza: store chat replies and clears unread」, 「plaza: back from 商家消息 → 购物广场」, 「wardrobe filter 下装」, 「wardrobe queue bar」, 「uploaded garment saved」, 「stylist draft kept across tabs」, 「AI stylist reply with looks」, 「look → 首页 with outfit」.
+- [ ] Acceptance: 「outfit change: blazer → look2 render」, 「outfit change: dress → look3 render」, 「首页 rail lists image-ready garments first」, 「honest toast for garments without imagery」, 「garment without a render can be tapped off」 (both sent from 个人衣橱 until 商品详情 exists, §10.1), 「首页 header: 切换角色 · 切换场景 · 开启视频试衣」, 「拍照 opens 拍摄衣服 / 从相册上传」, 「upload → 我的上传, tried on, not in the wardrobe」, 「加入衣橱 saves the upload once」, 「我的上传 lasts for the browser session」, 「切换场景 changes the backdrop」, 「plaza search」, 「plaza scroll kept after switching tabs」, 「plaza heart toggles」, 「plaza: store bar = 全部 + favourite stores only」, 「plaza: 全部 shows every store, with the platform banner」, 「plaza: a favourite store shows only its products」, 「plaza: category narrows the chosen store」, 「plaza: search covers every store and product」, 「plaza: favouriting a store from search adds it to the bar」, 「plaza: 管理 removes a store from the bar」, 「plaza: chat icon opens 商家消息」, 「plaza: store chat replies and clears unread」, 「plaza: back from 商家消息 → 购物广场」, 「wardrobe filter 下装」, 「wardrobe queue bar」, 「uploaded garment saved」, 「stylist draft kept across tabs」, 「AI stylist reply with looks」, 「look → 首页 with outfit」.
 - [ ] Hearts, filters (including the chosen store), favourite stores, store chats, the outfit and the try-on queue survive a reload.
 
 ### Phase 4 · Launch, product and checkout flows
@@ -755,7 +781,7 @@ Done when:
 
 Done when:
 - [ ] Visual diff ≤ 2% for `onboarding`, `avatar`, `product`, `checkout`.
-- [ ] Acceptance: 「开始体验 → avatar creation」, 「photo upload previews」, 「non-image rejected」, 「AC1: setup complete → 首页 (virtual fitting room)」, 「setupDone stored」, 「plaza → product details」, 「AC6: back from product → plaza」, 「加入衣橱 → 个人衣橱 tab」, 「collected item at top of wardrobe」, 「plaza tab returns to its own history (product page)」, 「立即购买 → checkout」, 「checkout address sheet lists address book」, 「pay → 订单详情 (in 我的 → 我的订单)」, 「finished checkout removed from plaza history」, 「product brand opens its store sheet」. 商品详情 「试穿上身」 on a garment without a render (e.g. grey-hoodie) gives the 「演示版暂无…」 toast and keeps it on the 首页 rail until tapped off. An unknown `pid` shows 「没有找到这个商品」 and records nothing in 浏览记录.
+- [ ] Acceptance: 「开始体验 → avatar creation」, 「photo upload previews」, 「non-image rejected」, 「AC1: setup complete → 首页 (virtual fitting room)」, 「setupDone stored」, 「plaza → product details」, 「AC6: back from product → plaza」, 「加入衣橱 → 个人衣橱 tab」, 「collected item at top of wardrobe」, 「plaza tab returns to its own history (product page)」, 「立即购买 → checkout」, 「checkout address sheet lists address book」, 「pay → 订单详情 (in 我的 → 我的订单)」, 「finished checkout removed from plaza history」, 「product brand opens its store sheet」, 「新建数字分身: its own empty wardrobe, now active」, 「切换角色 back to 本人 restores her wardrobe」. 商品详情 「试穿上身」 on a garment without a render (e.g. grey-hoodie) gives the 「演示版暂无…」 toast and selects it on the 首页 rail until tapped off. An unknown `pid` shows 「没有找到这个商品」 and records nothing in 浏览记录.
 
 ### Phase 5 · 我的 flows
 
@@ -774,7 +800,7 @@ Done when:
 5. Manual device pass, reported as a table: iPhone Safari, iPhone WeChat, Android Chrome, Android WeChat × (safe areas, input zoom, photo picker from camera and gallery, camera preview and switching, back button, toolbars and `100dvh`, fonts). Use `pnpm dev --host` on the LAN; the camera needs HTTPS outside `localhost`, so use an HTTPS tunnel for phone camera tests.
 
 Done when:
-- [ ] Acceptance: 「camera preview live (getUserMedia)」, 「camera stops on close」, plus new tests: the camera stops on tab switch, on navigation and when the page is hidden.
+- [ ] Acceptance: 「camera preview live (getUserMedia)」, 「camera stops on close」, 「拍摄衣服 captures a photo (getUserMedia)」, plus new tests: the camera stops on tab switch, on navigation and when the page is hidden.
 - [ ] The latency run and the failure run pass.
 - [ ] The device table is filled in, with any issue either fixed or listed in the report.
 
@@ -819,6 +845,10 @@ For Walker to confirm. Until then, build the default; nothing here blocks a phas
 | 10 | Demo-only UI (重置演示数据, 重新体验首次启动, 演示 notes, the demo verification code, the 「原型演示」 group and 「原型 v2.0」 in 设置) | Keep, behind `isDemo()` |
 | 11 | Route for 商家消息, the screen the 购物广场 stores redesign added (prototype commit 514de38, 19 Oct 2026): `/plaza/messages`, a `messages` segment after `/plaza` (§4.3, §8) | Use it |
 | 12 | ZARA is a real trademark (Inditex). The demo uses it as one of its seven stores: the store name 「ZARA 官方旗舰店」, a ZARA wordmark as its logo, a banner image with a ZARA wordmark (`assets/plaza/banners/zara.webp`), four products, a seed order and chat copy (「2024 秋冬系列」). The public GitHub Pages copy of the prototype already shows it | Keep it in the demo seed as the prototype has it (acceptance checks and baselines depend on it); replace it with a fictional or licensed store before any public launch |
+| 13 | Route for creating another digital avatar (切换角色 → 新建数字分身, 20 Oct 2026): `/home/avatars/new?name=…`, a segment group `avatars/new` allowed after `/home` and `/wardrobe` (where the 切换角色 sheet opens), the name in `?name=` (§4.3, §8) | Use it |
+| 14 | Multiple digital avatars change the API contract: the avatar-scoped `avatar.*`, `wardrobe.*` calls and an `avatars` area (list, create, rename, remove). Drafted in `docs/contract/` (marked draft) | Review the draft before Phase 2 copies the contract |
+| 15 | 我的上传 lasts for the browser session (sessionStorage), is shared by all avatars, and reaches the backend only through 加入衣橱 | Yes |
+| 16 | New copy from the 首页 update: 切换角色, 切换场景 and the backdrop names 暖灰 · 奶白 · 燕麦 · 深咖, 推荐 / 我的上传, 拍照, 拍摄衣服, 从相册上传, 确认衣物照片, 临时试穿, 演示版暂无上身图, 加入衣橱 / 已在衣橱, 新建数字分身 and its sheets (SCREENS.md 首页) | Use it |
 
 ### 13.2 Known prototype issues
 
@@ -864,7 +894,7 @@ Rows 34–38 were found while bringing this spec in line with prototype commits 
 
 | # | Issue | Default |
 |---|---|---|
-| 34 | Tapping off a selected garment that no render wears removes its thumbnail from the 首页 rail; the handler can't find it to refocus, so keyboard focus drops to the page (`screens/03-fitting.js:113-114`) | **Fix:** move focus to the active category pill |
+| 34 | Tapping off a selected garment that no render wears removed its thumbnail from the 首页 rail, so keyboard focus dropped to the page | **Resolved in the prototype** (首页 update, 20 Oct 2026): every try-on garment stays on the rail, so focus stays on its tile |
 | 35 | maxi-skirt (added in 514de38) is in no try-on category (`data.fitCatsAll`). 试穿上身 on it leaves the 首页 menu where it was, and the skirt never shows on the rail, so it can't be tapped off; only another bottom or a dress replaces it | **Fix:** list it under 下装, after beige-trousers, in the seed's try-on categories; the seed-parity test allows that one difference from `data.js` (or add it to `data.js` too, so both agree) |
 | 36 | Two merchant chats: 订单详情's 「联系商家」 (`screens/09-orders.js:390`) is unstored, answers exact questions after 800 ms and greets 「您好，我是店铺客服…」; the store chats on 商家消息 (`screens/14-messages.js`) are stored, answer by keyword after 900 ms and greet 「您好，欢迎光临 {店铺}…」. A chat started from an order never shows up in 商家消息 | **Keep** both as they are; merge them when the backend brings real merchant chat |
 | 37 | The new 购物广场 and 商家消息 text (copy, aria-labels, reply keywords) uses 13 characters that the prototype's subset fonts lack (义便列右折抵探摆般迎逸顶飘), so the prototype draws the visible ones, such as 「欢迎光临」 and 「飘逸」, in the system font. Phase 0's `charset.txt` predates them | **Keep** in the prototype. The web build's `pnpm fonts` covers them once re-run; recreate `charset.txt` from the current prototype. Expect those glyphs to differ from the baselines after Phase 6 |
@@ -885,7 +915,8 @@ Not part of this build. Listed so the front end doesn't paint itself into a corn
 | `stores` | `GET /v1/stores?q=`, `GET /v1/stores/:id`, `GET /v1/me/store-favorites`, `PUT/DELETE /v1/me/store-favorites/:storeId` |
 | `storeChats` | `GET /v1/me/store-chats`, `GET /v1/me/store-chats/:storeId` (marks it read), `POST /v1/me/store-chats/:storeId/messages`, `POST /v1/me/store-chats/:storeId/read` (real-time delivery later) |
 | `favorites` · `looks` · `history` | `GET/PUT/DELETE /v1/me/favorites/:pid`, `GET/PUT/DELETE /v1/me/looks/:id`, `GET/POST /v1/me/history` |
-| `wardrobe` | `GET /v1/me/wardrobe`, `POST /v1/me/wardrobe` (from a product or an upload), `PATCH/DELETE /v1/me/wardrobe/:uid` |
+| `avatars` | `GET/POST /v1/me/avatars`, `PATCH/DELETE /v1/me/avatars/:id`; the avatar calls below move under `/v1/me/avatars/:id/…` (photos, jobs, body) |
+| `wardrobe` | per avatar: `GET /v1/me/avatars/:id/wardrobe`, `POST …/wardrobe` (from a product or an upload), `PATCH/DELETE …/wardrobe/:uid` |
 | `fitting` | `POST /v1/tryon/renders` → job (AI try-on is slow; the mock answers at once) |
 | `avatar` | `POST /v1/me/avatar/photos` (direct upload to object storage with a signed URL), `POST /v1/me/avatar/jobs`, `GET /v1/me/avatar/jobs/:id`, `GET /v1/me/avatar` |
 | `stylist` | `GET /v1/stylist/messages`, `POST /v1/stylist/messages` (streaming later) |

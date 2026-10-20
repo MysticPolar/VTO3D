@@ -26,7 +26,13 @@
  *   wardrobe `custom: {src, name, cat}` → `upload: {img, name, category}`, seed `addedAt: 0` → `null`;
  *   avatar photo `{src, name, w, h}` → `{url, name}`;
  *   chat `img` → `photo`, `looks` → `lookIds`, `{role: 'wardrobe', pids}` → `productIds`;
- *   favourites map `{pid: bool}` → `string[]`; `savedLooks` map → `SavedLook[]`; FAQ tuples → `{q, a}`.
+ *   favourites map `{pid: bool}` → `string[]`; `savedLooks` map → `SavedLook[]`; FAQ tuples → `{q, a}`;
+ *   `avatars` + `activeAvatar` (the active avatar's data in the old top-level fields) → `Avatar[]`,
+ *   with the active avatar's id kept by the client (HANDOFF §4.4).
+ *
+ * DRAFT, needs approval (HANDOFF §13.1 #14; 首页 update, 20 Oct 2026): digital avatars. `Avatar`
+ * gains `id`, `name`, `self` and `wardrobeCount`; `AvatarCreateInput` is new; `OrderDraft` names
+ * the avatar whose wardrobe a purchase joins. The matching operations are in api.ts.
  */
 
 export type ImageUrl = string;
@@ -312,11 +318,26 @@ export interface AvatarPhoto {
 }
 
 export interface Avatar {
+  /** DRAFT: one of the account's digital avatars (HANDOFF §9.15) */
+  id: string;
+  /** display name; 本人's is the profile nickname */
+  name: string;
+  /** true for 本人, the account holder's own avatar: it can't be renamed (the nickname is) or removed */
+  self: boolean;
+  /** wardrobe items, for the 切换角色 list (「衣橱 {n} 件」) */
+  wardrobeCount: number;
   status: AvatarStatus;
   fullbody: AvatarPhoto | null; // 全身照
   portrait: AvatarPhoto | null; // 生活照 (also the fallback profile picture)
   /** null when the avatar became ready without generating (跳过, 登录, 试穿 before setup) */
   generatedAt: ISODateTime | null;
+}
+
+/** DRAFT: 新建数字分身. The photos are the ones picked on the upload screen (already downscaled). */
+export interface AvatarCreateInput {
+  name: string; // 1–8 characters
+  fullbody: { image: Blob; fileName: string } | null;
+  portrait: { image: Blob; fileName: string } | null;
 }
 
 export interface AvatarJob {
@@ -418,6 +439,8 @@ export interface OrderDraft {
   addressId: string;
   shipping: ShippingOptionId;
   payment: PaymentMethodId;
+  /** DRAFT: the active avatar; the purchase joins its wardrobe (HANDOFF §9.4, §9.15) */
+  avatarId: string;
 }
 
 /**

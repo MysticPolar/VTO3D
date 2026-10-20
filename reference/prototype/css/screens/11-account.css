@@ -54,6 +54,9 @@
 .ah-shot em { font-style: normal; font-weight: 500; opacity: .8; }
 .ah-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 .ah-acts .btn { gap: 6px; }
+/* 切换角色 sheet (opened from 首页 and 个人衣橱) */
+.as-face { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex: none; background: var(--tile); }
+.as-new { margin-top: 12px; gap: 6px; }
 .ah-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 /* 我的收藏 */

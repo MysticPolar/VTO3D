@@ -38,7 +38,7 @@
     favorites: 'profile', history: 'profile',
   };
   function parentOf(id, params) {
-    if (id === 'avatar') return params && params.from === 'profile' ? 'avatarhub' : 'onboarding';
+    if (id === 'avatar') return params && params.ctx === 'new' ? 'fitting' : params && params.from === 'profile' ? 'avatarhub' : 'onboarding';
     return PARENT[id] || null;
   }
   /* params an intermediate parent needs to render the right thing */

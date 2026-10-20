@@ -1,18 +1,30 @@
 /* 首页 — 虚拟试衣间 (primary tab 1)
-   One continuous taupe plate from top to bottom (no white strip under the avatar).
-   Positions follow the five-screen mockup; the avatar stands just above the tab bar. */
+   One continuous plate from top to bottom (no white strip under the avatar), in the
+   tone picked with 切换场景. Header: 切换角色 / 切换场景 stacked at the left, the
+   title, the coral 开启视频试衣 pill. Left: category menu. Right: the garment picker
+   (推荐 / 我的上传 above a single-column rail). Bottom left: 拍照 (and the 临时试穿 card). */
 .screen--fitting { background: #D2C3B6; color: #2E2925; }
+
+/* 切换场景: one texture, four tones (also drawn in the scene sheet's swatches).
+   Mid-plate results: 暖灰 #D0C0B0 · 奶白 #E8DED4 · 燕麦 #E5D4C1 · 深咖 #5A4C3D */
+[data-scene="taupe"] { --sc-filter: brightness(1.14) saturate(.9); }
+[data-scene="cream"] { --sc-filter: brightness(1.31) saturate(.5); }
+[data-scene="oat"] { --sc-filter: sepia(.15) brightness(1.22) saturate(.8); }
+[data-scene="cocoa"] { --sc-filter: sepia(.2) brightness(.44) saturate(1.7); }
 .fit-plate {
   position: absolute; inset: 0;
   background: #C9B9AB url("../../assets/backgrounds/fitting-plate.webp") 50% 100% / cover no-repeat;
-  filter: brightness(1.14) saturate(.9);
+  filter: var(--sc-filter, brightness(1.14) saturate(.9));
+  transition: filter .35s ease;
 }
 .fit-plate::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(255, 251, 246, .14), rgba(255, 251, 246, 0) 42%); }
+.fit-plate[data-scene="cocoa"]::after { opacity: .35; }
+
 .fit-avatar {
   position: absolute;
-  top: 90px;
+  top: 110px;
   left: calc(50% + 7.7px);
-  height: calc(100% - 90px - var(--tabbar-h) + 10.4px);
+  height: calc(100% - 110px - var(--tabbar-h) + 10.4px);
   aspect-ratio: 640 / 1672;
   transform: translateX(-50%);
   pointer-events: none;
@@ -27,27 +39,43 @@
   filter: blur(2px);
 }
 
-.fit-head { position: absolute; left: 0; right: 0; top: 0; height: 90px; z-index: 5; pointer-events: none; }
+/* ---------- header ---------- */
+.fit-head { position: absolute; left: 0; right: 0; top: 0; height: 130px; z-index: 5; pointer-events: none; }
 .fit-head > * { pointer-events: auto; }
-.fit-title {
-  position: absolute; left: 60px; right: 60px; top: 54.4px;
-  text-align: center; pointer-events: none;
-  font-family: var(--font-cjk); font-weight: 900; font-size: 22.4px; line-height: 28px; letter-spacing: 0;
-  color: #24201D;
-}
-.fit-cam {
-  position: absolute; right: 16px; top: 51.6px; width: 33.6px; height: 33.6px;
-  border-radius: 50%; background: #2A2725; color: #fff;
-  display: grid; place-items: center;
-  box-shadow: 0 4px 12px rgba(40, 30, 22, .18);
+/* light ivory pills: 切换角色, 切换场景 and 拍照 */
+.fit-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 10px 0 9px; border-radius: 999px;
+  background: rgba(250, 246, 241, .92); color: #2E2925;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .55), 0 2px 10px rgba(70, 52, 38, .07);
+  font-size: 12.5px; font-weight: 600; letter-spacing: .02em; white-space: nowrap;
   transition: transform .15s ease;
 }
-.fit-cam svg { width: 19px; height: 19px; }
-.fit-cam::after { content: ""; position: absolute; left: 13.3px; top: 14.8px; width: 4px; height: 4px; border-radius: 50%; background: #2A2725; }
-.fit-cam:active { transform: scale(.92); }
+.fit-pill:active { transform: scale(.96); }
+.fit-pill .i-chevron-down { color: #6F675F; margin-left: -1px; }
+.fit-switch { position: absolute; left: 12px; top: 48px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.fit-title {
+  position: absolute; left: 0; right: 0; top: 71px;
+  text-align: center; pointer-events: none; white-space: nowrap;
+  font-family: var(--font-cjk); font-weight: 900; font-size: 18px; line-height: 28px; letter-spacing: .02em;
+  color: #24201D;
+}
+/* coral 开启视频试衣 (opens the camera preview layer) */
+.fit-cam {
+  position: absolute; right: 10px; top: 67px; height: 36px;
+  display: inline-flex; align-items: center; gap: 5px; padding: 0 7px 0 3px;
+  border-radius: 999px; background: #F3D5CD; color: #3B2A25;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5), 0 4px 14px rgba(150, 86, 66, .14);
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+  transition: transform .15s ease;
+}
+.fit-cam:active { transform: scale(.96); }
+.fit-cam-ic { width: 30px; height: 30px; border-radius: 50%; background: #D9897A; color: #fff; display: grid; place-items: center; flex: none; box-shadow: 0 2px 6px rgba(160, 80, 60, .22); }
+.fit-cam .i-chevron-right { color: #8A645A; margin-left: -3px; }
 
-.fit-menu { position: absolute; left: 10px; top: 100.6px; z-index: 4; }
-.fit-menu ul { display: flex; flex-direction: column; gap: 12.9px; }
+/* ---------- category menu ---------- */
+.fit-menu { position: absolute; left: 10px; top: 136px; z-index: 4; }
+.fit-menu ul { display: flex; flex-direction: column; gap: 8px; }
 .fit-cat {
   position: relative; display: flex; align-items: center; gap: 13px; height: 46px; width: 97px; padding-left: 11px;
   border-radius: 12px; color: #39332E;
@@ -60,23 +88,103 @@
 .fit-cat.is-on .fit-cat-l { font-weight: 700; }
 .fit-cat:not(.is-on):active { background: rgba(255, 252, 246, .45); }
 
-.fit-rail {
-  position: absolute; right: 0; top: 80px; bottom: var(--tabbar-h); width: 94px;
-  padding: 7.8px 19px 14px 9px;
-  z-index: 4; flex: none;
+/* ---------- garment picker: 推荐 / 我的上传 above one column of tiles ---------- */
+.fit-picker {
+  position: absolute; right: 8px; top: 114px; bottom: calc(var(--tabbar-h) + 10px); z-index: 4;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: none;
 }
-.fit-rail ul { display: flex; flex-direction: column; gap: 7.4px; }
+.fit-picker > * { pointer-events: auto; }
+.fit-src {
+  flex: none; display: flex; padding: 3px; border-radius: 999px;
+  background: rgba(250, 246, 241, .92); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .55), 0 2px 8px rgba(70, 52, 38, .06);
+}
+.fit-src-tab { height: 24px; padding: 0 9px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .02em; color: #5C534C; white-space: nowrap; transition: background-color .2s ease, color .2s ease; }
+.fit-src-tab.is-on { background: #5B4B42; color: #FFF9F3; }
+.fit-rail { width: 76px; padding: 6px; border-radius: 18px; background: rgba(255, 251, 246, .18); }
+.fit-rail ul { display: flex; flex-direction: column; gap: 8px; }
 .fit-thumb {
-  position: relative; display: block; width: 66px; height: 62px;
-  border-radius: 9px; overflow: hidden; background: #E9E0D7;
+  position: relative; display: block; width: 64px; height: 64px;
+  border-radius: 12px; overflow: hidden; background: #ECE4DB;
   box-shadow: 0 1px 2px rgba(70, 52, 38, .05);
   transition: transform .15s ease, box-shadow .2s ease;
 }
 .fit-thumb-img { width: 100%; height: 100%; object-fit: cover; }
 .fit-thumb:active { transform: scale(.95); }
-.fit-thumb.is-on { box-shadow: 0 0 0 2px #2A2725, 0 4px 10px rgba(40, 30, 22, .16); }
-.fit-check { position: absolute; right: 3.5px; top: 3.5px; width: 15px; height: 15px; border-radius: 50%; background: #2A2725; color: #fff; display: grid; place-items: center; }
+.fit-thumb.is-on { box-shadow: 0 0 0 1.5px #D48B7A, 0 4px 10px rgba(120, 70, 50, .12); }
+.fit-thumb--add { display: grid; place-items: center; background: rgba(255, 251, 246, .55); color: #5C534C; box-shadow: inset 0 0 0 1.2px rgba(120, 100, 84, .3); }
+.fit-rail-note { padding: 4px 2px 0; font-size: 10.5px; line-height: 1.45; color: #4F4741; text-align: center; }
+
+/* ---------- bottom left: 临时试穿 card above 拍照 ---------- */
+.fit-dock { position: absolute; left: 12px; bottom: calc(var(--tabbar-h) + 14px); z-index: 5; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.fit-shoot { height: 38px; padding: 0 16px 0 13px; gap: 7px; font-size: 14px; background: rgba(250, 241, 233, .95); }
+.fit-temp {
+  width: 116px; padding: 8px; border-radius: 16px;
+  background: rgba(252, 249, 244, .95); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .6), 0 6px 20px rgba(60, 44, 32, .12);
+}
+.fit-temp-top { display: flex; align-items: center; gap: 8px; }
+.fit-temp-img { width: 30px; height: 30px; border-radius: 8px; object-fit: cover; flex: none; background: var(--tile); }
+.fit-temp-t { font-size: 12.5px; line-height: 17px; font-weight: 700; color: #2B2724; white-space: nowrap; }
+.fit-temp-note { margin-top: 6px; font-size: 10.5px; line-height: 14px; color: #857C74; white-space: nowrap; }
+.fit-temp-btn {
+  display: flex; align-items: center; justify-content: center; gap: 3px; width: 100%; height: 32px; margin-top: 8px;
+  border-radius: 999px; background: var(--ink); color: #fff; font-size: 12.5px; font-weight: 700; letter-spacing: .02em;
+  transition: transform .15s ease;
+}
+.fit-temp-btn:active { transform: scale(.97); }
+.fit-temp-btn.is-done { background: #EFE8E1; color: #5C534C; cursor: default; }
 .screen--fitting .tabbar { position: absolute; left: 0; right: 0; bottom: 0; }
+
+/* on the dark plate, text drawn straight on it turns light */
+.fit-plate[data-scene="cocoa"] ~ .fit-head .fit-title { color: #F7F1EA; }
+.fit-plate[data-scene="cocoa"] ~ .fit-menu .fit-cat:not(.is-on) { color: #EFE6DC; }
+.fit-plate[data-scene="cocoa"] ~ .fit-picker .fit-rail-note { color: #EFE6DC; }
+
+/* narrow phones (360–389 px): the video pill drops its chevron so the title keeps its room */
+@container (max-width: 389px) {
+  .fit-title { font-size: 17px; }
+  .fit-cam { padding-right: 9px; }
+  .fit-cam .i-chevron-right { display: none; }
+}
+/* short phones: a tighter menu, then a 临时试穿 card reduced to its button */
+@container (max-height: 800px) {
+  .fit-menu ul { gap: 6px; }
+  .fit-cat { height: 40px; }
+}
+@container (max-height: 700px) {
+  .fit-temp { width: auto; padding: 0; background: none; box-shadow: none; }
+  .fit-temp-top, .fit-temp-note { display: none; }
+  .fit-temp-btn { margin-top: 0; padding: 0 14px; }
+}
+/* toasts rise above the 临时试穿 card, so 加入衣橱 stays reachable while one shows */
+.vt-app:has(.screen--fitting.is-active .fit-temp) .vt-toasts { bottom: calc(var(--tabbar-h) + 186px); }
+
+/* 拍照 menu: 拍摄衣服 / 从相册上传, anchored above the button */
+.ov--pop .ov-scrim { background: transparent; }
+.fit-pop {
+  position: absolute; min-width: 156px; padding: 4px 0; border-radius: 16px;
+  background: #FCF9F4; box-shadow: 0 12px 32px rgba(50, 36, 26, .2), inset 0 0 0 1px rgba(255, 255, 255, .7);
+  transform-origin: 30px 100%; transform: translateY(6px) scale(.97); transition: transform .22s var(--ease-out);
+}
+.ov--pop.is-open .fit-pop { transform: none; }
+.fit-pop::after { content: ""; position: absolute; left: 28px; bottom: -6px; width: 14px; height: 14px; background: #FCF9F4; transform: rotate(45deg); border-radius: 0 0 3px 0; }
+.fit-pop button { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; width: 100%; height: 50px; padding: 0 18px 0 16px; font-size: 14.5px; font-weight: 500; color: #26221F; text-align: left; }
+.fit-pop button + button::before { content: ""; position: absolute; left: 16px; right: 16px; top: 0; height: 1px; background: #EFE8E0; }
+.fit-pop button:active { background: rgba(233, 225, 216, .45); }
+
+/* 确认衣物照片 */
+.fu-photo { display: grid; place-items: center; height: 220px; margin: 2px 0 14px; border-radius: 16px; background: var(--tile); overflow: hidden; }
+.fu-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.fu-cats { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* 切换场景 */
+.fs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 4px; }
+.fs-opt { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.fs-sw { position: relative; display: block; width: 100%; aspect-ratio: 3 / 4; border-radius: 14px; overflow: hidden; isolation: isolate; box-shadow: 0 0 0 1px rgba(90, 70, 50, .08); transition: box-shadow .15s ease; }
+.fs-sw::before { content: ""; position: absolute; inset: 0; z-index: -1; background: #C9B9AB url("../../assets/backgrounds/fitting-plate.webp") 50% 100% / cover no-repeat; filter: var(--sc-filter); }
+.fs-fig { position: absolute; left: 50%; bottom: 5%; height: 88%; width: auto; max-width: none; transform: translateX(-50%); }
+.fs-opt.is-on .fs-sw { box-shadow: 0 0 0 2px var(--ink); }
+.fs-name { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.fs-opt.is-on .fs-name { color: var(--ink); font-weight: 700; }
 
 /* video try-on (camera preview layer) */
 .cam { background: #15110E; z-index: 70; color: #fff; }
@@ -102,3 +210,11 @@
 .cam-cancel { color: rgba(255, 255, 255, .8); background: transparent; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
 .cam-wait p { margin-bottom: 0; }
 .cam-foot { position: absolute; left: 22px; right: 22px; bottom: 30px; text-align: center; font-size: 11.5px; line-height: 1.5; color: rgba(255, 255, 255, .7); padding: 8px 12px; border-radius: 12px; background: rgba(20, 16, 13, .4); z-index: 2; }
+
+/* 拍摄衣服: the same layer with a shutter */
+.cam-shot-bar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px 0 calc(28px + var(--safe-bottom, 0px)); background: linear-gradient(rgba(21, 17, 14, 0), rgba(21, 17, 14, .55)); }
+.cam-shot-tip { font-size: 12.5px; color: rgba(255, 255, 255, .78); }
+.cam-shutter { width: 70px; height: 70px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 4px #fff; transition: transform .15s ease, opacity .2s ease; }
+.cam-shutter i { width: 54px; height: 54px; border-radius: 50%; background: #fff; }
+.cam-shutter:active { transform: scale(.94); }
+.cam-shutter[disabled] { opacity: .35; }
