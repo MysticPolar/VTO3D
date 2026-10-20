@@ -1,4 +1,4 @@
-"""Acceptance test used to verify the HTML prototype (113 checks, all passing on v2).
+"""Acceptance test used to verify the HTML prototype (122 checks, all passing on v2).
 
 Port these CHECKS (not the selectors) to the web app's Playwright suite.
 Run against the prototype:
@@ -113,14 +113,14 @@ async def main():
         r = await app.locator('.fit-avatar-img.is-cur').get_attribute('data-render')
         check('outfit change: dress → look3 render', r == 'look3', r)
         await app.locator('.fit-cat[data-cat="upper"]').click()
-        # the rail lists only garments that some render wears; the others stay in the catalog
-        rendered = set(await pg.evaluate('VT.data.renders.flatMap(r => Object.values(r.wears))'))
-        rail = []
-        for c_id in await pg.evaluate('VT.data.fitCats.map(c => c.id)'):
-            await app.locator(f'.fit-cat[data-cat="{c_id}"]').click()
-            rail += await app.locator('.fit-thumb').evaluate_all('els => els.map(e => e.dataset.pid)')
-        hidden = await pg.evaluate("[...new Set(VT.data.products.filter(p => ['top','bottom','dress','outer','shoes','bag','acc'].includes(p.cat)).map(p => p.id))].filter(id => !new Set(VT.data.renders.flatMap(r => Object.values(r.wears))).has(id))")
-        check('首页 rail lists only garments with a render', set(rail) == rendered and 'grey-hoodie' in await pg.evaluate('Object.keys(VT.data.byId)'), f'{len(set(rail))} shown; hidden: {",".join(hidden)}')
+        # 推荐 lists every try-on garment of the category, the ones some render wears first
+        in_order, shown = True, set()
+        for c in await pg.evaluate('VT.data.fitCatsAll.map(c => ({ id: c.id, all: c.items, ready: VT.data.fitCats.find(f => f.id === c.id).items }))'):
+            await app.locator(f'.fit-cat[data-cat="{c["id"]}"]').click()
+            got = await app.locator('.fit-thumb[data-pid]').evaluate_all('els => els.map(e => e.dataset.pid)')
+            in_order = in_order and got == c['ready'] + [x for x in c['all'] if x not in c['ready']]
+            shown |= set(got)
+        check('首页 rail lists image-ready garments first', in_order and len(shown) == 28, f'{len(shown)} shown')
         await app.locator('.fit-cat[data-cat="upper"]').click()
         # garments without imagery can still arrive from elsewhere (商品详情 试穿), with the honest toast
         await pg.evaluate("VT.tryOn(VT.liveApp, ['grey-hoodie'])")
@@ -130,8 +130,9 @@ async def main():
         on = await app.locator('.fit-thumb.is-on[data-pid="grey-hoodie"]').count()
         await app.locator('.fit-thumb[data-pid="grey-hoodie"]').click()
         await pg.wait_for_timeout(300)
-        gone = await app.locator('.fit-thumb[data-pid="grey-hoodie"]').count()
-        check('selected garment without a render shows until tapped off', on == 1 and gone == 0, f'on={on} after={gone}')
+        off = await app.locator('.fit-thumb.is-on[data-pid="grey-hoodie"]').count()
+        top = await pg.evaluate('VT.store.get().fit.outfit.top || null')
+        check('garment without a render can be tapped off', on == 1 and off == 0 and top is None, f'on={on} after={off}')
         await app.locator('.fit-cam').click()
         await pg.wait_for_timeout(400)
         await app.locator('.cam [data-act="start"]').first.click()
@@ -457,6 +458,65 @@ async def main():
         await ap.locator('.pd-brand').tap(); await mp.wait_for_timeout(500)
         title = await ap.locator('.sheet-head h3').inner_text()
         check('product brand opens its store sheet', title == 'ZARA 官方旗舰店', title)
+        await b.close()
+
+        # ---- 首页: header, 拍照 → 我的上传 (temporary) → 加入衣橱, 切换场景, 切换角色 (avatars with their own wardrobes)
+        b = await p.chromium.launch(args=['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])
+        c = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2)
+        await c.grant_permissions(['camera'], origin=ORIGIN)
+        fp = await c.new_page()
+        fp.on('console', lambda m: errors.append(f'fitting {m.type}: {m.text}') if m.type in ('error', 'warning') else None)
+        fp.on('pageerror', lambda e: errors.append('fitting pageerror: ' + str(e)))
+        await fp.goto(BASE + '?app=fitting'); await fp.evaluate('localStorage.clear(); sessionStorage.clear()')
+        await fp.goto(BASE + '?app=fitting'); await fp.wait_for_timeout(900)
+        fa = fp.locator('.screen.is-active')
+        S = lambda js: fp.evaluate(f'(() => {{ const s = VT.store.get(); return {js}; }})()')
+        heads = [(await fa.locator(sel).inner_text()).strip() for sel in ('[data-act="role"]', '[data-act="scene"]', '.fit-cam')]
+        tabs = await fa.locator('.fit-src-tab').all_inner_texts()
+        check('首页 header: 切换角色 · 切换场景 · 开启视频试衣', heads == ['切换角色', '切换场景', '开启视频试衣'] and tabs == ['推荐', '我的上传'], ' | '.join(heads + tabs))
+        await fa.locator('.fit-shoot').click(); await fp.wait_for_timeout(400)
+        items = [i.strip() for i in await fp.locator('.fit-pop [role="menuitem"]').all_inner_texts()]
+        check('拍照 opens 拍摄衣服 / 从相册上传', items == ['拍摄衣服', '从相册上传'], ','.join(items))
+        n0 = await S('s.wardrobe.length')
+        async with fp.expect_file_chooser() as fc:
+            await fp.locator('.fit-pop [data-act="pop-gallery"]').click()
+        await (await fc.value).set_files(FIX + 'my_jacket.jpg')
+        await fp.wait_for_selector('.ov--fitup .fu-img'); await fp.wait_for_timeout(300)
+        await fp.locator('.fu-cats .chip[data-cat="outer"]').click()
+        await fp.locator('.ov--fitup [data-act="fu-ok"]').click(); await fp.wait_for_timeout(600)
+        src = await fa.locator('.fit-src-tab.is-on').get_attribute('data-src')
+        worn = await S("Object.values(s.fit.outfit).filter(v => String(v).startsWith('up:')).length")
+        check('upload → 我的上传, tried on, not in the wardrobe', src == 'mine' and worn == 1 and await fa.locator('.fit-thumb.is-on[data-up]').count() == 1 and await S('s.fit.cat') == 'outer' and await S('s.wardrobe.length') == n0 and await fa.locator('.fit-temp').count() == 1, f'src={src} worn={worn}')
+        await fa.locator('.fit-temp-btn[data-act="keep"]').click(); await fp.wait_for_timeout(300)
+        n1 = await S('s.wardrobe.length')
+        check('加入衣橱 saves the upload once', n1 == n0 + 1 and await S('s.wardrobe[0].source') == 'uploaded' and await fa.locator('.fit-temp-btn[data-act="keep"]').count() == 0 and await fa.locator('.fit-temp-btn').is_disabled(), f'{n0}->{n1}')
+        await fp.reload(); await fp.wait_for_timeout(900)
+        await fa.locator('.fit-src-tab[data-src="mine"]').click(); await fp.wait_for_timeout(200)
+        kept = await fa.locator('.fit-thumb[data-up]').count()
+        check('我的上传 lasts for the browser session', kept == 1, str(kept))
+        await fa.locator('.fit-shoot').click(); await fp.wait_for_timeout(400)
+        await fp.locator('.fit-pop [data-act="pop-camera"]').click()
+        await fp.wait_for_function("document.querySelector('.cam--shot .cam-view') && document.querySelector('.cam--shot .cam-view').dataset.state === 'live'", timeout=8000)
+        await fp.locator('.cam--shot .cam-shutter').click(); await fp.wait_for_timeout(500)
+        check('拍摄衣服 captures a photo (getUserMedia)', await fp.locator('.ov--fitup .fu-img').count() == 1 and await fp.evaluate('document.querySelectorAll(".cam-video").length') == 0)
+        await fp.keyboard.press('Escape'); await fp.wait_for_timeout(400)
+        await fa.locator('[data-act="scene"]').click(); await fp.wait_for_timeout(400)
+        await fp.locator('.fs-opt[data-scene="cocoa"]').click(); await fp.wait_for_timeout(200)
+        await fp.keyboard.press('Escape'); await fp.wait_for_timeout(400)
+        check('切换场景 changes the backdrop', await fa.locator('.fit-plate').get_attribute('data-scene') == 'cocoa' and await S('s.fitScene') == 'cocoa')
+        await fa.locator('[data-act="role"]').click(); await fp.wait_for_timeout(400)
+        await fp.locator('.as-new').click(); await fp.wait_for_timeout(400)
+        await fp.locator('.ov .js-name').fill('妈妈')
+        await fp.locator('.ov [data-act="as-next"]').click(); await fp.wait_for_timeout(700)
+        is_new = await fp.evaluate('VT.liveApp.cur.id') == 'avatar' and await fa.locator('.av-skip').count() == 0
+        await fa.locator('[data-act="generate"]').click()
+        await fp.wait_for_selector('.av-gen [data-act="try"]', timeout=9000)
+        await fp.locator('.av-gen [data-act="try"]').click(); await fp.wait_for_timeout(900)
+        names = await S("s.avatars.map(a => a.name || '本人')")
+        check('新建数字分身: its own empty wardrobe, now active', is_new and await fp.evaluate('VT.liveApp.cur.id') == 'fitting' and names == ['本人', '妈妈'] and await S('s.wardrobe.length') == 0, ','.join(names))
+        await fa.locator('[data-act="role"]').click(); await fp.wait_for_timeout(400)
+        await fp.locator('.as-opt[data-id="me"]').click(); await fp.wait_for_timeout(500)
+        check('切换角色 back to 本人 restores her wardrobe', await S('s.activeAvatar') == 'me' and await S('s.wardrobe.length') == n1, str(await S('s.wardrobe.length')))
         await b.close()
     print('\n'.join(log))
     print('passed', sum(1 for l in log if l.startswith('PASS')), 'of', len(log))

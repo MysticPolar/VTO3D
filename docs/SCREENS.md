@@ -86,25 +86,25 @@ Every screen of the app: what it shows, what each control does, its sheets and d
 
 ### 2. 上传照片 · 创建数字分身 · `avatar`
 
-**Route** `/welcome/avatar` (first launch, `params.from = 'launch'`) · `/me/avatar/upload` (from 我的形象, `params.from = 'profile'`) · **Type** launch (first launch) | secondary (from 我的形象) · **Prototype** `js/screens/02-avatar.js`, `css/screens/02-avatar.css` · **Design ref** `reference/design/screens/02_avatar_upload.png`
+**Route** `/welcome/avatar` (first launch, `params.from = 'launch'`) · `/me/avatar/upload` (from 我的形象, `params.from = 'profile'`) · `/home/avatars/new?name=…` (切换角色 → 新建数字分身, `params.ctx = 'new'`; proposed, HANDOFF §13.1 #13; pushed on 个人衣橱's stack when started there) · **Type** launch (first launch) | secondary (from 我的形象 or 切换角色) · **Prototype** `js/screens/02-avatar.js`, `css/screens/02-avatar.css` · **Design ref** `reference/design/screens/02_avatar_upload.png`
 
-**Purpose.** The user picks a full-body photo and a portrait, then runs the simulated digital-avatar generation.
+**Purpose.** The user picks a full-body photo and a portrait, then runs the simulated digital-avatar generation: for their own avatar (本人), or, in the `new` context, for another person's avatar (HANDOFF §9.15).
 
 **Layout (top → bottom).**
 - Fake status bar (dark). Drop it in the web build.
 - Scroll area (`data-keep-scroll="av"`). Everything scrolls except the bottom CTA:
-  - Top row: back button (aria 「返回」) on the left and a 「跳过」 pill on the right. **「跳过」 appears on first launch only** (hidden when `from === 'profile'`). The design ref has no 「跳过」; it was added on purpose (REPORT deviation 10).
-  - h1 「上传照片，创建数字分身」. Two-line lead: 「上传清晰的全身照和生活照，」 / 「我们将为你生成专属的3D数字分身，用于虚拟试衣。」
+  - Top row: back button (aria 「返回」) on the left and a 「跳过」 pill on the right. **「跳过」 appears on first launch only** (hidden when `from === 'profile'` and in the `new` context). The design ref has no 「跳过」; it was added on purpose (REPORT deviation 10).
+  - h1 「上传照片，创建数字分身」. Two-line lead: 「上传清晰的全身照和生活照，」 / 「我们将为你生成专属的3D数字分身，用于虚拟试衣。」 In the `new` context: 「上传「{name}」清晰的全身照和生活照，」 / 「我们将为 TA 生成专属的3D数字分身，用于虚拟试衣。」
   - Three-step stepper (aria 「创建进度」): 「上传照片」 (current) → 「生成建模」 → 「完成」. Finished steps show ✓, and the current step has `aria-current="step"`.
   - Two cards side by side with the same structure:
     - **全身照**: 「上传全身照」, 「展示你的身材和体型特征」. Sample image `assets/people/upload-fullbody.webp`. Tips 「请上传正面、站立的全身照片」 / 「建议光线充足，背景简洁」.
     - **生活照**: 「上传生活照」, 「展示你的面部特征和气质」. Sample image `assets/people/upload-portrait.webp`. Tips 「请上传清晰、自然的正面照」 / 「建议素颜或淡妆，五官清晰」.
     - Each card has a tall photo frame that shows the sample until the user uploads. A round button sits at the bottom centre of the frame. It is a `<label>` wrapping a hidden `<input type="file" accept="image/*">`, with a ＋ icon and aria 「上传全身照」 / 「上传生活照」. The tips sit under the frame.
   - After an upload, the card shows the user's photo (alt 「已上传的全身照预览」 / 「已上传的生活照预览」) with a badge at the top left (check icon + 「已上传」). The button turns into ↻ with aria 「重新选择全身照」 / 「重新选择生活照」. The tips become check icon + 「已上传：{file name}」 / 「点击按钮可重新选择」; names over 14 characters show the first 13 plus 「…」.
-- Fixed bottom CTA, outside the scroll area, with a fade above it: dark 「生成我的数字分身」 (first launch) or 「重新生成数字分身」 (from 我的形象), each followed by a → icon.
+- Fixed bottom CTA, outside the scroll area, with a fade above it: dark 「生成我的数字分身」 (first launch), 「重新生成数字分身」 (from 我的形象) or 「生成数字分身」 (`new`), each followed by a → icon.
 
 **Interactions.**
-- Back → pop to `/welcome` (first launch) or `/me/avatar` (我的形象).
+- Back → pop to `/welcome` (first launch), `/me/avatar` (我的形象) or the screen that opened 新建数字分身 (`new`; nothing is created).
 - Photo button → native file picker. While a file is processed, that slot shows a 「处理中…」 overlay with a spinner and its input is disabled. Then `readImage(file)` runs:
   - The type must start with `image/`, otherwise toast 「请选择图片文件（JPG / PNG / HEIC 等）」.
   - Files over **25 MB** (25×1024×1024 bytes) get the toast 「图片超过 25MB，请换一张」.
@@ -112,7 +112,8 @@ Every screen of the app: what it shows, what each control does, its sheets and d
   - The image is downscaled so the **longest side is at most 900 px** (it is never upscaled), then re-encoded as a **JPEG at quality 0.8** data URL. The slot stores `{ src, name, w, h }`.
   - On success, toast 「全身照已上传」 / 「生活照已上传」 (check icon). If the avatar was `'ready'`, it becomes `'stale'`. Picking again replaces the photo. This screen has no delete control.
 - 「跳过」 (first launch only) → sets `avatar.status = 'ready'` and `demo = true` if not already ready, then calls `enterMain()`: 首页 with a fade, history cleared. 300 ms later it shows the toast 「已使用示例数字分身，可在「我的 → 我的形象」中更换」 **[demo]**.
-- CTA → `runGeneration(app, usingSamples, ctx)`, where `usingSamples = !fullbody || !portrait` and `ctx = from === 'profile' ? 'profile' : 'launch'`. The CTA is never disabled: generating without photos is allowed, and the sample photos are used instead.
+- In the `new` context the photos go to a draft, not to the active avatar. The draft is emptied when the screen is pushed and kept when the user comes back to it (a reload loses it); nothing reaches the store until generation finishes.
+- CTA → `runGeneration(app, usingSamples, ctx)`, where `usingSamples = !fullbody || !portrait` and `ctx` is `'new'` when `params.ctx === 'new'`, `'profile'` when `from === 'profile'`, otherwise `'launch'`. The CTA is never disabled: generating without photos is allowed, and the sample photos are used instead.
 
 **Overlays.**
 - **Generation layer** (`runGeneration`). It is full screen (aria 「正在生成数字分身」) and sits above everything. **[demo]**: there is no backend.
@@ -123,6 +124,7 @@ Every screen of the app: what it shows, what each control does, its sheets and d
   - Finish buttons depend on the context:
     - `launch`: 「进入虚拟试衣间」 (→ icon) calls `enterMain()`, which sets `setupDone`, clears history and shows 首页. 「重新上传照片」 closes the layer and stays on this screen; the avatar stays `'ready'`.
     - `profile`: 「完成」 closes the layer, pops back to 我的形象 `/me/avatar` and shows the toast 「数字分身已更新」 (check icon). 「去首页试穿」 makes a contextual tab jump to 首页 `/home`. 我的 keeps `/me/avatar/upload` on its stack, so tapping 我的 afterwards shows this upload screen again.
+    - `new`: the result creates the avatar first (`VT.store.avatars.create(name, { status: 'ready', fullbody, portrait, generatedAt, demo: true })`), with an empty wardrobe and outfit, and makes it the active avatar. 「完成」 closes the layer, pops back to the screen that opened 新建数字分身 and toasts 「已切换到「{name}」」 (check icon). 「去首页试穿」 drops this screen from every stack, then goes to 首页 (pop on 首页's own stack, fade from 个人衣橱) and shows the same toast 300 ms later. 取消, Esc and back before the result create nothing.
     - `hub` (started from 我的形象's 「重新生成」 through `VT.avatarGen.run`): the same two buttons. 「完成」 closes the layer and re-renders 我的形象 in place, which then shows 「更新于 …」, with the toast 「数字分身已更新」. 「去首页试穿」 goes to 首页.
 
 **Data.** Reads `avatar.fullbody`, `avatar.portrait` and `avatar.status`. Writes:
@@ -133,10 +135,10 @@ Every screen of the app: what it shows, what each control does, its sheets and d
 - `setupDone` (through `enterMain`)
 
 Side effect: `avatar.portrait.src` doubles as the fallback profile picture (`VT.ui.profilePhoto`, ui.js:93) on 我的, 编辑资料 and the AI造型师 user bubble, and as the thumbnail on the 我的形象 row of 我的 (10-profile.js:45). Keep `data-keep-scroll="av"`. The busy slot is transient UI state.
-**`VT.avatarGen` = `{ run(app), readImage }`.** `run` starts the generation in the `hub` context. Only 我的形象's 「重新生成」 calls it (12-avatar-hub.js:63). `readImage` is exported but nothing uses it. The other uploaders have their own copies with slightly different JPEG quality (for example 06-wardrobe.js:217, 09-orders.js:283, 10-profile.js:15), so the web build can share one helper.
+**`VT.avatarGen` = `{ run(app), readImage(file, max = 900, quality = 0.8) }`.** `run` starts the generation in the `hub` context. Only 我的形象's 「重新生成」 calls it. 首页 uses `readImage` for garment photos (`520`, `0.82`). The other uploaders have their own copies with slightly different JPEG quality (for example 06-wardrobe.js:217, 09-orders.js:283, 10-profile.js:15), so the web build can share one helper.
 
 **States & edge cases.**
-- First launch vs 我的形象: only 「跳过」, the CTA label, the back target and the finish buttons differ. Uploads and generation work the same way.
+- First launch vs 我的形象 vs `new`: only 「跳过」, the lead, the CTA label, the back target, where the photos are kept and the finish buttons differ. Uploads and generation work the same way.
 - A deep link without `from` behaves like first launch (its parent is 启动页).
 - `'stale'` means the photos changed since the last generation. Until the user regenerates, 我的形象 shows 「示例形象」 / 「尚未用你的照片生成」, and 启动页's 「开始体验」 sends `'stale'` to this screen.
 - HEIC files pass the type check, but browsers other than Safari usually can't decode them, so they get 「无法读取这张图片，请换一张试试」.
@@ -151,33 +153,51 @@ Side effect: `avatar.portrait.src` doubles as the fallback profile picture (`VT.
 
 ### 3. 首页 · 虚拟试衣间 · `fitting`
 
-**Route** `/home` · **Type** tab root · **Prototype** `js/screens/03-fitting.js`, `css/screens/03-fitting.css`, `js/camera.js` · **Design ref** `reference/design/screens/03_fitting_room.png` (the version with the tab bar is phone 1 in `reference/design/five-screen-mockup.png`)
+**Route** `/home` · **Type** tab root · **Prototype** `js/screens/03-fitting.js`, `css/screens/03-fitting.css`, `js/camera.js` (video try-on and 拍摄衣服), `js/screens/12-avatar-hub.js` (the 切换角色 sheet), `js/store.js` (digital avatars) · **Design ref** `reference/design/screens/03_fitting_room_v2.webp` (the single-column selector, 拍照 and the header) and `reference/design/fitting-upload-flow.png` (拍照 / 上传 → 临时试穿 → 自主保存). The original `reference/design/screens/03_fitting_room.png` and phone 1 of `reference/design/five-screen-mockup.png` still show the avatar, plate and category menu.
 
-**Purpose.** Dress the digital avatar by picking garments by category, and open a live camera preview ("video try-on").
+**Purpose.** Dress the active digital avatar by picking garments by category; try on photos of the user's own garments without saving them; switch avatar and backdrop; open a live camera preview ("video try-on").
 
-**Layout (top → bottom).** A fixed composition. Only the thumbnail rail scrolls.
-- One continuous taupe background plate (`assets/backgrounds/fitting-plate.webp`, brightened). Fake status bar (light): drop it.
-- Header: centred h1 「虚拟试衣间」 and a round dark camera button at the top right (video icon, aria 「开启视频试衣（摄像头预览）」). There is no back button because this is a tab root. The prototype leaves out the design ref's back arrow and its 「点击开启视频试衣」 tooltip.
-- Avatar: a full-height image of the current render, centred and standing on the tab bar, with a soft floor shadow. It is not interactive. Alt 「数字分身当前造型：{render.label}」.
-- Left menu (nav, aria 「服装分类」): seven pills from `data.fitCats`: 「上装」「下装」「连衣裙」「外套」「鞋履」「包包」「配饰」. The active pill is light, with the filled icon variant and a bold label (`aria-pressed`).
-- Right rail (aria 「可试穿单品」, `data-keep-scroll="rail"`), the only scrolling region. It shows one thumbnail (`img.thumb || img.tile`) for each garment of the active category that at least one render wears, plus any selected garment that no render wears, which stays until it is tapped off (`03-fitting.js:46-59`). Order follows the category's full list (`data.fitCatsAll`). With nothing selected that is 10 of the 28 try-on garments: 上装 black-blazer, basic-cami · 下装 straight-jeans · 连衣裙 satin-slip-dress · 外套 black-blazer · 鞋履 white-sneakers, black-pumps, strappy-heels · 包包 brown-tote, black-handbag · 配饰 gold-hoops. Items in the outfit get a dark ring and a ✓ badge (`aria-pressed`; aria 「试穿{name}」 / 「取消试穿{name}」).
+**Layout (top → bottom).** A fixed composition. Only the garment rail scrolls. Positions below are at 390 × 844 and include the 44 px status bar (HANDOFF §4.2).
+- One continuous plate behind everything (`assets/backgrounds/fitting-plate.webp`), tinted by the backdrop chosen with 切换场景 (`s.fitScene`, default 暖灰). Each backdrop is the same texture with a CSS filter; mid-plate results: 暖灰 `brightness(1.14) saturate(.9)` #D0C0B0 · 奶白 `brightness(1.31) saturate(.5)` #E8DED4 · 燕麦 `sepia(.15) brightness(1.22) saturate(.8)` #E5D4C1 · 深咖 `sepia(.2) brightness(.44) saturate(1.7)` #5A4C3D. On 深咖 the title, the unselected menu labels and the rail note turn light (#F7F1EA / #EFE6DC). Fake status bar (light): drop it.
+- Header:
+  - Top left, stacked 6 px apart from y 48: two ivory pills (34 px, `rgba(250, 246, 241, .92)`), 「切换角色」 (`person` icon, chevron-down; aria 「切换角色，当前：{name}」, `aria-haspopup="dialog"`) and 「切换场景」 (`home` icon, chevron-down).
+  - Centre: h1 「虚拟试衣间」, 18 px / 900, centred on the screen and on the pill stack (line box y 71–99).
+  - Top right: the coral pill 「开启视频试衣」 (`.fit-cam`, 36 px, #F3D5CD): a 30 px coral circle (#D9897A) with the white `video` outline icon, the 11 px label and a chevron-right; aria 「开启视频试衣（摄像头预览）」.
+  - Under 390 px wide the title drops to 17 px and the coral pill loses its chevron, so the title keeps clear of both sides down to 360 px.
+  - There is no back button: this is a tab root.
+- Avatar: a full-height image of the current render (box top 110, standing on the tab bar), with a soft floor shadow. It is not interactive. Alt 「数字分身当前造型：{render.label}」.
+- Left menu (nav, aria 「服装分类」) from y 136: seven pills from `data.fitCats` (46 px, 8 px apart; 40 px and 6 px on screens 800 px tall or less): 「上装」「下装」「连衣裙」「外套」「鞋履」「包包」「配饰」. The active pill is light, with the filled icon variant and a bold label (`aria-pressed`).
+- Right: the garment picker, right-aligned 8 px from the edge, from y 114 to 10 px above the tab bar.
+  - Source tabs (`role="tablist"`, aria 「单品来源」): 「推荐」 and 「我的上传」 in an ivory pill; the selected tab is a dark brown pill (#5B4B42) with white text (`aria-selected`).
+  - Below them the rail (aria 「可试穿单品」, `data-keep-scroll="rail"`), the only scrolling region: a 76 px wide translucent track (`rgba(255, 251, 246, .18)`, radius 18) holding one column of 64 × 64 px tiles, 8 px apart, radius 12, on #ECE4DB. The selected tile has a 1.5 px muted coral ring (#D48B7A) and `aria-pressed`; aria 「试穿{name}」 / 「取消试穿{name}」.
+  - **推荐**: every garment in the category's full list (`data.fitCatsAll`), those that at least one render wears first, then the rest, each group in list order (`recItems`). 28 try-on garments in all. 上装 shows 14: black-blazer and basic-cami, then knit-cardigan, striped-shirt, beige-blazer, oxford-shirt, utility-jacket, grey-hoodie, black-sweater, bow-blouse, white-tee, white-shirt, brown-sweater, ribbed-tank. Image-ready garments by category: 上装 black-blazer, basic-cami · 下装 straight-jeans · 连衣裙 satin-slip-dress · 外套 black-blazer · 鞋履 white-sneakers, black-pumps, strappy-heels · 包包 brown-tote, black-handbag · 配饰 gold-hoops.
+  - **我的上传**: first a camera tile (aria 「上传{category}照片」, opens the 拍照 menu), then this session's uploads filed under the active category, newest first (aria 「试穿{name}（临时上传）」). With none, the note 「还没有上传的{category}」 sits under the camera tile.
+- Bottom left, 14 px above the tab bar:
+  - 「拍照」: an ivory pill (38 px, `camera` icon; `aria-haspopup="menu"`, `aria-expanded`).
+  - Above it, only while an upload is being tried on, the **临时试穿 card** (116 px): the newest worn upload's thumbnail and 「临时试穿」, the note 「演示版暂无上身图」 **[demo]**, and a dark 「＋ 加入衣橱」 button (aria 「将{name}加入衣橱」). Once the active avatar's wardrobe holds that upload, the button reads 「✓ 已在衣橱」 and is disabled. On screens 700 px tall or less the card is just its button.
 - Tab bar, with 首页 active.
 
 **Interactions.**
-- Category pill → sets `fit.cat`. The menu and rail re-render in place, the rail scrolls to the top, and focus stays on the pill.
-- Thumbnail → toggles the garment in `fit.outfit` (see the slot rules below). The rail re-renders and keeps its scroll position and focus. The avatar then cross-fades to `pickRender(outfit).render`: the new image fades in and the old one is removed after 450 ms. Nothing happens if the render doesn't change. Toasts:
+- Category pill → sets `fit.cat`. The menu, source tabs, rail and card re-render in place, the rail scrolls to the top, and focus stays on the pill.
+- 「推荐」 / 「我的上传」 → switches the rail's source; the category stays. The rail scrolls to the top and focus stays on the tab.
+- Garment tile (推荐) → toggles the garment in `fit.outfit` (see the slot rules below). The rail re-renders and keeps its scroll position and focus. The avatar then cross-fades to `pickRender(outfit).render`: the new image fades in and the old one is removed after 450 ms. Nothing happens if the render doesn't change. Toasts:
   - Item added and listed in `missing`: 「演示版暂无「{name}」的上身图，已加入当前搭配」 for 2800 ms **[demo]**.
   - Item added and shown: 「已试穿：{name}」.
-  - Item removed: no toast.
-- Camera button → opens the camera layer (see Overlays).
+  - Item removed: no toast. A garment without a render stays on the rail, so focus stays on its tile.
+- Upload tile (我的上传) → toggles the upload in the slot of the category it was filed under (上装 → `top`, 下装 → `bottom`, 连衣裙 → `dress`, 外套 → `outer`, 鞋履 → `shoes`, 包包 → `bag`, 配饰 → `acc`), with the same slot rules. The outfit stores `up:{id}`. An upload is never drawn onto the avatar: `pickRender` counts it as missing, so the render changes only when the slot rules take something else off. Added → 「演示版暂无「{name}」的上身图，已加入临时试穿」 for 2800 ms **[demo]**; removed → no toast.
+- 「拍照」 or the camera tile → the 拍照 menu (see Overlays).
+- 「加入衣橱」 → adds the upload to the front of the **active avatar's** wardrobe as `{ uid, custom: { src, name, cat: slot }, fav: false, source: 'uploaded', addedAt: now, fromUpload: upload.id }` and sets `wardrobeCat = 'all'`. The button becomes 「已在衣橱」. Toast 「已加入个人衣橱」 (check icon), or 「已加入「{avatar name}」的衣橱」 when there is more than one avatar, with the action 「去看看」 (contextual jump to 个人衣橱). A second save is impossible: the button reads the wardrobe for an entry with that `fromUpload`. Removing that entry from the wardrobe brings 「加入衣橱」 back.
+- While the 临时试穿 card shows, toasts sit above it (tab bar + 186 px), so 加入衣橱 stays reachable.
+- 「开启视频试衣」 → opens the camera layer (see Overlays).
+- 「切换场景」 → the scene sheet. 「切换角色」 → the 切换角色 sheet.
 - Tapping the 首页 tab while already on 首页 smooth-scrolls the rail to the top. Other tabs switch instantly, and this screen keeps its state.
 
 **Slot rules.**
-- There are seven slots: `top`, `bottom`, `dress`, `outer`, `shoes`, `bag`, `acc`. Each slot holds one garment.
-- The slot comes from the product's `cat` (`data.slotOf`), not from the menu. 「上装」's full list includes four outerwear items (knit-cardigan, beige-blazer, black-blazer, utility-jacket), which fill `outer` and also belong to 「外套」. Only black-blazer has a render, so it is the one 「上装」 shows; it also appears under 「外套」, and when selected it shows ✓ in both lists. The other three show in both lists only while selected.
+- There are seven slots: `top`, `bottom`, `dress`, `outer`, `shoes`, `bag`, `acc`. Each slot holds one garment or one upload.
+- A product's slot comes from its `cat` (`data.slotOf`), not from the menu. 「上装」's full list includes four outerwear items (knit-cardigan, beige-blazer, black-blazer, utility-jacket), which fill `outer` and also belong to 「外套」; when one is selected it shows the ring in both lists. An upload's slot comes from the category chosen in 确认衣物照片.
 - Tapping a selected item removes it. Tapping another item for an occupied slot replaces the current one.
 - `dress` and `top`/`bottom` exclude each other: picking a dress clears both top and bottom, and picking a top or bottom clears the dress. `outer`, `shoes`, `bag` and `acc` combine with anything, including a dress.
-- `VT.tryOn` (05-product.js:197) applies the same rules when another screen sends garments here.
+- `VT.tryOn` (05-product.js:197) applies the same rules when another screen sends garments here, and switches the rail back to 推荐.
 
 **Outfit → render (`pickRender`, exported as `VT.fitting.pickRender`).** Only four on-body images exist (`data.renders`) **[demo]**:
 
@@ -196,8 +216,8 @@ How a render is chosen:
   - −0.5 in every other case.
 - For every **unselected** slot among `outer`, `bag`, `acc`, `dress` and `shoes`, the render loses 0.3 if it wears something there that `base` doesn't.
 - The highest score wins. On a tie the earlier render wins, in the order base, look1, look2, look3.
-- `missing` lists the selected items the winning render doesn't wear, in slot order from top to acc.
-- Only the 10 garments in the table above can ever be rendered, and only they are listed on the rail. The other 18 try-on garments always end up in `missing`; they reach the outfit only from other screens (商品详情 「试穿上身」, 个人衣橱, an AI造型师 wardrobe set) through `VT.tryOn`. The catalogue's 29th product, maxi-skirt, is in no try-on category at all (HANDOFF §13.2 #35).
+- `missing` lists the selected items the winning render doesn't wear, in slot order from top to acc. Uploads are always in it.
+- Only the 10 image-ready garments can ever be rendered. The other 18 try-on garments always end up in `missing`. The catalogue's 29th product, maxi-skirt, is in no try-on category at all (HANDOFF §13.2 #35).
 
 Scores for the verified outputs (winner in bold):
 
@@ -213,6 +233,31 @@ Scores for the verified outputs (winner in bold):
 Port the rule as it is, because acceptance checks depend on it. One known side effect: a garment that has imagery can still be reported as missing when it is combined with an item from another render. For example, `{shoes: white-sneakers, dress: satin-slip-dress}` gives base with missing [satin-slip-dress], and `{shoes: white-sneakers, outer: black-blazer}` gives base with missing [black-blazer]. The 「演示版暂无…」 toast then names that garment.
 
 **Overlays.**
+- **拍照 menu** (`app.layer`, class `ov--pop`, aria 「上传衣物」). A transparent scrim and an ivory card (radius 16, with a tail) anchored 10 px above 「拍照」, holding two menu items: 「拍摄衣服」 (`camera` icon) and 「从相册上传」 (`image` icon), split by a hairline. It scales in from its tail. Focus moves to the first item. Esc, back, a tap outside or choosing an item closes it and returns focus to 「拍照」.
+  - 「拍摄衣服」: on touch devices (`pointer: coarse`) it clicks a hidden `<input type="file" accept="image/*" capture="environment">`, which opens the phone's own camera. Elsewhere it opens the 拍摄衣服 layer.
+  - 「从相册上传」: clicks a hidden `<input type="file" accept="image/*">`.
+  - A picked file goes through `readImage(file, 520, 0.82)`: image type, at most 25 MB, decodable, longest side ≤ 520 px, JPEG 0.82. Errors toast 「请选择图片文件（JPG / PNG 等）」, 「图片超过 25MB，请换一张」 or 「无法读取这张图片，请换一张」. Then the 确认衣物照片 sheet opens.
+- **拍摄衣服 layer** (`VT.camera.capture(app, { onShot, onGallery })` in `js/camera.js`; full screen and dark, aria 「拍摄衣服」).
+  - It starts the camera at once, with no intro: `getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })`.
+  - Always shown: ✕ (aria 「关闭拍摄」) and the title pill 「拍摄衣服」.
+  - States: wait (spinner, 「正在打开摄像头…」) → live, or error. Live shows the video, mirrored only when the track reports `user`, the tip 「将衣服平铺拍摄，完整放进画面」 and a round shutter (aria 「拍照」, focused; disabled until live). Error shows a title and body from the camera error table below, 「重试」 and 「从相册上传」 (closes the layer and opens the file picker; focused).
+  - Shutter → draws the current frame, unmirrored, downscaled to ≤ 520 px, JPEG 0.82; closes the layer; opens 确认衣物照片 with the name 「我的衣物」.
+  - Every track stops when the layer closes for any reason. A stream that resolves after closing is stopped at once (a `closed` flag).
+- **确认衣物照片 sheet** (class `ov--fitup`).
+  - The photo (contained in a 220 px box on `--tile`).
+  - 「名称」 (max 16; pre-filled with the file name without its extension, or 「我的衣物」 for camera shots and camera-roll names such as IMG_0042, image, 微信图片).
+  - 「分类」 chips with the seven 首页 categories, the active category pre-selected (`aria-pressed`).
+  - The note 「照片只在本次试衣中临时保留，加入衣橱即可长期保存」.
+  - 「重新选择」 (ghost): picks again from the same source (the gallery picker, the phone camera or the 拍摄衣服 layer). A new photo replaces the one in the sheet and keeps the chosen category.
+  - 「确认试穿」 (dark, focused when the sheet opens).
+  - ✕, a tap on the scrim, Esc and back cancel: nothing is kept.
+  - 确认试穿 (a blank name becomes 「我的衣物」) adds the upload to the front of 我的上传, switches the rail to 我的上传, sets `fit.cat` to the chosen category, puts the upload on (slot rules), focuses its tile and toasts 「演示版暂无「{name}」的上身图，已加入临时试穿」.
+- **切换场景 sheet.** Title 「切换场景」. Four options in a row (`role="radiogroup"`, aria 「试衣间背景」): 暖灰, 奶白, 燕麦, 深咖. Each is a 3:4 swatch of that backdrop with the base avatar standing in it, over its name. The current one has an ink ring and a bold name (`aria-checked`). Tapping one stores `fitScene` and changes the backdrop at once, visible behind the sheet; the sheet stays open. Note 「场景只更换试衣间的背景，不影响当前搭配」.
+- **切换角色 sheet** (`VT.avatarUI.switcher(app)`, also opened from 个人衣橱).
+  - Title 「切换角色」, then a radiogroup (aria 「数字分身」) of `.opt` rows: the avatar's portrait (its 生活照, else 本人's profile photo, else the demo face), its name (本人's is the profile nickname, followed by the tag 「本人」), 「衣橱 {n} 件 · 已生成」 or 「衣橱 {n} 件 · 示例形象」, and a radio.
+  - Tapping another avatar switches to it (HANDOFF §9.15), closes the sheet, re-renders the current screen and toasts 「已切换到「{name}」」 (check icon). Tapping the active one just closes the sheet.
+  - Below the list: a ghost 「＋ 新建数字分身」 and the note 「每个数字分身都有自己的衣橱和搭配」 / 「演示版的数字分身均使用示例模特形象」 **[demo]**.
+- **新建数字分身 sheet.** Lead 「为家人或朋友创建一个数字分身，TA 的衣橱和搭配与你的分开保存。」. 「名称」 field (max 8, placeholder 「例如：家人、朋友」, Enter submits). A dark 「下一步：上传照片」: a blank name toasts 「请填写名称」; otherwise it pushes the upload screen in its `new` context (§2) on the current tab.
 - **Video try-on camera layer** (`VT.camera.open(app)` in js/camera.js). It is full screen and dark, with aria 「视频试衣」. **[demo]**: it is a camera preview only, with no AI garment replacement.
   - Always shown:
     - ✕ at the top left (aria 「关闭视频试衣」).
@@ -229,7 +274,7 @@ Port the rule as it is, because acceptance checks depend on it. One known side e
   - Stop conditions: the layer stops every track and clears the video whenever it closes. That covers ✕, 「暂不开启」, 「返回试衣间」, Esc, back, and any navigation, because navigation closes all overlays. Every start, retry and switch stops the previous stream first. A stream that arrives after the layer has been removed is stopped at once. The prototype tests whether the layer is still in the DOM, so a stream that arrives during the 280 ms close animation is never stopped. The web build should track a "closed" flag instead. Nothing stops the camera when the page is hidden: there is no visibility handler.
   - Focus: when the preview goes live, the focused 「允许使用摄像头」 button is hidden and focus falls to the page body. The prototype handles Esc only inside the app, so from then on Esc no longer closes the layer. The web build should move focus to ✕.
 
-Camera error copy (`errorCopy`):
+Camera error copy (`errorCopy`, shared by both camera layers):
 
 | cause | title | body | 重试 |
 |---|---|---|---|
@@ -240,22 +285,29 @@ Camera error copy (`errorCopy`):
 | no `mediaDevices.getUserMedia` (insecure context) | 当前环境不支持摄像头 | 摄像头需要在 HTTPS 或 localhost 环境下使用，请用 README 中的本地服务器方式打开原型。 | shown |
 | anything else | 无法开启摄像头 | 请稍后重试。 | shown |
 
-**Data.** Reads `fit.cat` and `fit.outfit`, plus `data.fitCats` (the pills, and each category's garments that a render wears), `data.fitCatsAll` (each category's full list, which sets the rail order and holds selected garments without a render), `data.byId`, `data.slotOf` and `data.renders`. `data.fitCats` is `data.fitCatsAll` with each list filtered to the garments some render wears (`data.js:253-256`), so a render added later brings its garments back to the rail. Writes `fit.cat` and `fit.outfit`. Both are persisted, so they survive tab switches and reloads. Keep `data-keep-scroll="rail"`.
+**Data.**
+- Reads `fit.cat`, `fit.outfit`, `fitScene`, `avatars`, `activeAvatar`, `profile.name`, `wardrobe` (for 已在衣橱) and this session's uploads, plus `data.fitCats`, `data.fitCatsAll`, `data.byId`, `data.slotOf` and `data.renders`.
+- Writes `fit.cat`, `fit.outfit` (product ids, or `up:{id}` for uploads), `fitScene`, `wardrobe` and `wardrobeCat` (加入衣橱); the avatars go through `VT.store.avatars` (HANDOFF §9.15).
+- `fit.outfit` belongs to the active avatar; `fit.cat` and `fitScene` are shared by all avatars. All of these are persisted. Keep `data-keep-scroll="rail"`.
+- **Session uploads (我的上传)**: `sessionStorage['vt-fit-uploads-v1']` = `[{ id, src (JPEG data URL), name, cat (首页 category id), at }]`, newest first. They last for the browser session: a reload keeps them, a new tab or a closed browser doesn't. 「重置演示数据」 clears them. They are shared by all avatars. Outfit entries that point at an upload that no longer exists are dropped when 首页 renders.
+- The rail's source (推荐 / 我的上传) lives in memory, default 推荐. `VT.tryOn` sets it back to 推荐 (`VT.fitting.showRecommended()`).
 
-`VT.tryOn` also writes `fit` when another screen sends garments here: 商品详情 试穿上身, 个人衣橱, AI造型师 looks and 我的收藏. It applies the same slot rules, sets `fit.cat` to the first `data.fitCatsAll` entry that lists the first item, skipping 「上装」 unless the item is a top or outer garment (`05-product.js:211`). A garment without a render still opens its own category (utility-jacket opens 「上装」, brown-blazer 「外套」), and a garment in no category (maxi-skirt) leaves `fit.cat` as it was. It forces the avatar to `'ready'`, then makes a contextual jump to this screen. 420 ms later `VT.tryOn` shows its own toast here: 「已为你的数字分身换上所选单品」, or the 「演示版暂无…」 message for the first of the sent items that is missing (3000 ms).
+`VT.tryOn` also writes `fit` when another screen sends garments here: 商品详情 试穿上身, 个人衣橱, AI造型师 looks and 我的收藏. It applies the same slot rules, sets `fit.cat` to the first `data.fitCatsAll` entry that lists the first item, skipping 「上装」 unless the item is a top or outer garment (`05-product.js:211`). A garment without a render still opens its own category (utility-jacket opens 「上装」, brown-blazer 「外套」), and a garment in no category (maxi-skirt) leaves `fit.cat` as it was. It forces the active avatar to `'ready'`, then makes a contextual jump to this screen. 420 ms later `VT.tryOn` shows its own toast here: 「已为你的数字分身换上所选单品」, or the 「演示版暂无…」 message for the first of the sent items that is missing (3000 ms).
 
-This screen doesn't read uploaded photos or `avatar.status`; the avatar is always one of the preset renders **[demo]**.
+This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar is shown with the preset renders **[demo]**.
 
 **States & edge cases.**
-- Fresh state: 「上装」 is active and the outfit is empty, so the `base` render shows. The rail shows two thumbnails, black-blazer and basic-cami, and neither is marked selected, even though the base avatar wears the cami, jeans and sneakers.
-- A selected garment that no render wears (sent from another screen) is listed in its categories until it is tapped off. Tapping it removes it from the outfit with no toast, and it leaves the rail at once. The handler then can't find the thumbnail to refocus, so keyboard focus drops to the page (`03-fitting.js:113-114`, HANDOFF §13.2 #34). Cases: `{top: grey-hoodie}` → 上装 [black-blazer, basic-cami, grey-hoodie]; `{outer: knit-cardigan}` → 上装 [knit-cardigan, black-blazer, basic-cami] and 外套 [black-blazer, knit-cardigan].
+- Fresh state: 「上装」 is active, 推荐 is selected and the outfit is empty, so the `base` render shows. The rail shows 14 thumbnails, black-blazer and basic-cami first, and none is marked selected, even though the base avatar wears the cami, jeans and sneakers.
+- A garment without a render is always on 推荐; tapping it gives the 「演示版暂无…」 toast and tapping it again takes it off. (This replaces the earlier rule that listed only image-ready garments; HANDOFF §13.2 #34 no longer applies.)
 - maxi-skirt is in no `data.fitCatsAll` list. Sent here (商品详情 「试穿上身」), it joins the outfit as `bottom` with the 「演示版暂无…」 toast but never shows on the rail, so it can't be tapped off; only another bottom or a dress replaces it (HANDOFF §13.2 #35).
+- 我的上传 is empty in a new session: the camera tile and 「还没有上传的{category}」.
+- The same upload can be saved once per avatar: 加入衣橱 always writes to the active avatar's wardrobe.
 - Once `setupDone` is true, every launch opens this screen. Before setup is finished it is never shown; the path is onboarding → avatar → 首页.
-- There are no empty, loading or error states apart from the camera errors. All images are local.
+- There are no loading or error states apart from the camera layers and the image checks. All images are local.
 
-**Components used.** `VT.ui.statusBar('light')`, `VT.ui.img`, `VT.ui.tabBar('fitting')`, `.scroll`, `VT.icon` (category icons and their `-filled` variants, `check`, `video-filled`), `app.toast`, `app.later`. Camera: `app.layer`, `.btn--light.btn--lg.btn--block`, `.spinner`, `VT.icon` (`close`, `switch-camera`, `info`).
+**Components used.** `VT.ui.statusBar('light')`, `VT.ui.img`, `VT.ui.tabBar('fitting')`, `.scroll`, `.chip`, `.field` / `.field-row`, `.btn--ghost` / `.btn--dark` `.btn--lg`, `.sheet-actions`, `.sheet-note`, `.opt` / `.radio` (切换角色), `VT.icon` (category icons and their `-filled` variants, `person`, `home`, `chevron-down`, `chevron-right`, `video`, `camera`, `image`, `plus`, `check`), `app.sheet`, `app.layer`, `app.toast`, `app.later`. Camera: `app.layer`, `.btn--light.btn--lg.btn--block`, `.spinner`, `VT.icon` (`close`, `switch-camera`, `info`).
 
-**Acceptance checks.** `AC1: setup complete → 首页 (virtual fitting room)` · `AC3: tab → fitting` · `AC2/4: fitting has one bar with the 5 tabs` · `tab switch to fitting is instant` · `fitting has no back button (primary)` · `outfit change: blazer → look2 render` · `outfit change: dress → look3 render` · `首页 rail lists only garments with a render` · `honest toast for garments without imagery` (grey-hoodie sent through `VT.tryOn`, as from 商品详情) · `selected garment without a render shows until tapped off` · `camera preview live (getUserMedia)` · `camera stops on close` · `look → 首页 with outfit` · `AC1: relaunch after setup opens 首页` · `mobile: relaunch opens 首页` · `mobile: tabs work`. `board phone opens simulator on 首页` exists only for the showcase board.
+**Acceptance checks.** `AC1: setup complete → 首页 (virtual fitting room)` · `AC3: tab → fitting` · `AC2/4: fitting has one bar with the 5 tabs` · `tab switch to fitting is instant` · `fitting has no back button (primary)` · `outfit change: blazer → look2 render` · `outfit change: dress → look3 render` · `首页 rail lists image-ready garments first` · `honest toast for garments without imagery` (grey-hoodie sent through `VT.tryOn`, as from 商品详情) · `garment without a render can be tapped off` · `camera preview live (getUserMedia)` · `camera stops on close` · `look → 首页 with outfit` · `AC1: relaunch after setup opens 首页` · `mobile: relaunch opens 首页` · `mobile: tabs work` · `首页 header: 切换角色 · 切换场景 · 开启视频试衣` · `拍照 opens 拍摄衣服 / 从相册上传` · `upload → 我的上传, tried on, not in the wardrobe` · `加入衣橱 saves the upload once` · `我的上传 lasts for the browser session` · `拍摄衣服 captures a photo (getUserMedia)` · `切换场景 changes the backdrop` · `新建数字分身: its own empty wardrobe, now active` · `切换角色 back to 本人 restores her wardrobe`. `board phone opens simulator on 首页` exists only for the showcase board.
 
 
 ### 4. 购物广场 · `plaza`
@@ -355,10 +407,11 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
 
 **Route** `/wardrobe` · **Type** tab root · **Prototype** `js/screens/06-wardrobe.js`, `css/screens/06-wardrobe.css` · **Design ref** `reference/design/screens/06_my_wardrobe.png`
 
-**Purpose.** Browse, filter and search the user's garments (owned, collected, purchased, self-uploaded), heart them, queue several items for 首页 try-on, and add photos of the user's own clothes.
+**Purpose.** Browse, filter and search the active digital avatar's garments (owned, collected, purchased, self-uploaded), heart them, queue several items for 首页 try-on, and add photos of the user's own clothes.
 
 **Layout (top → bottom).**
 - Header (fixed): centred h1 「个人衣橱」; on the right a search icon button (aria 「搜索衣橱」, `aria-expanded`) and an add button (＋ in a circle, aria 「添加衣物」). No back button, although the design ref shows one (tab roots have none, REPORT deviation 1). The design's own tab bar (分类/购物车) is replaced by the shared 5-tab bar.
+  - With more than one digital avatar (HANDOFF §9.15) a pill sits at the top left: the avatar's portrait (26 px), its name (ellipsis past 108 px) and a chevron-down; aria 「切换角色，当前：{name}」. It opens the 切换角色 sheet (§3); after switching, the screen re-renders with that avatar's wardrobe and try-on queue. With one avatar the header is as before.
 - Search bar (fixed, only while open): pill `type=search` input, placeholder 「搜索衣橱里的单品」, aria 「搜索衣橱」.
 - Category tabs (fixed row, scrolls sideways, `role=tablist` aria 「衣橱分类」), from `data.wardrobeCats`: 「全部」「上衣」「下装」「鞋包」「配饰」「外套」「连衣裙」. The active tab is bold and underlined.
 - Grid (`.wr-scroll`, the only vertical scroller): 3 columns of tiles. Each tile has the garment image (the whole tile is a button), a heart toggle top-right, and a source badge bottom-left: 「已收藏」 collected · 「已购买」 purchased · 「我上传的」 uploaded. Seed `owned` items have no badge. A queued tile gets a dark outline and a check badge top-left.
@@ -397,9 +450,9 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
 - Sheets close with ✕ (aria 「关闭」), a scrim tap, Esc, or any navigation. The dialog closes only with its buttons or Esc.
 
 **Data.**
-- Reads: `s.wardrobe`, `s.wardrobeCat`, `s.tryQueue`, `data.wardrobeCats`, `data.inCat`, `data.byId`.
+- Reads: `s.wardrobe`, `s.wardrobeCat`, `s.tryQueue`, `data.wardrobeCats`, `data.inCat`, `data.byId`; for the pill, `s.avatars` and `s.activeAvatar`. `wardrobe` and `tryQueue` are the **active avatar's** (each avatar has its own); `wardrobeCat` is shared.
 - Writes: `s.wardrobe` (fav, remove, upload), `s.wardrobeCat`, `s.tryQueue`; try-on also writes `s.fit` and `s.avatar`.
-- Entry shapes: catalog `{uid, p, fav, source:'owned'|'collected'|'purchased', color?, size?, addedAt}`; uploaded `{uid, custom:{src,name,cat}, fav, source:'uploaded', addedAt}`.
+- Entry shapes: catalog `{uid, p, fav, source:'owned'|'collected'|'purchased', color?, size?, addedAt}`; uploaded `{uid, custom:{src,name,cat}, fav, source:'uploaded', addedAt}`, plus `fromUpload` (the 我的上传 id) when 首页's 「加入衣橱」 saved it.
 - Seed: `data.seedWardrobe`, 15 `owned` items with uids `w1…w15`, 4 of them hearted.
 - Order is the array order; there is no sort control. New entries are `unshift`ed: uploads here, 商品详情 「加入衣橱」 (`collected`), and checkout (`purchased`). Re-adding a product already in the wardrobe only updates its colour/size. Buying a collected item relabels it `purchased` (owned stays owned) without moving it. `addedAt` is stored but never used.
 - Persisted: the wardrobe, `wardrobeCat` and `tryQueue` (the queue survives a reload).
@@ -519,7 +572,7 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
 
 **Overlays.** None (the photo uses the native file picker).
 
-**Data.** Reads `profile.{name,bio,photo}`, `avatar.portrait`, `wardrobe`, `favorites`, `savedLooks`, `history`, `orders`, `returns`, `data.orderFilters`. Writes `profile.photo`. All counts are recomputed on every render, so they are live when coming back from any screen or tab. Keep scroll `me`. The 我的 tab keeps its own stack: leaving from 我的订单 and returning by the tab bar lands on 我的订单 again.
+**Data.** Reads `profile.{name,bio,photo}`, `avatar.portrait` and `wardrobe` (both the active avatar's: 我的衣橱 counts the active avatar's wardrobe, and the 我的形象 row shows its portrait), `favorites`, `savedLooks`, `history`, `orders`, `returns`, `data.orderFilters`. Writes `profile.photo`. All counts are recomputed on every render, so they are live when coming back from any screen or tab. Keep scroll `me`. The 我的 tab keeps its own stack: leaving from 我的订单 and returning by the tab bar lands on 我的订单 again.
 
 **States & edge cases.** No logged-in / logged-out difference: 我的 always shows the local profile (defaults 「小橙子」 / 「开启更美的每一天」); `loggedIn` only switches the bottom button of 设置 (「登录 / 注册」 ↔ 「退出登录」). Until a photo is uploaded, the header photo and the 我的形象 thumbnail show the demo portrait `chat-user.webp` **[demo]**. The header prefers `profile.photo`; the 我的形象 thumbnail never uses it (always the avatar 生活照). 设置 → 隐私与安全 → 清除已上传的照片 resets both to the sample. Only reachable after first-launch setup.
 
@@ -1007,14 +1060,14 @@ Shared by every screen in this group:
 
 **Route** `/me/avatar` · **Type** secondary · **Prototype** `js/screens/12-avatar-hub.js`, `css/screens/11-account.css` (`.ah-*`). Generation comes from `js/screens/02-avatar.js` (`VT.avatarGen`) and `css/screens/02-avatar.css` (`.av-gen*`). · **Design ref** none
 
-**Purpose.** Shows the digital avatar and lets the user replace its photos, regenerate it, and edit body data and avatar preferences.
+**Purpose.** Shows the active digital avatar and lets the user replace its photos, regenerate it, and edit body data and avatar preferences; an avatar other than 本人 can also be renamed or deleted here (HANDOFF §9.15).
 
 **Layout (top → bottom).**
 - Header 「我的形象」 (fixed).
 - Scroll (`data-keep-scroll="ah"`):
   - **Hero.**
     - Left: a taupe plate (`assets/backgrounds/fitting-plate.webp`) holding the full-body figure `assets/people/avatar-base.webp`. It is **always the preset figure**, whatever the state.
-    - Right, top to bottom: the status chip, title 「我的数字分身」, the status line, the note 「2D 形象预览 · 演示版」 **[demo]**, and a small dark button 「去试衣间」 (dress icon) pinned to the bottom.
+    - Right, top to bottom: the status chip, title 「我的数字分身」 (an avatar other than 本人 shows its name), the status line, the note 「2D 形象预览 · 演示版」 **[demo]**, and a small dark button 「去试衣间」 (dress icon) pinned to the bottom.
   - **「生成照片」.** A card with two tiles, 「全身照」 and 「生活照」.
     - Each tile shows the uploaded photo (`avatar.fullbody.src` / `avatar.portrait.src`) or a sample (`assets/people/upload-fullbody.webp` / `upload-portrait.webp`). A caption pill shows the label plus 「已上传」 or 「示例」. The tiles cannot be tapped.
     - Under the card: a ghost button 「更换照片」 (upload icon) and a dark button 「重新生成」 (refresh icon).
@@ -1026,6 +1079,7 @@ Shared by every screen in this group:
     - Switch 「试穿时显示尺码建议」, sub 「根据身材数据提示偏大或偏小」 (`avatarPrefs.sizeTips`).
     - Switch 「AI 造型师使用我的形象」, sub 「推荐造型时用数字分身预览上身效果」 (`avatarPrefs.stylistUse`).
     - Note 「照片只保存在本机，可在「设置 → 隐私与安全」中清除」 **[demo]**.
+  - **「角色管理」** (only for an avatar other than 本人): row 「名称」 (`edit` icon, value: the name) → the 修改名称 sheet (field max 8, Enter or 「保存」; blank → 「请填写名称」; saved → back, toast 「名称已保存」); row 「删除这个数字分身」 (`trash` icon, sub 「TA 的照片、衣橱和搭配会一并删除」) → dialog 「删除「{name}」？」 / 「TA 的照片、衣橱和搭配会一并删除，无法恢复。」 / 「取消」 · 「删除」. Deleting removes the avatar and its data, switches back to 本人, re-renders this screen for 本人 and toasts 「已删除「{name}」，已切换回本人」.
 
 **Interactions.**
 - 「去试衣间」 (`data-act="tab"`) → **switches tab** to 首页 exactly like the tab bar (`{tab:true}`). 首页 keeps its own stack, there is no animation, and 我的 stays on 我的形象.
@@ -1061,7 +1115,7 @@ Shared by every screen in this group:
   - The whole generation is simulated **[demo]**.
 
 **Data.**
-- Reads `avatar.{status,fullbody,portrait,generatedAt}`, `body` (default `{ height: 165, weight: 48, size: 'M', shoe: '37' }`) and `avatarPrefs` (both default true).
+- Reads `avatar.{status,fullbody,portrait,generatedAt}`, `body` (default `{ height: 165, weight: 48, size: 'M', shoe: '37' }`) and `avatarPrefs` (both default true). `avatar` and `body` are the **active avatar's** (a new avatar starts from the default body data); `avatarPrefs` are shared by all avatars.
 - Writes `body`, `avatarPrefs.*`, and through generation `avatar.status`, `avatar.generatedAt` and `avatar.demo`.
 - **No other screen reads `body` or `avatarPrefs`.** 商品详情's 尺码指南 hard-codes 「身高 165cm · 胸围 84cm」 → M.
 
@@ -1279,7 +1333,7 @@ Shared by every screen in this group:
 - 「语言」 → toast 「演示版仅支持简体中文」 **[demo]**.
 - 「尺码标准」 → sheet. Picking an option closes the sheet and updates the row value. No toast.
 - 「清除缓存」 → dialog. On confirm: toast 「缓存已清除」 (✓). Nothing is actually cleared and the value stays the same **[demo]**. The value is computed as `(localStorage['vt-prototype-state-v1'].length / 1024 / 1024 * 2).toFixed(1) + ' MB'`, or 「0.0 MB」 if storage cannot be read.
-- 「重新体验首次启动」 → dialog. On confirm: `setupDone = false`, then `app.launch()`. That closes overlays, **wipes every tab's history** and shows 启动页 `/welcome` with no animation. Wardrobe, orders, favourites and the avatar are kept.
+- 「重新体验首次启动」 → dialog. On confirm: switch back to 本人 if another avatar is active, `setupDone = false`, then `app.launch()`. That closes overlays, **wipes every tab's history** and shows 启动页 `/welcome` with no animation. Wardrobe, orders, favourites and the avatar are kept.
 - 「重置演示数据」 → dialog. On confirm: `VT.store.reset()`. Every field returns to its default and the localStorage key is removed; this includes `setupDone`, `loggedIn`, profile, addresses and all switches. Then `app.launch()` shows 启动页 and the toast 「演示数据已重置」.
 - 「关于全新的购物体验」 → 关于 sheet.
 - 「登录 / 注册」 → login sheet. After a successful login, settings re-renders **500 ms** later and the button now reads 「退出登录」. There is no navigation, and the avatar status is not changed (unlike 登录 on 启动页).
@@ -1338,7 +1392,7 @@ Shared by every screen in this group:
 **Interactions.**
 - 「登录密码」 → toast 「演示版暂不支持修改密码」 **[demo]**.
 - The two switches flip `privacy.*`.
-- 「清除已上传的照片」 → dialog. On confirm, it sets `avatar.fullbody`, `avatar.portrait` and `profile.photo` to `null` and empties every `returns[oid].photos`. Toast 「已清除本机照片」 (✓). `avatar.status` does not change. Wardrobe garment uploads are not touched. This screen does not re-render (nothing on it changes).
+- 「清除已上传的照片」 → dialog. On confirm, it sets `avatar.fullbody`, `avatar.portrait` (of every digital avatar) and `profile.photo` to `null` and empties every `returns[oid].photos`. Toast 「已清除本机照片」 (✓). `avatar.status` does not change. Wardrobe garment uploads are not touched. This screen does not re-render (nothing on it changes).
 - 「导出我的数据」 → toast 「演示版暂不支持导出数据」 **[demo]**.
 - 「注销账号」 → info dialog only; nothing changes **[demo]**.
 

@@ -74,6 +74,6 @@ tools/                  font subsetting + the asset pipeline used to prepare ima
   python3 tools/subset_fonts.py
   ```
   This needs Noto Sans CJK and Inter installed on the machine (the script lists the paths it expects). Until you re-run it, new characters fall back to the system font (PingFang SC / Microsoft YaHei).
-- Demo state (setup flag, wardrobe, orders, favourites, profile, addresses, chat, uploads) is stored in `localStorage` under `vt-prototype-state-v1`.
+- Demo state (setup flag, digital avatars, wardrobes, orders, favourites, profile, addresses, chat, uploads, the 首页 backdrop) is stored in `localStorage` under `vt-prototype-state-v1`. 首页's 我的上传 (garment photos for try-on) lives in `sessionStorage` under `vt-fit-uploads-v1`, so it lasts for the browser session only.
 
 See `docs/REPORT.md` for which features are real and which are simulated.
