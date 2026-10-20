@@ -15,7 +15,11 @@
 | Feature | Where |
 |---|---|
 | Navigation: tabs, back stacks, slide transitions, deep links | everywhere |
-| Photo upload with file picker, type and size checks, preview (downscaled, stored locally) | avatar creation, 我的资料 (profile picture), 申请退换货 (evidence photos), 个人衣橱 (own garments) |
+| Photo upload with file picker, type and size checks, preview (downscaled, stored locally) | avatar creation, 我的资料 (profile picture), 申请退换货 (evidence photos), 个人衣橱 (own garments), 首页 (拍照 → 从相册上传) |
+| Garment photo from the camera: the phone's own camera on phones; an in-app `getUserMedia` preview with a shutter on desktop | 首页 (拍照 → 拍摄衣服) |
+| Temporary try-on list (我的上传) for the browser session; 加入衣橱 saves an upload to the active avatar's wardrobe, once | 首页 |
+| Several digital avatars, each with its own photos, body data, wardrobe and outfit: create, switch, rename, delete | 首页 (切换角色), 个人衣橱, 我的形象 |
+| Four backdrops behind the avatar, remembered | 首页 (切换场景) |
 | Garment selection with multi-slot outfits, selected indicators, swaps to the matching on-body image | 首页 |
 | Live camera preview via `getUserMedia`: permission explainer, front/back switch, clear errors; stops on close | 首页 |
 | Search, category filters, favourites | 购物广场, 我的收藏 |
@@ -37,7 +41,8 @@
 | Feature | How it is simulated |
 |---|---|
 | Digital-avatar generation (first launch and 我的形象 → 重新生成) | A 4-second progress sequence. The result is always the preset model, labelled as a 2D preview |
-| Virtual try-on rendering | Only real on-body imagery is used (base avatar + 3 stylist looks). Other garments are added to the outfit with an honest "演示版暂无…的上身图" message |
+| Virtual try-on rendering | Only real on-body imagery is used (base avatar + 3 stylist looks). 首页's 推荐 lists the 10 garments those images show first, then the other 18; picking one of those joins the outfit with an honest "演示版暂无…的上身图" message. Photos of the user's own garments (我的上传) are never drawn onto the avatar: 首页 labels them 「临时试穿 · 演示版暂无上身图」 |
+| More digital avatars | Generation is simulated, so every avatar renders as the preset model; the 切换角色 sheet says so |
 | Video try-on | Camera preview only; real-time AI garment replacement needs a model service. In the online preview the host page blocks the camera, and the overlay explains how to run it locally |
 | AI stylist | Keyword-matched scripted replies, no LLM call |
 | Login, payment, logistics, merchant chat, FAQ, feedback, notifications, data export | Predetermined demo behaviour; no money moves, nothing is sent |
@@ -55,6 +60,13 @@
 9. **首页 background** is lighter, as drawn in the new mockup. It is still one continuous taupe plate with no white strip.
 10. **Avatar upload has a 跳过 button** on first launch (uses the demo avatar), since the spec says the setup "may" appear.
 11. Earlier decisions still stand: the same shirt has three names across detail, checkout and order; the detail-page button reads 试穿上身 (announced as 立即试穿); the status bar is standardised.
+
+**首页 update (20 Oct 2026, `reference/design/screens/03_fitting_room_v2.webp`).**
+
+12. **Readable sizes.** The 推荐 / 我的上传 tabs are 11 px (the mockup draws them at about 8 px) and the 开启视频试衣 label 11 px; the title is 18 px, as drawn, and stays centred on the screen.
+13. **加入衣橱 and the 临时试穿 card** are not in the mockup. They follow the flow diagram's 自主保存 step and sit above 拍照, so the avatar and the rail stay clear.
+14. **推荐 lists the image-ready garments first.** The mockup's order would start 上装 with the cardigan, which has no on-body image.
+15. **The selected tile** has the mockup's thin muted-coral ring and no ✓ badge.
 
 ## How the imagery was prepared
 

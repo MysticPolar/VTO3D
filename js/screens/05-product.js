@@ -215,6 +215,7 @@
     if (VT.store.get().avatar.status !== 'ready') {
       VT.store.update((s) => { s.avatar.status = 'ready'; s.avatar.demo = true; });
     }
+    VT.fitting.showRecommended();
     app.go('fitting');
     const { missing } = VT.fitting.pickRender(VT.store.get().fit.outfit);
     const miss = pids.filter((x) => missing.includes(x));

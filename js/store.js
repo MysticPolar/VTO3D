@@ -46,8 +46,81 @@
       privacy: { personalized: true, wardrobeAI: true },
       prefs: { sizeStd: '中国码', quickPay: false },
       loggedIn: false,
+      // 切换角色: every digital avatar has its own photos, body data, wardrobe, outfit and
+      // try-on queue. The active one's live in the fields above (avatar, body, wardrobe,
+      // fit.outfit, tryQueue); the others are stashed in `data`.
+      avatars: [{ id: 'me', name: null, self: true, createdAt: 0 }],
+      activeAvatar: 'me',
+      fitScene: 'taupe', // 切换场景: the backdrop behind the avatar on 首页
     };
   }
+
+  /* ---------- digital avatars (切换角色) ---------- */
+  const PER_AVATAR = ['avatar', 'body', 'wardrobe', 'tryQueue'];
+
+  function freshAvatarData(avatar) {
+    const d = defaults();
+    return { avatar: Object.assign(d.avatar, avatar || {}), body: d.body, wardrobe: [], tryQueue: [], outfit: {} };
+  }
+  /** move the active avatar's live fields into its record */
+  function stash(s) {
+    const rec = s.avatars.find((a) => a.id === s.activeAvatar);
+    if (!rec) return;
+    rec.data = clone(Object.assign(Object.fromEntries(PER_AVATAR.map((k) => [k, s[k]])), { outfit: s.fit.outfit }));
+  }
+  /** make `rec` the active avatar: its stashed fields become the live ones */
+  function unstash(s, rec) {
+    const data = rec.data || freshAvatarData();
+    PER_AVATAR.forEach((k) => { s[k] = data[k]; });
+    s.fit.outfit = data.outfit || {};
+    delete rec.data;
+    s.activeAvatar = rec.id;
+  }
+  const avatars = {
+    list(s) { return s.avatars; },
+    active(s) { return s.avatars.find((a) => a.id === s.activeAvatar) || s.avatars[0]; },
+    /** 本人 follows the profile nickname */
+    nameOf(s, rec) { return rec.self ? (s.profile.name || '我') : rec.name; },
+    dataOf(s, rec) { return rec.id === s.activeAvatar ? { avatar: s.avatar, wardrobe: s.wardrobe } : (rec.data || freshAvatarData()); },
+    portraitOf(s, rec) {
+      const a = avatars.dataOf(s, rec).avatar;
+      return (a.portrait && a.portrait.src) || (rec.self && s.profile.photo) || 'assets/people/chat-user.webp';
+    },
+    switchTo(id) {
+      update((s) => {
+        const rec = s.avatars.find((a) => a.id === id);
+        if (!rec || id === s.activeAvatar) return;
+        stash(s);
+        unstash(s, rec);
+      });
+    },
+    /** add an avatar (already generated) and make it the active one */
+    create(name, avatar) {
+      let id = null;
+      update((s) => {
+        stash(s);
+        const rec = { id: uid('av'), name, self: false, createdAt: Date.now(), data: freshAvatarData(avatar) };
+        s.avatars.push(rec);
+        unstash(s, rec);
+        id = rec.id;
+      });
+      return id;
+    },
+    rename(id, name) { update((s) => { const rec = s.avatars.find((a) => a.id === id); if (rec && !rec.self) rec.name = name; }); },
+    /** 本人 can't be removed; removing the active avatar switches back to 本人 */
+    remove(id) {
+      update((s) => {
+        const rec = s.avatars.find((a) => a.id === id);
+        if (!rec || rec.self) return;
+        if (s.activeAvatar === id) {
+          const self = s.avatars.find((a) => a.self);
+          delete rec.data;
+          unstash(s, self);
+        }
+        s.avatars = s.avatars.filter((a) => a.id !== id);
+      });
+    },
+  };
 
   let state = null;
   let saveTimer = null;
@@ -134,5 +207,5 @@
     },
   };
 
-  VT.store = { get, update, subscribe, reset, defaults, load, uid, h: helpers, KEY };
+  VT.store = { get, update, subscribe, reset, defaults, load, uid, h: helpers, avatars, KEY };
 })();

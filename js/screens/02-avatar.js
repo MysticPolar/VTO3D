@@ -1,6 +1,8 @@
 /* 上传照片 · 创建数字分身 (secondary screen)
-   Reached from the first-launch flow (启动页 → here → 首页) and from
-   我的 → 我的形象 → 更换照片. Generation is simulated. */
+   Reached from the first-launch flow (启动页 → here → 首页), from
+   我的 → 我的形象 → 更换照片, and from 切换角色 → 新建数字分身 (ctx 'new': the
+   photos stay in a draft until generation creates the new avatar).
+   Generation is simulated. */
 (function () {
   const VT = window.VT;
   const I = (n, o) => VT.icon(n, o);
@@ -20,9 +22,9 @@
     }).join('<li class="av-line" aria-hidden="true"></li>')}</ol>`;
   }
 
-  function card(id, s, busy) {
+  function card(id, photos, busy) {
     const c = SLOTS[id];
-    const up = s.avatar[id];
+    const up = photos[id];
     const isBusy = busy === id;
     return `
       <section class="av-card" aria-labelledby="av-${id}-t">
@@ -43,22 +45,21 @@
 
   function truncate(s, n) { s = String(s || '照片'); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
-  /** downscale a picked image to keep localStorage small */
-  function readImage(file) {
+  /** downscale a picked image to keep localStorage small (avatar photos: ≤ 900 px, JPEG 0.8) */
+  function readImage(file, max, quality) {
     return new Promise((resolve, reject) => {
       if (!file.type || !file.type.startsWith('image/')) { reject(new Error('type')); return; }
       if (file.size > 25 * 1024 * 1024) { reject(new Error('size')); return; }
       const url = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
-        const max = 900;
-        const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+        const k = Math.min(1, (max || 900) / Math.max(img.naturalWidth, img.naturalHeight));
         const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
         const cv = document.createElement('canvas');
         cv.width = w; cv.height = h;
         cv.getContext('2d').drawImage(img, 0, 0, w, h);
         URL.revokeObjectURL(url);
-        try { resolve({ src: cv.toDataURL('image/jpeg', 0.8), name: file.name, w, h }); } catch (e) { reject(e); }
+        try { resolve({ src: cv.toDataURL('image/jpeg', quality || 0.8), name: file.name, w, h }); } catch (e) { reject(e); }
       };
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
       img.src = url;
@@ -66,22 +67,33 @@
   }
 
   let busySlot = null;
+  let draft = {}; // ctx 'new': the new avatar's photos until it is generated
+
+  /** 'launch' (first launch) · 'profile' (我的形象 → 更换照片) · 'new' (切换角色 → 新建数字分身) */
+  const ctxOf = (params) => (params && params.ctx === 'new' ? 'new' : params && params.from === 'profile' ? 'profile' : 'launch');
+  const photosOf = (ctx, s) => (ctx === 'new' ? draft : s.avatar);
 
   VT.screens.avatar = {
     title: '上传照片，创建数字分身',
     render(app, params) {
       const s = app.s;
-      const fromProfile = params && params.from === 'profile';
+      const ctx = ctxOf(params);
+      const name = ctx === 'new' ? (params.name || '新的数字分身') : '';
+      const photos = photosOf(ctx, s);
       return `
         ${VT.ui.statusBar('dark')}
         <div class="scroll av-scroll" data-keep-scroll="av">
-          <div class="av-top">${VT.ui.backBtn()}${fromProfile ? '' : '<button type="button" class="av-skip" data-act="skip">跳过</button>'}</div>
+          <div class="av-top">${VT.ui.backBtn()}${ctx === 'launch' ? '<button type="button" class="av-skip" data-act="skip">跳过</button>' : ''}</div>
           <h1 class="av-title">上传照片，创建数字分身</h1>
-          <p class="av-lead">上传清晰的全身照和生活照，<br>我们将为你生成专属的3D数字分身，用于虚拟试衣。</p>
+          <p class="av-lead">${ctx === 'new' ? `上传「${VT.esc(name)}」清晰的全身照和生活照，<br>我们将为 TA 生成专属的3D数字分身，用于虚拟试衣。` : '上传清晰的全身照和生活照，<br>我们将为你生成专属的3D数字分身，用于虚拟试衣。'}</p>
           ${stepper(1)}
-          <div class="av-cards">${card('fullbody', s, busySlot)}${card('portrait', s, busySlot)}</div>
+          <div class="av-cards">${card('fullbody', photos, busySlot)}${card('portrait', photos, busySlot)}</div>
         </div>
-        <div class="av-cta"><button type="button" class="btn btn--dark btn--xl av-go" data-act="generate">${fromProfile ? '重新生成数字分身' : '生成我的数字分身'}<span class="btn-arrow">${I('arrow-right', { size: 24, stroke: 1.5 })}</span></button></div>`;
+        <div class="av-cta"><button type="button" class="btn btn--dark btn--xl av-go" data-act="generate">${{ launch: '生成我的数字分身', profile: '重新生成数字分身', new: '生成数字分身' }[ctx]}<span class="btn-arrow">${I('arrow-right', { size: 24, stroke: 1.5 })}</span></button></div>`;
+    },
+    mount(app, el, params, info) {
+      // a new avatar starts from empty photos; coming back to the screen keeps them
+      if (ctxOf(params) === 'new' && !info.restored && !info.refresh) draft = {};
     },
     actions: {
       async upload(app, el) {
@@ -92,7 +104,8 @@
         app.refresh();
         try {
           const data = await readImage(file);
-          VT.store.update((s) => { s.avatar[slot] = data; if (s.avatar.status === 'ready') s.avatar.status = 'stale'; });
+          if (ctxOf(app.params) === 'new') draft[slot] = data;
+          else VT.store.update((s) => { s.avatar[slot] = data; if (s.avatar.status === 'ready') s.avatar.status = 'stale'; });
           app.toast(`${SLOTS[slot].label}已上传`, { icon: 'check' });
         } catch (e) {
           const msg = e.message === 'type' ? '请选择图片文件（JPG / PNG / HEIC 等）' : e.message === 'size' ? '图片超过 25MB，请换一张' : '无法读取这张图片，请换一张试试';
@@ -103,9 +116,9 @@
         }
       },
       generate(app) {
-        const s = VT.store.get();
-        const usingSamples = !s.avatar.fullbody || !s.avatar.portrait;
-        runGeneration(app, usingSamples, app.params.from === 'profile' ? 'profile' : 'launch');
+        const ctx = ctxOf(app.params);
+        const photos = photosOf(ctx, VT.store.get());
+        runGeneration(app, !photos.fullbody || !photos.portrait, ctx);
       },
       /* first launch only: use the demo avatar and go straight to 首页 */
       skip(app) {
@@ -117,10 +130,11 @@
   };
 
   /* ---------- simulated generation (no real AI backend in this prototype) ---------- */
-  /* ctx: 'launch' (first launch) · 'profile' (upload screen opened from 我的形象) · 'hub' (重新生成 on 我的形象) */
+  /* ctx: 'launch' (first launch) · 'profile' (upload screen opened from 我的形象) · 'hub' (重新生成 on 我的形象)
+     · 'new' (a new avatar from 切换角色) */
   function runGeneration(app, usingSamples, ctx) {
-    const s = VT.store.get();
-    const fb = s.avatar.fullbody ? s.avatar.fullbody.src : SLOTS.fullbody.sample;
+    const photos = photosOf(ctx, VT.store.get());
+    const fb = photos.fullbody ? photos.fullbody.src : SLOTS.fullbody.sample;
     const stages = ['解析身材比例与体型特征', '识别面部特征与发型', '构建数字分身模型', '匹配肤色与光影细节'];
     let cancelled = false;
     const ov = app.layer({
@@ -162,7 +176,14 @@
   }
 
   function finish(app, ov, usingSamples, ctx) {
-    VT.store.update((s) => { s.avatar.status = 'ready'; s.avatar.generatedAt = Date.now(); s.avatar.demo = true; });
+    const name = ctx === 'new' ? (app.params.name || '新的数字分身') : '';
+    if (ctx === 'new') {
+      // the new avatar exists from here on, with its own empty wardrobe, and becomes the active one
+      VT.store.avatars.create(name, { status: 'ready', fullbody: draft.fullbody || null, portrait: draft.portrait || null, generatedAt: Date.now(), demo: true });
+      draft = {};
+    } else {
+      VT.store.update((s) => { s.avatar.status = 'ready'; s.avatar.generatedAt = Date.now(); s.avatar.demo = true; });
+    }
     const inner = ov.querySelector('.av-gen-in');
     inner.classList.add('is-done');
     inner.querySelector('.av-gen-head').innerHTML = stepper(3);
@@ -182,10 +203,17 @@
     ov._actions.redo = () => { app.closeOverlay(ov); };
     ov._actions.done = () => {
       app.closeOverlay(ov, true);
-      if (ctx === 'profile') app.back(); else app.refresh();
-      app.toast('数字分身已更新', { icon: 'check' });
+      if (ctx === 'profile' || ctx === 'new') app.back(); else app.refresh();
+      app.toast(ctx === 'new' ? `已切换到「${name}」` : '数字分身已更新', { icon: 'check' });
     };
-    ov._actions.try = () => { app.go('fitting'); };
+    ov._actions.try = () => {
+      if (ctx !== 'new') { app.go('fitting'); return; }
+      // the finished upload screen leaves every stack; 首页 shows the new avatar
+      const same = app.tab === 'fitting';
+      app.drop('avatar');
+      app.go('fitting', {}, { anim: same ? 'pop' : 'fade' });
+      app.later(() => app.toast(`已切换到「${name}」`, { icon: 'check' }), 300);
+    };
     const b = inner.querySelector('[data-act="enter"], [data-act="done"]');
     if (b) b.focus({ preventScroll: true });
     if (usingSamples) app.toast('已使用示例照片生成演示分身');
