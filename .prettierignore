@@ -1,5 +1,7 @@
 # other sessions' git worktrees live in .claude/worktrees/: never format their checkouts
 .claude
+# self-contained package with its own Prettier check (`pnpm --dir live-tryon lint`)
+live-tryon
 # read-only input, the spec and generated files (HANDOFF §4.1)
 reference
 docs

@@ -7,9 +7,11 @@ import tseslint from 'typescript-eslint';
 
 export default defineConfig([
   // reference/ is read-only input and docs/ is the spec (HANDOFF §4.1); baselines are generated;
-  // .claude/worktrees/ holds other sessions' checkouts
+  // .claude/worktrees/ holds other sessions' checkouts; live-tryon/ is a self-contained package
+  // with its own checks (`pnpm --dir live-tryon verify`) and build output
   globalIgnores([
     '.claude',
+    'live-tryon',
     'dist',
     'coverage',
     'reference',
