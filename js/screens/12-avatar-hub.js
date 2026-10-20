@@ -58,7 +58,7 @@
     });
   }
 
-  VT.avatarUI = { switcher };
+  VT.avatarUI = { switcher, create: createSheet };
 
   VT.screens.avatarhub = {
     title: '我的形象',

@@ -89,9 +89,11 @@
         <button type="button" role="switch" class="switch ${on ? 'is-on' : ''}" aria-checked="${on}" aria-labelledby="lb-${key.replace('.', '-')}" data-act="${o.act || 'toggle'}" data-key="${key}" ${o.disabled ? 'disabled' : ''}><i></i></button></div>`;
     },
 
-    /** profile picture: uploaded photo, else the demo portrait */
+    /** profile picture: uploaded photo, else 本人's 生活照 (never another avatar's: 切换角色 doesn't switch the account), else the demo portrait */
     profilePhoto(s) {
-      return (s.profile && s.profile.photo) || (s.avatar && s.avatar.portrait && s.avatar.portrait.src) || 'assets/people/chat-user.webp';
+      const self = s.avatars && s.avatars.find((a) => a.self);
+      const a = self && self.id !== s.activeAvatar ? self.data && self.data.avatar : s.avatar;
+      return (s.profile && s.profile.photo) || (a && a.portrait && a.portrait.src) || 'assets/people/chat-user.webp';
     },
   };
 

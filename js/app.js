@@ -36,6 +36,7 @@
     avatarhub: 'profile', editprofile: 'profile', addresses: 'profile', payments: 'profile',
     notifications: 'profile', settings: 'profile', privacy: 'settings', help: 'profile',
     favorites: 'profile', history: 'profile',
+    outfit: 'wardrobe', moment: 'wardrobe',
   };
   function parentOf(id, params) {
     if (id === 'avatar') return params && params.ctx === 'new' ? 'fitting' : params && params.from === 'profile' ? 'avatarhub' : 'onboarding';
