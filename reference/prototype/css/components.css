@@ -301,8 +301,8 @@ textarea.field-area { width: 100%; min-height: 84px; padding: 12px 14px; border-
 .mini { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 16px; background: var(--card); }
 .mini img { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; background: var(--tile); flex: none; }
 .mini-main { flex: 1; min-width: 0; }
-.mini-title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mini-sub { color: var(--text-3); font-size: 12px; margin-top: 2px; }
+.mini-title { display: block; font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-sub { display: block; color: var(--text-3); font-size: 12px; margin-top: 2px; }
 .mini .price { font-size: 16px; }
 
 .kv { display: grid; grid-template-columns: 84px 1fr; gap: 10px 12px; font-size: 13.5px; }
