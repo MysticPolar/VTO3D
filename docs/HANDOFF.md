@@ -696,7 +696,7 @@ Each phase ends with every check below green, the report, the `CLAUDE.md` tick, 
 ### Phase 0 · Scaffold
 
 1. Scaffold the Vite React + TypeScript project with pnpm in a temporary folder, then copy its files into the repo root. Never run the scaffolder in the repo root: it offers to empty the folder, which would delete `docs/` and `reference/`. Add the §3 dependencies.
-2. TypeScript `strict` plus `noUncheckedIndexedAccess`; path alias `@/` → `src/`. ESLint and Prettier; exclude `reference/` and `e2e/visual/__baseline__/` everywhere. `git init`; `.gitignore`: `node_modules`, `dist`, `fonts-src`, Playwright reports and results, `reference/acceptance/out`.
+2. TypeScript `strict` plus `noUncheckedIndexedAccess`; path alias `@/` → `src/`. ESLint and Prettier; exclude `reference/` and `e2e/visual/__baseline__/` everywhere. The repo already exists, so skip `git init`; extend its `.gitignore` with `node_modules`, `dist`, `fonts-src`, Playwright reports and results, `reference/acceptance/out`.
 3. Copy the images to `public/assets/`, the fonts and `@font-face` rules, `tokens.css` and the reset from `base.css` into `src/styles/` (§5.1, §5.2, §5.6).
 4. `index.html` and the viewport rules from §4.2. `AppShell` renders the phone-width column (desktop backdrop) and supports `?frame=iphone`.
 5. `.env`: `VITE_DEMO=true`, `VITE_MOCK_LATENCY=150-350`. `.env.test`: `VITE_MOCK_LATENCY=0`.

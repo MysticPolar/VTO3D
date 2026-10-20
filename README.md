@@ -6,8 +6,8 @@ Everything Claude Code needs to build the web version of the virtual try-on prot
 
 ## How to use it
 
-1. Unzip. The `vto-web` folder it creates becomes the web app's repository.
-2. Open Claude Code in `vto-web`.
+1. Clone `MysticPolar/VTO3D`. It is also the web app's repository.
+2. Open Claude Code in it.
 3. Paste:
    > Read CLAUDE.md and docs/HANDOFF.md fully. Then do Phase 0 only. When done, show me the checks and stop.
 4. Review the report. Then say "Go on with Phase 1", and so on through Phase 7.
