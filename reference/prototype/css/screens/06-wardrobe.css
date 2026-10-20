@@ -6,6 +6,14 @@
   font-family: var(--font-cjk); font-weight: 900; font-size: 24.6px; line-height: 32px; letter-spacing: -.045em;
   color: #1B1917; pointer-events: none;
 }
+.wr-who {
+  position: absolute; left: 12px; top: 42.4px; z-index: 1;
+  display: inline-flex; align-items: center; gap: 5px; max-width: 108px; height: 34px; padding: 0 9px 0 4px;
+  border-radius: 999px; background: #EFE8E1; color: #2B2724; font-size: 12.5px; font-weight: 600;
+}
+.wr-who span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wr-who .i { flex: none; color: #6F675F; }
+.wr-who-face { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: none; background: var(--tile); }
 .wr-search-btn { position: absolute; right: 50.3px; top: 37.4px; }
 .wr-search-btn svg { width: 24px; height: 24px; }
 .wr-add-btn { position: absolute; right: 6.7px; top: 37.9px; }

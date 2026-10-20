@@ -237,6 +237,8 @@
         if (!ok) return;
         VT.store.update((s) => {
           s.avatar.fullbody = null; s.avatar.portrait = null; s.profile.photo = null;
+          // every digital avatar's photos, not only the active one's (切换角色)
+          s.avatars.forEach((a) => { if (a.data) { a.data.avatar.fullbody = null; a.data.avatar.portrait = null; } });
           Object.values(s.returns).forEach((r) => { r.photos = []; });
         });
         app.toast('已清除本机照片', { icon: 'check' });
@@ -297,6 +299,8 @@
       async replay(app) {
         const ok = await app.dialog({ title: '重新体验首次启动？', text: '将回到启动页，你的衣橱、订单和收藏会保留。', ok: '开始' });
         if (!ok) return;
+        // the first launch is 本人's, whichever digital avatar was active
+        VT.store.avatars.switchTo(VT.store.get().avatars.find((a) => a.self).id);
         VT.store.update((s) => { s.setupDone = false; });
         app.launch();
       },

@@ -137,5 +137,104 @@
     return ov;
   }
 
-  VT.camera = { open };
+  /* ---------- 拍摄衣服 (首页 → 拍照) on devices without their own camera picker ----------
+     A live preview with a shutter. The frame is downscaled like any garment photo
+     (≤ 520 px, JPEG 0.82) and handed to o.onShot; o.onGallery is the way out when
+     there is no usable camera. */
+  function capture(app, o) {
+    let stream = null;
+    let closed = false;
+    const ov = app.layer({
+      cls: 'cam cam--shot', label: '拍摄衣服',
+      html: `
+        <div class="cam-view" data-state="wait">
+          <video class="cam-video" playsinline muted autoplay aria-label="摄像头实时画面"></video>
+          <div class="cam-top">
+            <button type="button" class="cam-btn" data-act="close" aria-label="关闭拍摄">${I('close', { size: 22, stroke: 2 })}</button>
+            <span class="cam-title">拍摄衣服</span>
+            <span class="cam-btn" aria-hidden="true" style="visibility:hidden"></span>
+          </div>
+          <div class="cam-panel" data-state="wait">
+            <div class="cam-wait"><span class="spinner"></span><p>正在打开摄像头…</p></div>
+            <div class="cam-err">
+              <span class="cam-ic">${I('info', { size: 28, stroke: 1.6 })}</span>
+              <h2 class="cam-err-t"></h2>
+              <p class="cam-err-s"></p>
+              <button type="button" class="btn btn--light btn--lg btn--block" data-act="start">重试</button>
+              <button type="button" class="btn cam-cancel btn--lg btn--block" data-act="gallery">从相册上传</button>
+            </div>
+          </div>
+          <div class="cam-shot-bar">
+            <p class="cam-shot-tip">将衣服平铺拍摄，完整放进画面</p>
+            <button type="button" class="cam-shutter" data-act="shoot" aria-label="拍照" disabled><i></i></button>
+          </div>
+        </div>`,
+      actions: {
+        close: () => app.closeOverlay(ov),
+        start: () => start(),
+        shoot: () => shoot(),
+        gallery: () => { app.closeOverlay(ov, true); if (o.onGallery) o.onGallery(); },
+      },
+      onClose: () => { closed = true; stop(); },
+    });
+
+    const video = ov.querySelector('.cam-video');
+    const panel = ov.querySelector('.cam-panel');
+    const shutter = ov.querySelector('.cam-shutter');
+    const setState = (st) => { panel.dataset.state = st; ov.querySelector('.cam-view').dataset.state = st; shutter.disabled = st !== 'live'; };
+
+    function stop() {
+      if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+      if (video) video.srcObject = null;
+    }
+
+    async function start() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { fail({ name: 'Unsupported' }); return; }
+      if (blockedByHost()) { fail({ name: 'NotAllowedError', message: 'camera blocked by the hosting page' }); return; }
+      setState('wait');
+      stop();
+      try {
+        const got = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+        if (closed) { got.getTracks().forEach((t) => t.stop()); return; }
+        stream = got;
+        video.srcObject = stream;
+        const track = stream.getVideoTracks()[0];
+        const settings = track && track.getSettings ? track.getSettings() : {};
+        video.classList.toggle('is-mirror', settings.facingMode === 'user');
+        await video.play().catch(() => {});
+        if (closed) return;
+        setState('live');
+        shutter.focus({ preventScroll: true });
+      } catch (err) {
+        if (!closed) fail(err);
+      }
+    }
+
+    function fail(err) {
+      const c = errorCopy(err);
+      ov.querySelector('.cam-err-t').textContent = c.t;
+      ov.querySelector('.cam-err-s').textContent = c.s;
+      ov.querySelector('.cam-err [data-act="start"]').hidden = c.retry === false;
+      setState('error');
+      ov.querySelector('.cam-err [data-act="gallery"]').focus({ preventScroll: true });
+      console.info('[camera]', err && err.name, err && err.message);
+    }
+
+    function shoot() {
+      if (!stream || !video.videoWidth) return;
+      const k = Math.min(1, 520 / Math.max(video.videoWidth, video.videoHeight));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(video.videoWidth * k);
+      cv.height = Math.round(video.videoHeight * k);
+      cv.getContext('2d').drawImage(video, 0, 0, cv.width, cv.height);
+      const src = cv.toDataURL('image/jpeg', 0.82);
+      app.closeOverlay(ov, true);
+      o.onShot(src);
+    }
+
+    start();
+    return ov;
+  }
+
+  VT.camera = { open, capture };
 })();

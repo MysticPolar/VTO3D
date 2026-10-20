@@ -42,6 +42,15 @@
     }).join('')}</ul>`;
   }
 
+  /** whose wardrobe this is, once there is more than one digital avatar (切换角色) */
+  function whoPill(s) {
+    const A = VT.store.avatars;
+    if (A.list(s).length < 2) return '';
+    const rec = A.active(s);
+    const name = VT.esc(A.nameOf(s, rec));
+    return `<button type="button" class="wr-who" data-act="who" aria-haspopup="dialog" aria-label="切换角色，当前：${name}">${VT.ui.img(A.portraitOf(s, rec), '', 'wr-who-face')}<span>${name}</span>${I('chevron-down', { size: 13, stroke: 2 })}</button>`;
+  }
+
   function queueBar(s) {
     const n = s.tryQueue.length;
     return n ? `<div class="wr-queue"><span>已选 ${n} 件</span><button type="button" class="wr-queue-clear" data-act="queue-clear">清空</button><button type="button" class="btn btn--dark btn--sm" data-act="queue-go">去试衣间${I('arrow-right', { size: 16, stroke: 1.8 })}</button></div>` : '';
@@ -54,6 +63,7 @@
       return `
         ${VT.ui.statusBar('dark')}
         <header class="wr-head">
+          ${whoPill(s)}
           <h1 class="wr-title">个人衣橱</h1>
           ${VT.ui.iconBtn('search', '搜索衣橱', 'search-toggle', { size: 26, stroke: 1.7, cls: 'wr-search-btn', attrs: `aria-expanded="${searchOpen}"` })}
           <button type="button" class="icon-btn wr-add-btn" data-act="add-open" aria-label="添加衣物"><span class="wr-plus">${I('plus', { size: 17, stroke: 2 })}</span></button>
@@ -81,6 +91,7 @@
         sc.innerHTML = grid(app.s);
         sc.scrollTop = 0;
       },
+      who(app) { VT.avatarUI.switcher(app); },
       'search-toggle'(app) {
         searchOpen = !searchOpen;
         if (!searchOpen) query = '';
