@@ -1,8 +1,9 @@
 /* ==========================================================================
    Demo state + localStorage persistence.
    Persisted: first-launch flag, avatar, favorites, favourite stores, store
-   chats, wardrobe, outfit, cart, orders + returns, saved looks, chat, filters,
-   profile, addresses, history and settings. Use VT.store.reset() to restore.
+   chats, wardrobe, 搭配集, 穿搭瞬间, digital avatars (切换角色), outfit, cart,
+   orders + returns, saved looks, chat, filters, profile, addresses, history
+   and settings. Use VT.store.reset() to restore.
    ========================================================================== */
 (function () {
   const VT = (window.VT = window.VT || {});
@@ -17,12 +18,13 @@
 
   function defaults() {
     const d = D();
+    const wardrobe = d.seedWardrobe.map((w, i) => ({ uid: 'w' + (i + 1), p: w.p, fav: w.fav, source: w.source, addedAt: 0 }));
     return {
       v: 2,
       setupDone: false, // onboarding + avatar creation finished (first launch only)
       avatar: { status: 'none', fullbody: null, portrait: null, generatedAt: null },
       favorites: Object.fromEntries(d.seedFavorites.map((p) => [p, true])),
-      wardrobe: d.seedWardrobe.map((w, i) => ({ uid: 'w' + (i + 1), p: w.p, fav: w.fav, source: w.source, addedAt: 0 })),
+      wardrobe,
       fit: { cat: 'upper', outfit: {} },
       tryQueue: [],
       cart: null,
@@ -35,6 +37,7 @@
       storeFavs: d.seedStoreFavs.slice(), // favourite stores, in 购物广场 bar order
       storeChats: clone(d.storeChatSeed), // 商家消息
       wardrobeCat: 'all',
+      wardrobeView: 'clothes', // 个人衣橱: 衣服 · 搭配集 · 穿搭瞬间
       selections: {},
       returns: clone(d.seedReturns),
       history: clone(d.seedHistory),
@@ -46,21 +49,55 @@
       privacy: { personalized: true, wardrobeAI: true },
       prefs: { sizeStd: '中国码', quickPay: false },
       loggedIn: false,
-      // 切换角色: every digital avatar has its own photos, body data, wardrobe, outfit and
-      // try-on queue. The active one's live in the fields above (avatar, body, wardrobe,
-      // fit.outfit, tryQueue); the others are stashed in `data`.
-      avatars: [{ id: 'me', name: null, self: true, createdAt: 0 }],
+      // 切换角色: every digital avatar has its own photos, body data, wardrobe, outfit, try-on
+      // queue, 搭配集 (collections) and 穿搭瞬间 (moments). The active one's live in the fields
+      // above (avatar, body, wardrobe, fit.outfit, tryQueue) and below; the others are stashed in
+      // `data`. 本人 comes with three demo people (伴侣 · 爸爸 · 妈妈, data.seedRoles).
+      collections: seedCollections(d.seedCollections, wardrobe),
+      moments: clone(d.seedMoments),
+      avatars: [{ id: 'me', name: null, self: true, createdAt: 0, portrait: d.mePortrait }].concat(d.seedRoles.map(roleRecord)),
       activeAvatar: 'me',
       fitScene: 'taupe', // 切换场景: the backdrop behind the avatar on 首页
     };
   }
 
   /* ---------- digital avatars (切换角色) ---------- */
-  const PER_AVATAR = ['avatar', 'body', 'wardrobe', 'tryQueue'];
+  const PER_AVATAR = ['avatar', 'body', 'wardrobe', 'tryQueue', 'collections', 'moments'];
 
   function freshAvatarData(avatar) {
     const d = defaults();
-    return { avatar: Object.assign(d.avatar, avatar || {}), body: d.body, wardrobe: [], tryQueue: [], outfit: {} };
+    return { avatar: Object.assign(d.avatar, avatar || {}), body: d.body, wardrobe: [], tryQueue: [], outfit: {}, collections: [], moments: [] };
+  }
+  /** seed 搭配集: product ids → the uids of those garments in `wardrobe` */
+  function seedCollections(list, wardrobe) {
+    return list.map((c) => ({
+      id: c.id, name: c.name, cover: c.cover || null, createdAt: 0,
+      items: c.items.map((p) => (wardrobe.find((w) => w.p === p) || {}).uid).filter(Boolean),
+    }));
+  }
+  /** a demo person (伴侣 / 爸爸 / 妈妈) with their own wardrobe, 搭配集 and body data, stashed until switched to */
+  function roleRecord(r) {
+    const wardrobe = r.wardrobe.map((p, i) => ({ uid: `${r.id}-w${i + 1}`, p, fav: r.favs.includes(p), source: 'owned', addedAt: 0 }));
+    return {
+      id: r.id, name: r.name, self: false, demo: true, createdAt: 0, portrait: r.portrait,
+      data: {
+        avatar: { status: 'none', fullbody: null, portrait: null, generatedAt: null }, body: clone(r.body), wardrobe, tryQueue: [], outfit: {},
+        collections: seedCollections(r.collections, wardrobe), moments: [],
+      },
+    };
+  }
+  /** a state saved before 搭配集 / 穿搭瞬间 and the demo people: 本人 gets the seed ones, the people are added */
+  function addWardrobeV2(s, fresh) {
+    const me = s.avatars.find((a) => a.self) || s.avatars[0];
+    const live = me.id === s.activeAvatar;
+    const mine = { collections: seedCollections(D().seedCollections, live ? s.wardrobe : (me.data && me.data.wardrobe) || []), moments: fresh.moments };
+    if (live) Object.assign(s, mine);
+    else {
+      Object.assign(s, { collections: [], moments: [] });
+      if (me.data) Object.assign(me.data, mine);
+    }
+    if (!me.portrait) me.portrait = D().mePortrait;
+    fresh.avatars.filter((a) => !a.self && !s.avatars.some((x) => x.id === a.id)).forEach((a) => s.avatars.push(a));
   }
   /** move the active avatar's live fields into its record */
   function stash(s) {
@@ -71,7 +108,8 @@
   /** make `rec` the active avatar: its stashed fields become the live ones */
   function unstash(s, rec) {
     const data = rec.data || freshAvatarData();
-    PER_AVATAR.forEach((k) => { s[k] = data[k]; });
+    const fresh = freshAvatarData();
+    PER_AVATAR.forEach((k) => { s[k] = k in data ? data[k] : fresh[k]; }); // records stashed before a field existed
     s.fit.outfit = data.outfit || {};
     delete rec.data;
     s.activeAvatar = rec.id;
@@ -81,10 +119,13 @@
     active(s) { return s.avatars.find((a) => a.id === s.activeAvatar) || s.avatars[0]; },
     /** 本人 follows the profile nickname */
     nameOf(s, rec) { return rec.self ? (s.profile.name || '我') : rec.name; },
-    dataOf(s, rec) { return rec.id === s.activeAvatar ? { avatar: s.avatar, wardrobe: s.wardrobe } : (rec.data || freshAvatarData()); },
+    dataOf(s, rec) {
+      return rec.id === s.activeAvatar ? { avatar: s.avatar, wardrobe: s.wardrobe, collections: s.collections, moments: s.moments } : (rec.data || freshAvatarData());
+    },
+    /** the uploaded 生活照, else (本人) the profile picture, else the demo portrait */
     portraitOf(s, rec) {
       const a = avatars.dataOf(s, rec).avatar;
-      return (a.portrait && a.portrait.src) || (rec.self && s.profile.photo) || 'assets/people/chat-user.webp';
+      return (a.portrait && a.portrait.src) || (rec.self && s.profile.photo) || rec.portrait || 'assets/people/chat-user.webp';
     },
     switchTo(id) {
       update((s) => {
@@ -140,6 +181,7 @@
       ['fit', 'checkout', 'profile', 'body', 'avatarPrefs', 'notify', 'privacy', 'prefs', 'avatar', 'plaza'].forEach((k) => {
         state[k] = Object.assign(fresh[k], saved[k] || {});
       });
+      if (!('collections' in saved)) addWardrobeV2(state, fresh);
     } else {
       state = base;
     }

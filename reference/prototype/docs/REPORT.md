@@ -18,14 +18,16 @@
 | Photo upload with file picker, type and size checks, preview (downscaled, stored locally) | avatar creation, 我的资料 (profile picture), 申请退换货 (evidence photos), 个人衣橱 (own garments), 首页 (拍照 → 从相册上传) |
 | Garment photo from the camera: the phone's own camera on phones; an in-app `getUserMedia` preview with a shutter on desktop | 首页 (拍照 → 拍摄衣服) |
 | Temporary try-on list (我的上传) for the browser session; 加入衣橱 saves an upload to the active avatar's wardrobe, once | 首页 |
-| Several digital avatars, each with its own photos, body data, wardrobe and outfit: create, switch, rename, delete | 首页 (切换角色), 个人衣橱, 我的形象 |
+| Several digital avatars (本人 + the demo 伴侣 · 爸爸 · 妈妈), each with its own photos, body data, wardrobe, 搭配集, 穿搭瞬间 and outfit: create, switch, rename, delete. One active person for the whole app: switching on 首页 or in 个人衣橱's portrait row changes both; the account, payment methods and orders never switch | 首页 (切换角色), 个人衣橱, 我的形象 |
 | Four backdrops behind the avatar, remembered | 首页 (切换场景) |
 | Garment selection with multi-slot outfits, selected indicators, swaps to the matching on-body image | 首页 |
 | Live camera preview via `getUserMedia`: permission explainer, front/back switch, clear errors; stops on close | 首页 |
 | Search, category filters, favourites | 购物广场, 我的收藏 |
 | Gallery, colour and size selection, size guide, reviews, share | 商品详情 |
 | Add to wardrobe → appears at the top of 个人衣橱 | 商品详情 → 个人衣橱 |
-| Wardrobe filters, search, hearts, try-on queue, remove, upload | 个人衣橱 |
+| Wardrobe: 衣服 / 搭配集 / 穿搭瞬间 views; filters, search, hearts, try-on queue, upload; long-press (or right-click) menu 立即试穿 · 加入搭配集 · 分享 · 删除 | 个人衣橱 |
+| 搭配集: create, rename, add or remove garments, share, delete; 一键试穿这套 sends the set to 首页 | 个人衣橱 → 搭配集详情 |
+| 穿搭瞬间: a private gallery (仅自己可见); 保存造型 on 首页 adds the current try-on; hearts, 保存图片 (a real download; a 首页 try-on is composed onto its backdrop as a JPEG), 分享 (the native share sheet with the photo where the browser allows, else the clipboard), 再次试穿, delete | 个人衣橱 → 穿搭瞬间, 首页 |
 | Checkout editing: colour, size, quantity, address book, shipping, payment, agreement, live totals | 结算下单 |
 | Order list with status filters (全部 / 待付款 / 待发货 / 运输中 / 待收货 / 售后), pay an unpaid order, confirm receipt, cancel, buy again | 我的订单 |
 | Order details, logistics timeline, return/exchange form with progress and withdraw | 订单详情, 物流跟踪, 申请退换货 |
@@ -42,7 +44,8 @@
 |---|---|
 | Digital-avatar generation (first launch and 我的形象 → 重新生成) | A 4-second progress sequence. The result is always the preset model, labelled as a 2D preview |
 | Virtual try-on rendering | Only real on-body imagery is used (base avatar + 3 stylist looks). 首页's 推荐 lists the 10 garments those images show first, then the other 18; picking one of those joins the outfit with an honest "演示版暂无…的上身图" message. Photos of the user's own garments (我的上传) are never drawn onto the avatar: 首页 labels them 「临时试穿 · 演示版暂无上身图」 |
-| More digital avatars | Generation is simulated, so every avatar renders as the preset model; the 切换角色 sheet says so |
+| More digital avatars | Generation is simulated, so every avatar renders as the preset model; the 切换角色 sheet says so. The 伴侣 / 爸爸 / 妈妈 portraits are demo images, not real people |
+| 穿搭瞬间 photos | The four seed photos are demo crops from the mockup (upscaled, soft). A look saved from 首页 is the on-body image 首页 showed, on its backdrop; garments without an on-body image are listed and tagged 暂无上身图 |
 | Video try-on | Camera preview only; real-time AI garment replacement needs a model service. In the online preview the host page blocks the camera, and the overlay explains how to run it locally |
 | AI stylist | Keyword-matched scripted replies, no LLM call |
 | Login, payment, logistics, merchant chat, FAQ, feedback, notifications, data export | Predetermined demo behaviour; no money moves, nothing is sent |
@@ -68,6 +71,17 @@
 14. **推荐 lists the image-ready garments first.** The mockup's order would start 上装 with the cardigan, which has no on-body image.
 15. **The selected tile** has the mockup's thin muted-coral ring and no ✓ badge.
 
+**个人衣橱 update (20 Oct 2026, the Instagram-style mockup and `Wardrobe_Instagram_Assets_V2`).**
+
+16. **The title stays centred**, as the brief asks ("keep the existing header"); the mockup draws it left-aligned.
+17. **Garment tiles stay near-square** (the existing 3-column grid), as the brief asks; the mockup draws them taller.
+18. **搭配集 covers** are the kit's 4:3 collages. The list shows a 16:10 crop, zoomed just past the frame the kit draws inside each image; 搭配集详情 shows the whole cover. The mockup's wide flat-lays are not in the kit. Collections without a kit cover (the demo people's, new ones) show a collage of their first garments.
+19. **Counts are real**: the seed collections hold 4 garments each (the kit's lists), not the mockup's 6 / 5 / 4.
+20. **删除 works on every garment**, seed ones included (it used to be hidden for them), and also takes the garment out of that person's 搭配集. 重置演示数据 brings everything back.
+21. **A tap still opens the item sheet**, now listing every action (also the keyboard route); the long-press opens the mockup's lifted card and menu.
+22. **The mockup's 切换角色 panel** (a grid of portraits) is not built: 首页 keeps its list sheet. The wardrobe's ＋ opens the same 新建数字分身 flow.
+23. **The demo people** use the kit's names: 本人, 伴侣, 爸爸, 妈妈 (the brief's 男/女朋友 is 伴侣). Names appear only in labels and in the 切换角色 sheet, never under the portraits.
+
 ## How the imagery was prepared
 
 All imagery comes from your asset kit and reference screens. No stock or generated fashion photos were added.
@@ -78,6 +92,7 @@ All imagery comes from your asset kit and reference screens. No stock or generat
 - Product tiles: cropped from the reference screens, with the baked heart icons inpainted out.
 - Products that only exist as tiny thumbnails (slip dress, black bag, pumps, heels, hoops) were upscaled ×4 and look softer.
 - Payment marks are cropped from the checkout mockup.
+- 个人衣橱 V2 (`assets/wardrobe/`, from `Wardrobe_Instagram_Assets_V2`): the four portraits (256 px WebP), the twelve square garment shots (trimmed 8% top and left and 4.5% at the bottom to remove the mockup tile frames, then 720 px wide), the four 搭配集 covers and the four 穿搭瞬间 photos, as supplied.
 - Scripts: `tools/asset-pipeline/`. They need the ONNX models noted in `imgtools.py`.
 
 ## Known limitations
@@ -85,4 +100,4 @@ All imagery comes from your asset kit and reference screens. No stock or generat
 - Only the default colour of each product is photographed. Picking another colour changes the labels, not the photo.
 - Look renders and small-item photos are upscaled and softer than the base avatar.
 - New secondary screens (我的订单, 物流跟踪, 我的形象, 设置 and the rest) had no reference design. They reuse the existing card, list and type styles.
-- Fonts are subset. After adding new Chinese copy, run `tools/subset_fonts.py` (see README).
+- Fonts are subset. After adding new Chinese copy, run `tools/subset_fonts.py` (see README). Not yet re-run for the 个人衣橱 update: 伴侣命妈把操旅爱爸瞬组键集 (搭配集, 穿搭瞬间, 一键试穿这套, …) fall back to the system font until then.

@@ -274,6 +274,43 @@
     { p: 'black-cardigan', fav: false, source: 'owned' }, { p: 'white-shirt', fav: true, source: 'owned' }, { p: 'brown-sweater', fav: false, source: 'owned' },
     { p: 'ribbed-tank', fav: false, source: 'owned' }, { p: 'beige-trousers', fav: false, source: 'owned' }, { p: 'denim-jacket', fav: false, source: 'owned' },
   ];
+
+  /* ---------- 个人衣橱 V2 (asset kit "Wardrobe Instagram Assets V2") ---------- */
+  const W = 'assets/wardrobe/';
+  /* the grid's square garment shots (1000×1000 kit exports, trimmed of the mockup tile frames) */
+  ['knit-cardigan', 'striped-shirt', 'black-blazer', 'straight-jeans', 'pleated-skirt', 'white-tee', 'taupe-coat', 'white-sneakers',
+    'brown-tote', 'black-cardigan', 'white-shirt', 'brown-sweater'].forEach((id) => { byId[id].img.square = W + 'clothing/' + id + '.webp'; });
+  /* 搭配集 and 穿搭瞬间 of 本人 (items are product ids; the store links them to wardrobe entries) */
+  const seedCollections = [
+    { id: 'weekend', name: '周末最爱', cover: W + 'collections/weekend.webp', items: ['knit-cardigan', 'straight-jeans', 'white-sneakers', 'brown-tote'] },
+    { id: 'office', name: '通勤搭配', cover: W + 'collections/office.webp', items: ['taupe-coat', 'striped-shirt', 'white-shirt', 'brown-tote'] },
+    { id: 'date', name: '约会穿搭', cover: W + 'collections/date.webp', items: ['pleated-skirt', 'white-tee', 'black-blazer', 'brown-tote'] },
+    { id: 'travel', name: '旅行穿搭', cover: W + 'collections/travel.webp', items: ['white-tee', 'straight-jeans', 'white-sneakers', 'black-cardigan'] },
+  ];
+  /* demo photos (crops of the mockup); `items` are the catalog garments closest to what each one shows */
+  const seedMoments = [
+    { id: 'weekend', src: W + 'moments/weekend.webp', at: new Date(2026, 9, 14, 18, 20).getTime(), items: ['knit-cardigan', 'straight-jeans'], fav: false },
+    { id: 'office', src: W + 'moments/office.webp', at: new Date(2026, 9, 12, 8, 40).getTime(), items: ['black-blazer', 'black-handbag'], fav: false },
+    { id: 'casual', src: W + 'moments/casual.webp', at: new Date(2026, 9, 8, 15, 5).getTime(), items: ['grey-hoodie'], fav: true },
+    { id: 'evening', src: W + 'moments/evening.webp', at: new Date(2026, 9, 6, 20, 30).getTime(), items: ['satin-slip-dress', 'black-handbag'], fav: false },
+  ];
+  /* 切换角色: 本人 plus three demo people, each with their own wardrobe, 搭配集 and body data.
+     Portraits are demo images, not real relatives. */
+  const mePortrait = W + 'avatars/me.webp';
+  const seedRoles = [
+    { id: 'partner', name: '伴侣', portrait: W + 'avatars/partner.webp', body: { height: 178, weight: 68, size: 'L', shoe: '42' },
+      wardrobe: ['grey-hoodie', 'white-tee', 'denim-jacket', 'utility-jacket', 'black-sweater', 'straight-jeans', 'white-sneakers'], favs: ['denim-jacket', 'white-sneakers'],
+      collections: [{ id: 'partner-weekend', name: '周末最爱', items: ['grey-hoodie', 'straight-jeans', 'white-sneakers'] },
+        { id: 'partner-travel', name: '旅行穿搭', items: ['white-tee', 'denim-jacket', 'straight-jeans', 'white-sneakers'] }] },
+    { id: 'father', name: '爸爸', portrait: W + 'avatars/father.webp', body: { height: 172, weight: 72, size: 'XL', shoe: '42' },
+      wardrobe: ['brown-blazer', 'oxford-shirt', 'brown-sweater', 'beige-trousers', 'taupe-coat', 'white-shirt'], favs: ['brown-sweater'],
+      collections: [{ id: 'father-office', name: '通勤搭配', items: ['brown-blazer', 'oxford-shirt', 'beige-trousers'] }] },
+    { id: 'mother', name: '妈妈', portrait: W + 'avatars/mother.webp', body: { height: 160, weight: 54, size: 'M', shoe: '37' },
+      wardrobe: ['bow-blouse', 'beige-blazer', 'maxi-skirt', 'knit-cardigan', 'satin-slip-dress', 'black-handbag', 'black-pumps', 'gold-hoops'], favs: ['bow-blouse', 'gold-hoops'],
+      collections: [{ id: 'mother-date', name: '约会穿搭', items: ['satin-slip-dress', 'black-pumps', 'black-handbag', 'gold-hoops'] },
+        { id: 'mother-office', name: '通勤搭配', items: ['bow-blouse', 'beige-blazer', 'maxi-skirt', 'black-handbag'] }] },
+  ];
+
   /* the plaza feed order: reference six first, then the rest of the catalog */
   const plazaOrder = ['knit-cardigan', 'straight-jeans', 'striped-shirt', 'brown-blazer', 'basic-cami', 'pleated-skirt',
     'maxi-skirt', 'black-blazer', 'satin-slip-dress', 'white-shirt', 'beige-trousers', 'taupe-coat', 'brown-tote', 'beige-blazer', 'white-sneakers',
@@ -413,7 +450,7 @@
   VT.data = {
     products, byId, plazaCats, wardrobeCats, inCat, fitCats, fitCatsAll, slotOf, renders, looks, lookById,
     stores, storeById, storeOf, seedStoreFavs, storeChatSeed, seasonPicks,
-    seedWardrobe, plazaOrder, addresses, shippingOptions, payments, seedOrder, seedOrders, seedReturns,
+    seedWardrobe, seedCollections, seedMoments, mePortrait, seedRoles, plazaOrder, addresses, shippingOptions, payments, seedOrder, seedOrders, seedReturns,
     orderStatus, orderFilters, seedFavorites, seedHistory, faqs,
     chatSeed, chatSuggestions, chatReplies, chatFallback,
     tabs,
@@ -432,6 +469,8 @@
       { id: 'product', title: '商品详情', from: '购物广场' },
       { id: 'messages', title: '商家消息', from: '购物广场' },
       { id: 'checkout', title: '结算下单', from: '商品详情' },
+      { id: 'outfit', title: '搭配集详情', from: '个人衣橱' },
+      { id: 'moment', title: '穿搭瞬间', from: '个人衣橱' },
       { id: 'orderlist', title: '我的订单', from: '我的' },
       { id: 'orders', title: '订单详情', from: '我的订单' },
       { id: 'tracking', title: '物流跟踪', from: '订单详情' },

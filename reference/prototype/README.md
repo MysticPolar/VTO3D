@@ -20,7 +20,7 @@ A high-fidelity, interactive HTML/CSS/JS prototype of the virtual try-on & perso
 |---|---|
 | 1 首页 · 虚拟试衣间 | 启动页 → 上传照片 · 创建数字分身 (first launch only) |
 | 2 购物广场 | 商品详情 → 结算下单 → 支付成功 · 商家消息 |
-| 3 个人衣橱 | 商品详情 (from any item) |
+| 3 个人衣橱 | 搭配集详情 · 穿搭瞬间 · 商品详情 (from any item) |
 | 4 AI 造型师 | 商品详情, look sheets |
 | 5 我的 | 我的订单 → 订单详情 → 物流跟踪 / 申请退换货 · 我的形象 → 上传照片 → 生成 · 我的资料 · 收货地址 · 支付方式 · 消息通知 · 帮助与客服 · 设置 → 隐私与安全 · 我的收藏 · 浏览记录 |
 
@@ -38,7 +38,7 @@ A high-fidelity, interactive HTML/CSS/JS prototype of the virtual try-on & perso
 | Deep links | `index.html#profile` (or any screen id) opens the simulator there. `index.html?app=plaza` opens the bare app with no frame; `?app=launch` simulates an app launch (local only) |
 | Reset demo data | **重置演示数据** in the simulator, the mobile menu, or 我的 → 设置 |
 
-Screen ids: `fitting, plaza, wardrobe, stylist, profile` (tabs) and `onboarding, avatar, product, checkout, messages, orderlist, orders, tracking, returns, avatarhub, editprofile, addresses, payments, notifications, privacy, settings, help, favorites, history`.
+Screen ids: `fitting, plaza, wardrobe, stylist, profile` (tabs) and `onboarding, avatar, product, checkout, messages, outfit, moment, orderlist, orders, tracking, returns, avatarhub, editprofile, addresses, payments, notifications, privacy, settings, help, favorites, history`.
 
 ## Project structure
 
@@ -55,10 +55,10 @@ js/store.js             state + localStorage persistence
 js/ui.js                shared render helpers (tab bar, sub-page header, list rows, switches…)
 js/app.js               navigation (per-tab stacks, launch flow), transitions, events, overlays
 js/camera.js            video try-on camera preview (getUserMedia)
-js/screens/01–09        onboarding, avatar, 首页, 购物广场, product, 衣橱, AI 造型师, checkout, orders
+js/screens/01–09        onboarding, avatar, 首页, 购物广场, product, 衣橱 (+ 搭配集详情, 穿搭瞬间), AI 造型师, checkout, orders
 js/screens/10–14        我的, account & settings, 我的形象, 我的收藏 / 浏览记录, 商家消息
 js/showcase.js          board, simulator, mobile/solo mode, deep links
-assets/people|clothing|icons|backgrounds|ui|fonts
+assets/people|clothing|icons|backgrounds|ui|fonts|wardrobe (个人衣橱 V2 kit: portraits, square garment shots, 搭配集 covers, 穿搭瞬间 photos)
 docs/                   comparison screenshots + feature report
 tools/                  font subsetting + the asset pipeline used to prepare images
 ```
@@ -74,6 +74,6 @@ tools/                  font subsetting + the asset pipeline used to prepare ima
   python3 tools/subset_fonts.py
   ```
   This needs Noto Sans CJK and Inter installed on the machine (the script lists the paths it expects). Until you re-run it, new characters fall back to the system font (PingFang SC / Microsoft YaHei).
-- Demo state (setup flag, digital avatars, wardrobes, orders, favourites, profile, addresses, chat, uploads, the 首页 backdrop) is stored in `localStorage` under `vt-prototype-state-v1`. 首页's 我的上传 (garment photos for try-on) lives in `sessionStorage` under `vt-fit-uploads-v1`, so it lasts for the browser session only.
+- Demo state (setup flag, digital avatars with their wardrobes, 搭配集 and 穿搭瞬间, orders, favourites, profile, addresses, chat, uploads, the 首页 backdrop) is stored in `localStorage` under `vt-prototype-state-v1`. 首页's 我的上传 (garment photos for try-on) lives in `sessionStorage` under `vt-fit-uploads-v1`, so it lasts for the browser session only.
 
 See `docs/REPORT.md` for which features are real and which are simulated.

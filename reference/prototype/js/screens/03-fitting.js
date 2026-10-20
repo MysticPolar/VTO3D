@@ -148,7 +148,8 @@
           ? `<button type="button" class="fit-temp-btn is-done" disabled>${I('check', { size: 14, stroke: 2.4 })}已在衣橱</button>`
           : `<button type="button" class="fit-temp-btn" data-act="keep" data-up="${u.id}" aria-label="将${esc(u.name)}加入衣橱">${I('plus', { size: 14, stroke: 2.2 })}加入衣橱</button>`}
       </div>` : '';
-    return `${temp}<button type="button" class="fit-pill fit-shoot" data-act="shoot-menu" aria-haspopup="menu" aria-expanded="false">${I('camera', { size: 20, stroke: 1.6 })}<span>拍照</span></button>`;
+    return `${temp}<button type="button" class="fit-pill fit-save" data-act="save-look" aria-label="保存造型到穿搭瞬间">${I('image', { size: 19, stroke: 1.6 })}<span>保存造型</span></button>
+      <button type="button" class="fit-pill fit-shoot" data-act="shoot-menu" aria-haspopup="menu" aria-expanded="false">${I('camera', { size: 20, stroke: 1.6 })}<span>拍照</span></button>`;
   }
 
   function avatarLayers(s) {
@@ -261,6 +262,8 @@
         if (done) done.focus({ preventScroll: true });
       },
       camera(app) { VT.camera.open(app); },
+      /** 保存造型: the current try-on joins the active avatar's 穿搭瞬间 (个人衣橱) */
+      'save-look'(app) { VT.wardrobe.saveLook(app); },
       role(app) { VT.avatarUI.switcher(app); },
       scene(app) { sceneSheet(app); },
     },
