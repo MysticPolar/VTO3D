@@ -1,0 +1,83 @@
+/* Shared motion (HANDOFF §5.4): the screen transitions of css/components.css. Global classes,
+   applied by the navigation while a screen enters or leaves. */
+.enter-push {
+  animation: vt-in-right 0.38s var(--ease-out) both;
+  z-index: 2;
+}
+.leave-push {
+  animation: vt-out-left 0.38s var(--ease-out) both;
+  z-index: 1;
+}
+.enter-pop {
+  animation: vt-in-left 0.38s var(--ease-out) both;
+  z-index: 1;
+}
+.leave-pop {
+  animation: vt-out-right 0.38s var(--ease-out) both;
+  z-index: 2;
+}
+.enter-fade {
+  animation: vt-fade-in 0.26s ease both;
+  z-index: 2;
+}
+.leave-fade {
+  animation: vt-fade-out 0.26s ease both;
+  z-index: 1;
+}
+/* screens that are leaving ignore taps */
+.leave-push,
+.leave-pop,
+.leave-fade {
+  pointer-events: none;
+}
+
+@keyframes vt-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes vt-out-left {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateX(-28%);
+    filter: brightness(0.94);
+  }
+}
+@keyframes vt-in-left {
+  from {
+    transform: translateX(-28%);
+    filter: brightness(0.94);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes vt-out-right {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes vt-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

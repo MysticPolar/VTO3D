@@ -6,8 +6,10 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig([
-  // reference/ is read-only input and docs/ is the spec (HANDOFF §4.1); baselines are generated
+  // reference/ is read-only input and docs/ is the spec (HANDOFF §4.1); baselines are generated;
+  // .claude/worktrees/ holds other sessions' checkouts
   globalIgnores([
+    '.claude',
     'dist',
     'coverage',
     'reference',

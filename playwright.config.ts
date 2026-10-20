@@ -15,6 +15,8 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     ...PHONE,
+    // instant navigation and short demo timers; the transition tests turn motion back on (§10.1)
+    reducedMotion: 'reduce',
     trace: 'retain-on-failure',
   },
   projects: [

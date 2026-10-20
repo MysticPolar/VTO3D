@@ -1,0 +1,15 @@
+/* css/components.css: icon buttons */
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  color: inherit;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+.icon-btn:active {
+  transform: scale(0.92);
+}

@@ -1,3 +1,5 @@
+# other sessions' git worktrees live in .claude/worktrees/: never format their checkouts
+.claude
 # read-only input, the spec and generated files (HANDOFF §4.1)
 reference
 docs

@@ -1,0 +1,63 @@
+/* css/components.css: buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--r-pill);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  min-height: 44px;
+  padding: 0 20px;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    opacity 0.15s ease;
+  white-space: nowrap;
+}
+.btn:active {
+  transform: scale(0.98);
+}
+.btn[disabled],
+.btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn--dark {
+  background: var(--ink);
+  color: #fff;
+}
+.btn--dark:hover {
+  background: #2e2b28;
+}
+.btn--light {
+  background: var(--beige);
+  color: var(--ink);
+}
+.btn--outline {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.btn--ghost {
+  background: var(--chip);
+  color: var(--ink);
+}
+.btn--xl {
+  min-height: 51px;
+  font-size: 17.5px;
+}
+.btn--lg {
+  min-height: 48px;
+  font-size: 16px;
+}
+.btn--sm {
+  min-height: 34px;
+  font-size: 13px;
+  padding: 0 14px;
+  font-weight: 600;
+}
+.btn--block {
+  width: 100%;
+}

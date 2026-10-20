@@ -1,0 +1,45 @@
+/* css/components.css: toast */
+.vt-toasts {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 108px;
+  z-index: 80;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 320px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(33, 31, 29, 0.92);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  transform: translateY(10px);
+  opacity: 0;
+  transition:
+    transform 0.25s var(--ease-out),
+    opacity 0.2s ease;
+  pointer-events: auto;
+}
+.toast.is-in {
+  transform: none;
+  opacity: 1;
+}
+.toast-act {
+  color: #f2d9a9;
+  font-weight: 700;
+  margin-left: 6px;
+  padding: 4px 2px;
+}
+/* hiding: rewriting the class drops is-in, which runs the exit */
+.out {
+  pointer-events: none;
+}

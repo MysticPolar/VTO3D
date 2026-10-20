@@ -90,3 +90,21 @@ svg {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+/* headings focused by a navigation get no visible ring (HANDOFF §4.3) */
+[tabindex='-1']:focus-visible {
+  outline: none;
+}
+
+/* a screen's scroll area (css/components.css .scroll): the only places that scroll */
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.scroll::-webkit-scrollbar {
+  display: none;
+}

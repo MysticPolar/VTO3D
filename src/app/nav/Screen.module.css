@@ -1,0 +1,13 @@
+/* The screen root (css/components.css .screen) */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--page);
+  overflow: hidden;
+}
+/* kept mounted under the active screen: hidden, not display:none, so scroll positions survive */
+.hidden {
+  visibility: hidden;
+}

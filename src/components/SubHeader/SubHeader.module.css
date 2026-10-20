@@ -1,0 +1,39 @@
+/* css/components.css: the header of secondary screens. Values measured from the top of the
+   screen include the prototype's 44 px status bar: v → calc(var(--top-inset) + (v − 44px)) */
+.sub-head {
+  position: relative;
+  flex: none;
+  /* 88 */
+  height: calc(var(--top-inset) + 44px);
+}
+.sub-head .back-btn {
+  position: absolute;
+  left: 4.8px;
+  /* 41 */
+  top: calc(var(--top-inset) - 3px);
+}
+.sub-head .back-btn svg {
+  width: 22.5px;
+  height: 22.5px;
+}
+.back-btn.is-light {
+  color: #fff;
+}
+.sub-title {
+  position: absolute;
+  left: 60px;
+  right: 60px;
+  /* 47.4 */
+  top: calc(var(--top-inset) + 3.4px);
+  text-align: center;
+  font-family: var(--font-cjk);
+  font-weight: 900;
+  font-size: 19.6px;
+  line-height: 28px;
+  letter-spacing: -0.01em;
+  color: #1c1a18;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
