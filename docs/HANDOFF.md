@@ -350,7 +350,7 @@ Porting method per screen:
 - Field names follow `data.js` with the renames listed at the top of `types.ts`; the Phase 2 seed-parity test applies that mapping.
 
 **Mock implementation** (`src/api/mock/`)
-- `seed.ts`: a port of `reference/prototype/js/data.js` (catalog, categories, renders, looks, seed wardrobe, addresses, shipping options, payment methods, seed orders and return, favourites, history, FAQs, chat seed, scripted replies), plus the demo content listed at the end of this section. Values verbatim.
+- `seed.ts`: a port of `reference/prototype/js/data.js` (catalog, categories, renders, looks, stores, favourite stores, store chats, season picks, seed wardrobe, addresses, shipping options, payment methods, seed orders and return, favourites, history, FAQs, chat seed, scripted replies), plus the demo content listed at the end of this section. Values verbatim.
 - `db.ts`: load/save the JSON database (`vto-web-db-v1`), blob storage (idb-keyval), `reset()`.
 - `handlers/*.ts`: one file per API area, implementing the prototype's demo rules (§9) on top of the db.
 - Latency: each call waits a random 150–350 ms (`VITE_MOCK_LATENCY=150-350`; `0` in tests). Simulated work keeps the prototype's durations (§9.11).
@@ -375,7 +375,9 @@ Porting method per screen:
 | `avatarPrefs`, `notify`, `privacy`, `prefs` | `settings.get` / `update` |
 | `fit.cat`, `fit.outfit` | Zustand `fitting.category`, `fitting.outfit` (persisted); the image comes from `fitting.render(outfit)` |
 | `tryQueue` | Zustand `fitting.queue` (wardrobe uids, persisted) |
-| `plaza.cat`, `plaza.q`, `wardrobeCat` | Zustand `ui` (persisted) |
+| `plaza.cat`, `plaza.q`, `plaza.store`, `wardrobeCat` | Zustand `ui` (persisted) |
+| `storeFavs` | `stores.favorites` / `setFavorite` |
+| `storeChats` | `storeChats.list` / `open` / `send` / `markRead` |
 | `selections[pid]` | Zustand `drafts.selections[pid]` (persisted) |
 | `cart`, `checkout.{address, shipping, agree}` | Zustand `drafts.checkout` (persisted, §9.4) |
 | `checkout.payment` | the default: `settings.prefs.defaultPayment`; this checkout's choice: `drafts.checkout.payment` (§13.2 #14) |
@@ -389,13 +391,14 @@ Porting method per screen:
 | Reviews and the fit note | `screens/05-product.js:12-16`, `reviews()` | `catalog.reviews` |
 | Size table and the avatar tip | `screens/05-product.js`, `guide()` | `catalog.sizeGuide` |
 | 拍照找同款 results | `screens/04-plaza.js` | `catalog.similar` |
-| 消息通知 notices | `screens/04-plaza.js` | `notices.list` |
+| 消息通知 notices | `screens/04-plaza.js`, `notices()` (opened from `screens/14-messages.js`) | `notices.list` |
+| Platform banners (images, labels) and the 秋日灵感穿搭 picks | `screens/04-plaza.js`, `banners()`; `data.seasonPicks` | `catalog.banners` |
+| Store chat greeting, quick questions and replies | `screens/14-messages.js` | `storeChats.open`, `storeChats.send` |
 | Stylist photo reply, 最近的对话 | `screens/07-stylist.js` | `stylist.send`, `stylist.recentChats` |
 | Merchant and service chat answers | `screens/09-orders.js`, `openChat` | `support.openChat`, `support.send` |
 | Bound payment accounts | `screens/11-account.js`, 支付方式 | `PaymentMethod.account` |
 | Demo verification code 246810 | `screens/01-onboarding.js` | `auth.requestCode` |
 | Stylist suggestion chips | `data.chatSuggestions` | `stylist.suggestions` |
-| Brand sheet (same-category products in catalogue order) | `screens/05-product.js:135` | `catalog.related` |
 
 Fixed UI text (titles, buttons, 「演示数据」 notes) stays in the components.
 
@@ -594,7 +597,7 @@ Waits that stand for server work live in the mock; waits that are purely visual 
 | Avatar generation progress | 4200 ms (900); result 350 ms after 100 % | UI animation; mock job finishes within it |
 | Stylist reply | 1100 ms (200) | mock `stylist.send` |
 | Merchant / service chat reply (订单详情, 帮助与客服) | 800 ms | mock `support.send` |
-| Store chat reply (商家消息) | 900 ms; no reduced-motion variant | mock (§9.14) |
+| Store chat reply (商家消息) | 900 ms; no reduced-motion variant | mock `storeChats.send` (§9.14) |
 | Cashier opening (「正在调起…」) | 900 ms (150) | UI (demo cashier) |
 | Payment processing | 900 ms (200) minimum | UI waits for the mock calls and at least this long |
 | Login completes → next step | 500 ms after the success toast | UI |
@@ -878,7 +881,9 @@ Not part of this build. Listed so the front end doesn't paint itself into a corn
 | Contract area | Sketch |
 |---|---|
 | `auth` | `POST /v1/auth/sms-code`, `POST /v1/auth/login` (phone + code), `POST /v1/auth/wechat` (code from WeChat web authorization), `POST /v1/auth/logout` |
-| `catalog` | `GET /v1/products?category=&q=`, `GET /v1/products/:id`, `GET /v1/tryon/garments` |
+| `catalog` | `GET /v1/products?category=&q=&store=`, `GET /v1/products/:id`, `GET /v1/tryon/garments`, `GET /v1/banners` |
+| `stores` | `GET /v1/stores?q=`, `GET /v1/stores/:id`, `GET /v1/me/store-favorites`, `PUT/DELETE /v1/me/store-favorites/:storeId` |
+| `storeChats` | `GET /v1/me/store-chats`, `GET /v1/me/store-chats/:storeId` (marks it read), `POST /v1/me/store-chats/:storeId/messages`, `POST /v1/me/store-chats/:storeId/read` (real-time delivery later) |
 | `favorites` · `looks` · `history` | `GET/PUT/DELETE /v1/me/favorites/:pid`, `GET/PUT/DELETE /v1/me/looks/:id`, `GET/POST /v1/me/history` |
 | `wardrobe` | `GET /v1/me/wardrobe`, `POST /v1/me/wardrobe` (from a product or an upload), `PATCH/DELETE /v1/me/wardrobe/:uid` |
 | `fitting` | `POST /v1/tryon/renders` → job (AI try-on is slow; the mock answers at once) |

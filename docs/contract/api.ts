@@ -12,6 +12,7 @@ import type {
   Avatar,
   AvatarJob,
   AvatarPhotoKind,
+  Banner,
   Body,
   CategoryTab,
   ChatMessage,
@@ -43,6 +44,10 @@ import type {
   Settings,
   SettingsPatch,
   SizeGuide,
+  Store,
+  StoreChat,
+  StoreChatMessage,
+  StoreChatSummary,
   StylistSendInput,
   SupportChannel,
   SupportChat,
@@ -63,12 +68,12 @@ export interface Api {
   };
 
   catalog: {
-    /** the 购物广场 feed in feed order, filtered */
+    /** the 购物广场 feed in feed order, filtered (HANDOFF §9.1); `{ store }` alone = a store sheet's products */
     list(query?: ProductQuery): Promise<Product[]>;
     get(productId: string): Promise<Product>;
     /** category tabs; each screen has its own order */
     categories(screen: 'plaza' | 'wardrobe'): Promise<CategoryTab[]>;
-    /** the 首页 garment menu */
+    /** the 首页 garment menu with full lists; 首页 filters them with renders() (HANDOFF §9.2) */
     tryOnCategories(): Promise<TryOnCategory[]>;
     renders(): Promise<Render[]>;
     looks(): Promise<Look[]>;
@@ -76,8 +81,32 @@ export interface Api {
     sizeGuide(productId: string): Promise<SizeGuide>;
     /** 拍照找同款: products similar to a photo (already downscaled) */
     similar(photo: Blob): Promise<Product[]>;
-    /** the brand sheet on 商品详情 (demo: up to 3 other products of the same category, catalogue order) */
-    related(productId: string): Promise<Product[]>;
+    /** the platform banners at the head of the 全部 feed, each with its picks (秋日灵感穿搭) */
+    banners(): Promise<Banner[]>;
+  };
+
+  stores: {
+    /** every store in display order, or the ones matching a search (HANDOFF §9.1) */
+    list(query?: string): Promise<Store[]>;
+    get(storeId: string): Promise<Store>;
+    /** the user's favourite storeIds in 购物广场 bar order: newest favourite first */
+    favorites(): Promise<string[]>;
+    /** favourite (moves it to the front) or unfavourite a store; resolves with the new list */
+    setFavorite(storeId: string, on: boolean): Promise<string[]>;
+  };
+
+  storeChats: {
+    /** 商家消息: chats with at least one message, newest first; the 购物广场 badge sums `unread` */
+    list(): Promise<StoreChatSummary[]>;
+    /** the chat sheet; opening marks the chat read */
+    open(storeId: string): Promise<StoreChat>;
+    /**
+     * stores my message at once (after the greeting when the chat was empty) and resolves with
+     * [mine, reply] when the store answers (demo: 900 ms, scripted, HANDOFF §9.14). The reply counts
+     * as unread until markRead, which the UI calls when the reply arrives while the sheet is open.
+     */
+    send(storeId: string, text: string): Promise<StoreChatMessage[]>;
+    markRead(storeId: string): Promise<void>;
   };
 
   favorites: {
@@ -164,7 +193,7 @@ export interface Api {
   };
 
   notices: {
-    /** the 购物广场 「消息通知」 sheet */
+    /** the 「消息通知」 sheet, opened from the first row of 商家消息 */
     list(): Promise<Notice[]>;
   };
 
