@@ -37,7 +37,7 @@
 | Feature | How it is simulated |
 |---|---|
 | Digital-avatar generation (first launch and 我的形象 → 重新生成) | A 4-second progress sequence. The result is always the preset model, labelled as a 2D preview |
-| Virtual try-on rendering | Only real on-body imagery is used (base avatar + 3 stylist looks). Other garments are added to the outfit with an honest "演示版暂无…的上身图" message |
+| Virtual try-on rendering | Only real on-body imagery is used (base avatar + 3 stylist looks), and 首页 lists only the 10 garments those images show. Other garments can still be sent from 商品详情, 个人衣橱 or an AI造型师 wardrobe set; they join the outfit with an honest "演示版暂无…的上身图" message |
 | Video try-on | Camera preview only; real-time AI garment replacement needs a model service. In the online preview the host page blocks the camera, and the overlay explains how to run it locally |
 | AI stylist | Keyword-matched scripted replies, no LLM call |
 | Login, payment, logistics, merchant chat, FAQ, feedback, notifications, data export | Predetermined demo behaviour; no money moves, nothing is sent |

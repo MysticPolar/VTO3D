@@ -13,7 +13,13 @@
  * - Ids are opaque strings. Product ids are URL-safe slugs ('striped-shirt').
  * - Field names follow the prototype's data (reference/prototype/js/data.js and store.js), except:
  *   product `cat` → `category`, `img` → `images`; `p` (product id, everywhere) → `productId`;
- *   look `render` → `renderId`; fitCats `items` → `TryOnCategory.productIds`;
+ *   look `render` → `renderId`; fitCatsAll `items` → `TryOnCategory.productIds` (the full lists; 首页 filters them);
+ *   a product's store `storeOf(p)` (matched by brand) → `Product.storeId`; the plaza card focus
+ *   (`cardFocus`, or a path under assets/plaza/models/) → `Product.cardFocus`;
+ *   store `full` → `fullName`, `mono`/`bg`/`fg` → `logo`, `banner`/`bannerAlt` → `banner {img, alt}`,
+ *   the count of its products → `productCount`; `storeFavs` → `string[]` (bar order);
+ *   store chat `{unread, at, msgs}` → `StoreChatSummary` + `StoreChat`, message `{me, text, t}` →
+ *   `{id, from, text, sentAt}`; the 04-plaza.js banners + `seasonPicks` → `Banner`;
  *   shipping `eta` → `etaDays`; logistics `{t, s}` → `{time, text}`;
  *   order `address` (an id) → `address` (a snapshot); `returns[oid]` → `Order.return`;
  *   history `{p, t: '今天 09:12'}` → `{productId, viewedAt}`;
@@ -48,7 +54,9 @@ export interface ColorOption {
 }
 
 export interface ProductImages {
-  card: ImageUrl; // 购物广场 grid
+  card: ImageUrl; // 购物广场 grid when there is no `plaza` image; sheets' product rows
+  /** 购物广场 card, store sheet and picks rows when the plaza asset pack has one; falls back to `card` */
+  plaza?: ImageUrl;
   tile: ImageUrl; // wardrobe tiles
   thumb: ImageUrl; // small thumbnails (首页 rail)
   hd: ImageUrl; // product page
@@ -65,7 +73,9 @@ export interface Product {
   coTags?: string; // display: checkout variant of tags
   price: Yuan;
   category: GarmentCategory;
-  brand: string;
+  brand: string; // display: the brand row on 商品详情; in the demo it equals the store's `name`
+  /** the store that sells it (Store.id) */
+  storeId: string;
   rating: number; // 0–5, shown with one decimal
   reviews: number; // review count
   desc: string; // may contain '\n'
@@ -84,12 +94,77 @@ export interface Product {
   orderThumbs?: ImageUrl[];
   /** only a small source photo exists, so it is shown contained on a plate */
   small?: boolean;
+  /**
+   * how the 购物广场 card crops its image: 'model' = a model photo, anchored 24% from the top;
+   * 'top' = from the top; absent = centred. `small` products are contained instead.
+   */
+  cardFocus?: 'model' | 'top';
 }
 
 export interface ProductQuery {
   category?: CategoryFilter; // default 'all'
   /** free text; matching rule in docs/HANDOFF.md §9.1 */
   query?: string;
+  /** a Store.id: only that store's products. 购物广场 leaves it out while searching (HANDOFF §9.1). */
+  store?: string;
+}
+
+/** A platform banner at the head of the 购物广场 feed (全部). Tapping it opens its picks sheet. */
+export interface Banner {
+  id: string;
+  img: ImageUrl; // the image carries its own text
+  label: string; // display, the button's aria-label: 'NEW SEASON 秋日灵感穿搭，探索本季精选单品'
+  picks: {
+    title: string; // display, the sheet title: '秋日灵感穿搭'
+    productIds: string[];
+  };
+}
+
+/* ---------------------------------------------------------------- stores */
+
+/** A store (商家). Every product belongs to one (`Product.storeId`). */
+export interface Store {
+  id: string; // 'zara'
+  name: string; // display: 'ZARA', the label in the 购物广场 store bar
+  fullName: string; // display: 'ZARA 官方旗舰店', the store sheet title and Order.shop
+  tagline: string; // display: '简约与质感的日常时装'
+  /** the round logo: monogram on a colour; more than two letters are set as a wordmark */
+  logo: { text: string; bg: string; fg: string };
+  rating: number; // 店铺评分, shown with one decimal
+  /** 「在售 {n} 件」: all of its products, whatever category is active */
+  productCount: number;
+  /** shown instead of the store card at the head of the 购物广场 feed (ZARA in the demo) */
+  banner?: { img: ImageUrl; alt: string }; // alt: display
+}
+
+/* ----------------------------------------------------------- store chats */
+
+/** A message in a chat with a store (商家消息). */
+export interface StoreChatMessage {
+  id: string;
+  from: 'me' | 'store';
+  text: string;
+  /** formatted by the client: HH:mm today, 昨天 yesterday, else M月D日 (HANDOFF §13.2 #38) */
+  sentAt: ISODateTime;
+}
+
+/** A row of 商家消息: a chat with at least one message. The list is newest `lastMessage` first. */
+export interface StoreChatSummary {
+  storeId: string;
+  /** store messages the user hasn't seen; the 购物广场 badge is their sum */
+  unread: number;
+  lastMessage: StoreChatMessage;
+}
+
+/** A chat thread as its sheet shows it. */
+export interface StoreChat {
+  storeId: string;
+  title: string; // display: the store's full name
+  /** stored messages, oldest first; empty until the user writes */
+  messages: StoreChatMessage[];
+  /** display: the store's first bubble while `messages` is empty, stored with the user's first message */
+  greeting: string;
+  quickQuestions: string[]; // display, the chips
 }
 
 export interface ReviewSummary {
@@ -114,11 +189,15 @@ export type OutfitSlot = 'top' | 'bottom' | 'dress' | 'outer' | 'shoes' | 'bag' 
 /** slot → productId */
 export type Outfit = Partial<Record<OutfitSlot, string>>;
 
-/** One entry of the 首页 left menu, with the garments it offers. */
+/** One entry of the 首页 left menu. */
 export interface TryOnCategory {
   id: 'upper' | 'lower' | 'dress' | 'outer' | 'shoes' | 'bag' | 'acc';
   label: string; // display: '上装', '下装', …
   icon: string; // icon name; the active pill uses `${icon}-filled` when it exists
+  /**
+   * all of its garments, in rail order (prototype `fitCatsAll`). 首页 lists the ones a render wears,
+   * plus selected ones; 试穿 opens the first category whose list has the garment (HANDOFF §9.2).
+   */
   productIds: string[];
 }
 
@@ -302,7 +381,7 @@ export interface ReturnInput {
 
 export interface Order {
   id: string; // 'VT20260715092418'
-  shop: string; // display: 'Reformation 官方旗舰店'
+  shop: string; // display: the store's full name at order time, 'Reformation 官方旗舰店'
   productId: string;
   title: string; // display: colour short name + cardName
   color: string; // colour id
@@ -385,7 +464,7 @@ export interface CheckoutOptions {
 
 /* ----------------------------------------------------------- notifications */
 
-/** An entry in the 购物广场 「消息通知」 sheet. */
+/** An entry in the 「消息通知」 sheet, opened from the first row of 商家消息. */
 export interface Notice {
   id: string;
   icon: string;

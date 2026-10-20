@@ -27,20 +27,21 @@ Every screen of the app: what it shows, what each control does, its sheets and d
 | 7 | 我的 | `profile` | `/me` |
 | 8 | 商品详情 | `product` | `/plaza/p/:pid` |
 | 9 | 结算下单 | `checkout` | `/plaza/p/:pid/checkout` |
-| 10 | 我的订单 | `orderlist` | `/me/orders?status=…` |
-| 11 | 订单详情 | `orders` | `/me/orders/o/:oid` |
-| 12 | 物流跟踪 | `tracking` | `/me/orders/o/:oid/tracking` |
-| 13 | 申请退换货 | `returns` | `/me/orders/o/:oid/returns` |
-| 14 | 我的形象 | `avatarhub` | `/me/avatar` |
-| 15 | 我的资料 | `editprofile` | `/me/profile` |
-| 16 | 收货地址 | `addresses` | `/me/addresses` |
-| 17 | 支付方式 | `payments` | `/me/payments` |
-| 18 | 消息通知 | `notifications` | `/me/notifications` |
-| 19 | 设置 | `settings` | `/me/settings` |
-| 20 | 隐私与安全 | `privacy` | `/me/settings/privacy` |
-| 21 | 帮助与客服 | `help` | `/me/help` |
-| 22 | 我的收藏 | `favorites` | `/me/favorites` |
-| 23 | 浏览记录 | `history` | `/me/history` |
+| 10 | 商家消息 | `messages` | `/plaza/messages` (proposed, HANDOFF §13.1 #11) |
+| 11 | 我的订单 | `orderlist` | `/me/orders?status=…` |
+| 12 | 订单详情 | `orders` | `/me/orders/o/:oid` |
+| 13 | 物流跟踪 | `tracking` | `/me/orders/o/:oid/tracking` |
+| 14 | 申请退换货 | `returns` | `/me/orders/o/:oid/returns` |
+| 15 | 我的形象 | `avatarhub` | `/me/avatar` |
+| 16 | 我的资料 | `editprofile` | `/me/profile` |
+| 17 | 收货地址 | `addresses` | `/me/addresses` |
+| 18 | 支付方式 | `payments` | `/me/payments` |
+| 19 | 消息通知 | `notifications` | `/me/notifications` |
+| 20 | 设置 | `settings` | `/me/settings` |
+| 21 | 隐私与安全 | `privacy` | `/me/settings/privacy` |
+| 22 | 帮助与客服 | `help` | `/me/help` |
+| 23 | 我的收藏 | `favorites` | `/me/favorites` |
+| 24 | 浏览记录 | `history` | `/me/history` |
 
 ## Launch flow (first launch only)
 
@@ -159,7 +160,7 @@ Side effect: `avatar.portrait.src` doubles as the fallback profile picture (`VT.
 - Header: centred h1 「虚拟试衣间」 and a round dark camera button at the top right (video icon, aria 「开启视频试衣（摄像头预览）」). There is no back button because this is a tab root. The prototype leaves out the design ref's back arrow and its 「点击开启视频试衣」 tooltip.
 - Avatar: a full-height image of the current render, centred and standing on the tab bar, with a soft floor shadow. It is not interactive. Alt 「数字分身当前造型：{render.label}」.
 - Left menu (nav, aria 「服装分类」): seven pills from `data.fitCats`: 「上装」「下装」「连衣裙」「外套」「鞋履」「包包」「配饰」. The active pill is light, with the filled icon variant and a bold label (`aria-pressed`).
-- Right rail (aria 「可试穿单品」, `data-keep-scroll="rail"`), the only scrolling region. It shows one thumbnail per item in the active category (`img.thumb || img.tile`). Items in the outfit get a dark ring and a ✓ badge (`aria-pressed`; aria 「试穿{name}」 / 「取消试穿{name}」).
+- Right rail (aria 「可试穿单品」, `data-keep-scroll="rail"`), the only scrolling region. It shows one thumbnail (`img.thumb || img.tile`) for each garment of the active category that at least one render wears, plus any selected garment that no render wears, which stays until it is tapped off (`03-fitting.js:46-59`). Order follows the category's full list (`data.fitCatsAll`). With nothing selected that is 10 of the 28 try-on garments: 上装 black-blazer, basic-cami · 下装 straight-jeans · 连衣裙 satin-slip-dress · 外套 black-blazer · 鞋履 white-sneakers, black-pumps, strappy-heels · 包包 brown-tote, black-handbag · 配饰 gold-hoops. Items in the outfit get a dark ring and a ✓ badge (`aria-pressed`; aria 「试穿{name}」 / 「取消试穿{name}」).
 - Tab bar, with 首页 active.
 
 **Interactions.**
@@ -173,10 +174,10 @@ Side effect: `avatar.portrait.src` doubles as the fallback profile picture (`VT.
 
 **Slot rules.**
 - There are seven slots: `top`, `bottom`, `dress`, `outer`, `shoes`, `bag`, `acc`. Each slot holds one garment.
-- The slot comes from the product's `cat` (`data.slotOf`), not from the menu. 「上装」 also lists four outerwear items (knit-cardigan, beige-blazer, black-blazer, utility-jacket). These fill `outer` and also appear under 「外套」, and a selected item shows ✓ in both lists.
+- The slot comes from the product's `cat` (`data.slotOf`), not from the menu. 「上装」's full list includes four outerwear items (knit-cardigan, beige-blazer, black-blazer, utility-jacket), which fill `outer` and also belong to 「外套」. Only black-blazer has a render, so it is the one 「上装」 shows; it also appears under 「外套」, and when selected it shows ✓ in both lists. The other three show in both lists only while selected.
 - Tapping a selected item removes it. Tapping another item for an occupied slot replaces the current one.
 - `dress` and `top`/`bottom` exclude each other: picking a dress clears both top and bottom, and picking a top or bottom clears the dress. `outer`, `shoes`, `bag` and `acc` combine with anything, including a dress.
-- `VT.tryOn` (05-product.js:202) applies the same rules when another screen sends garments here.
+- `VT.tryOn` (05-product.js:197) applies the same rules when another screen sends garments here.
 
 **Outfit → render (`pickRender`, exported as `VT.fitting.pickRender`).** Only four on-body images exist (`data.renders`) **[demo]**:
 
@@ -196,7 +197,7 @@ How a render is chosen:
 - For every **unselected** slot among `outer`, `bag`, `acc`, `dress` and `shoes`, the render loses 0.3 if it wears something there that `base` doesn't.
 - The highest score wins. On a tie the earlier render wins, in the order base, look1, look2, look3.
 - `missing` lists the selected items the winning render doesn't wear, in slot order from top to acc.
-- Only the 10 garments in the table above can ever be rendered. The other 18 always end up in `missing`.
+- Only the 10 garments in the table above can ever be rendered, and only they are listed on the rail. The other 18 try-on garments always end up in `missing`; they reach the outfit only from other screens (商品详情 「试穿上身」, 个人衣橱, an AI造型师 wardrobe set) through `VT.tryOn`. The catalogue's 29th product, maxi-skirt, is in no try-on category at all (HANDOFF §13.2 #35).
 
 Scores for the verified outputs (winner in bold):
 
@@ -239,76 +240,115 @@ Camera error copy (`errorCopy`):
 | no `mediaDevices.getUserMedia` (insecure context) | 当前环境不支持摄像头 | 摄像头需要在 HTTPS 或 localhost 环境下使用，请用 README 中的本地服务器方式打开原型。 | shown |
 | anything else | 无法开启摄像头 | 请稍后重试。 | shown |
 
-**Data.** Reads `fit.cat` and `fit.outfit`, plus `data.fitCats`, `data.byId`, `data.slotOf` and `data.renders`. Writes `fit.cat` and `fit.outfit`. Both are persisted, so they survive tab switches and reloads. Keep `data-keep-scroll="rail"`.
+**Data.** Reads `fit.cat` and `fit.outfit`, plus `data.fitCats` (the pills, and each category's garments that a render wears), `data.fitCatsAll` (each category's full list, which sets the rail order and holds selected garments without a render), `data.byId`, `data.slotOf` and `data.renders`. `data.fitCats` is `data.fitCatsAll` with each list filtered to the garments some render wears (`data.js:253-256`), so a render added later brings its garments back to the rail. Writes `fit.cat` and `fit.outfit`. Both are persisted, so they survive tab switches and reloads. Keep `data-keep-scroll="rail"`.
 
-`VT.tryOn` also writes `fit` when another screen sends garments here: 商品详情 试穿上身, 个人衣橱, AI造型师 looks and 我的收藏. It applies the same slot rules, sets `fit.cat` to the first item's category and forces the avatar to `'ready'`. It then makes a contextual jump to this screen. 420 ms later `VT.tryOn` shows its own toast here: 「已为你的数字分身换上所选单品」, or the 「演示版暂无…」 message for the first of the sent items that is missing (3000 ms).
+`VT.tryOn` also writes `fit` when another screen sends garments here: 商品详情 试穿上身, 个人衣橱, AI造型师 looks and 我的收藏. It applies the same slot rules, sets `fit.cat` to the first `data.fitCatsAll` entry that lists the first item, skipping 「上装」 unless the item is a top or outer garment (`05-product.js:211`). A garment without a render still opens its own category (utility-jacket opens 「上装」, brown-blazer 「外套」), and a garment in no category (maxi-skirt) leaves `fit.cat` as it was. It forces the avatar to `'ready'`, then makes a contextual jump to this screen. 420 ms later `VT.tryOn` shows its own toast here: 「已为你的数字分身换上所选单品」, or the 「演示版暂无…」 message for the first of the sent items that is missing (3000 ms).
 
 This screen doesn't read uploaded photos or `avatar.status`; the avatar is always one of the preset renders **[demo]**.
 
 **States & edge cases.**
-- Fresh state: 「上装」 is active and the outfit is empty, so the `base` render shows. No thumbnail is marked selected, even though the base avatar wears the cami, jeans and sneakers.
+- Fresh state: 「上装」 is active and the outfit is empty, so the `base` render shows. The rail shows two thumbnails, black-blazer and basic-cami, and neither is marked selected, even though the base avatar wears the cami, jeans and sneakers.
+- A selected garment that no render wears (sent from another screen) is listed in its categories until it is tapped off. Tapping it removes it from the outfit with no toast, and it leaves the rail at once. The handler then can't find the thumbnail to refocus, so keyboard focus drops to the page (`03-fitting.js:113-114`, HANDOFF §13.2 #34). Cases: `{top: grey-hoodie}` → 上装 [black-blazer, basic-cami, grey-hoodie]; `{outer: knit-cardigan}` → 上装 [knit-cardigan, black-blazer, basic-cami] and 外套 [black-blazer, knit-cardigan].
+- maxi-skirt is in no `data.fitCatsAll` list. Sent here (商品详情 「试穿上身」), it joins the outfit as `bottom` with the 「演示版暂无…」 toast but never shows on the rail, so it can't be tapped off; only another bottom or a dress replaces it (HANDOFF §13.2 #35).
 - Once `setupDone` is true, every launch opens this screen. Before setup is finished it is never shown; the path is onboarding → avatar → 首页.
 - There are no empty, loading or error states apart from the camera errors. All images are local.
 
 **Components used.** `VT.ui.statusBar('light')`, `VT.ui.img`, `VT.ui.tabBar('fitting')`, `.scroll`, `VT.icon` (category icons and their `-filled` variants, `check`, `video-filled`), `app.toast`, `app.later`. Camera: `app.layer`, `.btn--light.btn--lg.btn--block`, `.spinner`, `VT.icon` (`close`, `switch-camera`, `info`).
 
-**Acceptance checks.** `AC1: setup complete → 首页 (virtual fitting room)` · `AC3: tab → fitting` · `AC2/4: fitting has one bar with the 5 tabs` · `tab switch to fitting is instant` · `fitting has no back button (primary)` · `outfit change: blazer → look2 render` · `outfit change: dress → look3 render` · `honest toast for garments without imagery` · `camera preview live (getUserMedia)` · `camera stops on close` · `look → 首页 with outfit` · `AC1: relaunch after setup opens 首页` · `mobile: relaunch opens 首页` · `mobile: tabs work`. `board phone opens simulator on 首页` exists only for the showcase board.
+**Acceptance checks.** `AC1: setup complete → 首页 (virtual fitting room)` · `AC3: tab → fitting` · `AC2/4: fitting has one bar with the 5 tabs` · `tab switch to fitting is instant` · `fitting has no back button (primary)` · `outfit change: blazer → look2 render` · `outfit change: dress → look3 render` · `首页 rail lists only garments with a render` · `honest toast for garments without imagery` (grey-hoodie sent through `VT.tryOn`, as from 商品详情) · `selected garment without a render shows until tapped off` · `camera preview live (getUserMedia)` · `camera stops on close` · `look → 首页 with outfit` · `AC1: relaunch after setup opens 首页` · `mobile: relaunch opens 首页` · `mobile: tabs work`. `board phone opens simulator on 首页` exists only for the showcase board.
 
 
 ### 4. 购物广场 · `plaza`
 
-**Route** `/plaza` · **Type** tab root · **Prototype** `js/screens/04-plaza.js`, `css/screens/04-plaza.css` · **Design ref** `reference/design/screens/04_shopping_plaza.png`
+**Route** `/plaza` · **Type** tab root · **Prototype** `js/screens/04-plaza.js`, `css/screens/04-plaza.css`; stores in `js/data.js` (`stores`, `storeOf`, `seedStoreFavs`, `seasonPicks`) · **Design ref** `reference/design/screens/04_shopping_plaza.png`. The mockup predates the stores redesign (514de38): it has a bell, no store bar, banners or store header, and taller cards in the first rows. For those parts the prototype is the only reference.
 
-**Purpose.** Browse the whole demo catalogue as a two-column feed with live search, category chips and wishlist hearts. It is also the entry point to product details, the one-item checkout (购物袋) and the demo notifications.
+**Purpose.** Shop across stores: search every store and product, switch between the user's favourite stores, filter by category, and browse a two-column feed with wishlist hearts. It is also the entry point to product details, the store sheets, the one-item checkout (购物袋) and 商家消息.
 
 **Layout (top → bottom).**
-- Header (fixed): h1 「购物广场」 on the left. On the right are two icon buttons: 购物袋 (aria 「购物袋」) and a bell (aria 「消息通知」). REPORT deviation 5: the newer mockup drops these icons, but the prototype keeps them.
-- Search pill (fixed): search icon plus `<input type="search">` with placeholder 「搜索品牌、风格或单品...」 (aria 「搜索品牌、风格或单品」, `enterkeyhint="search"`). A scan button (aria 「拍照找同款」) sits at the right end of the pill. There is no inline clear (×) button: the native WebKit cancel button is hidden (`04-plaza.css:20`).
+- Header (fixed): h1 「购物广场」 on the left. On the right are two icon buttons: 购物袋 (aria 「购物袋」) and 商家消息 (chat-dots icon; aria 「商家消息」, or 「商家消息，{n} 条未读」 when store chats have unread messages). The second carries a red count badge (`.pz-badge`, 16 px, `#C8473D`) with the unread total over all store chats, 「99+」 above 99, hidden at 0. REPORT deviation 5 still applies: the newer mockup drops both icons, the prototype keeps them.
+- Search pill (fixed): search icon plus `<input type="search">` with placeholder 「搜索商家、品牌或单品...」 (aria 「搜索商家、品牌或单品」, `enterkeyhint="search"`). A scan button (aria 「拍照找同款」) sits at the right end of the pill. There is no inline clear (×) button: the native WebKit cancel button is hidden.
+- Favourite-stores bar (fixed, scrolls sideways with a hidden scrollbar, `data-keep-scroll="pz-stores"`). A tablist (aria 「收藏的商家」) of 60 px items, each a 46 px round logo over a one-line 10 px label (at most 66 px, then ellipsis):
+  - 「全部」 first (grid icon on `#F1ECE6`), then one item per favourite store in `s.storeFavs` order, labelled with the store's `name`. A store's logo is its monogram (`mono`) in its `fg` colour on its `bg` colour; a monogram longer than two letters (only 「ZARA」) is set as a serif wordmark (`.st-logo.is-word`: Didot, Bodoni 72, Times New Roman; local fonts only, nothing is downloaded).
+  - The chosen item (`aria-selected`) gets a dark ring around its logo (`box-shadow: 0 0 0 2px #FAF6F0, 0 0 0 3.6px #393532`) and a bold dark label.
+  - After the tablist, in the same scroller: a button with a + in an outlined circle, labelled 「管理」, or 「收藏商家」 when the user has no favourite stores.
 - Category chip row (fixed, scrolls sideways, `role="tablist"` aria 「商品分类」): 「全部」「上衣」「下装」「外套」「连衣裙」「鞋包」「配饰」 (`data.plazaCats`). The active chip is dark (`.chip.is-on`, `aria-selected`).
-- Product grid. This is the only vertical scroller (`.scroll.pz-scroll`). It is a 2-column grid in `data.plazaOrder` order: all 28 products, the six reference products first. Everything renders at once, with no pagination. Rows are top-aligned, not masonry.
-  - Each card has: an image (`img.card`; the first 6 load eagerly, the rest use `loading="lazy"`; `p.small` items are contained on a light plate), a heart at top-right, `cardName` (one line, ellipsis), `tags` (one line), and a row with `¥{price}` plus up to 4 colour dots (`p.dots`) and `+N` (`p.dotsMore`; aria `{n} 种颜色`).
-  - Image heights: in the unfiltered feed, the first six cards use the reference heights in `REF_H` (04-plaza.js:7). They come in pairs of equal height per row. All other cards, and every card while a chip other than 全部 or a query is active, use one uniform height (slightly shorter for `small` items).
+- Feed (`.scroll.pz-scroll`, the only vertical scroller): a head, then the product grid. While a query is active, search results replace both (see Interactions).
+  - **Head for 全部:** the platform banner carousel. Two full-width slides, `assets/plaza/banners/platform-new-season.webp` and `platform-autumn.webp` (aspect ratio 2.95, radius 12; the second loads lazily), in a horizontal scroll-snap track (`data-keep-scroll="pz-ban"`). Two dots at the bottom centre follow the swipe (5 px; the current one 12 px wide and white). No autoplay. Each slide is a button, aria 「NEW SEASON 秋日灵感穿搭，探索本季精选单品」 and 「秋日灵感穿搭，精选单品，定义新季风格」; their visible text is part of the images.
+  - **Head for ZARA** (the only store with a `banner`): one full-width banner button (`assets/plaza/banners/zara.webp`, aspect ratio 2.31, radius 12), aria 「ZARA 2024 秋冬系列：简约与质感的日常时装，进入店铺」.
+  - **Head for any other store:** a store card (`#F2EDE7`, radius 14): 40 px logo, the store's full name (bold), 「{tagline} · 在售 {n} 件」 and a pill button 「店铺详情 ›」.
+  - **Grid:** 2 columns in `data.plazaOrder` order, filtered by the chosen store and the active chip. All matching products render at once (29 for 全部), with no pagination. Rows are top-aligned, not masonry.
+  - Each card has: an image in a fixed 1 : 0.95 box (`aspect-ratio: 1 / .95`), a heart at top-right, `cardName` (one line, ellipsis), `tags` (one line), and a row with `¥{price}` plus up to 4 colour dots (`p.dots`) and `+N` (`p.dotsMore`; aria `{n} 种颜色`). The first 6 images load eagerly, the rest use `loading="lazy"`.
+  - Card image: `img.plaza` (the plaza asset pack's model photo or cleaned-up shot), else `img.card`, with `object-fit: cover`. Model photos (`assets/plaza/models/`: knit-cardigan, straight-jeans, brown-blazer, maxi-skirt) are anchored at 50% 24%, `cardFocus: 'top'` products (basic-cami, pleated-skirt) at the top, and everything else is centred; `small` products are contained on a `#F2EEE9` plate with 12 px padding. Every card has the same image box: the reference heights the first six cards used to have (`REF_H`) are gone.
 - Tab bar (fixed): `VT.ui.tabBar('plaza')`, with 「购物广场」 active.
 
 **Interactions.**
+- Store item (「全部」 or a favourite) → writes `s.plaza.store`. Without a query, only the bar's selection and the feed re-render. With a query, it also clears the query and refreshes the whole screen: tapping a store leaves the search. Either way the feed scrolls to the top, the bar scrolls just enough to show the chosen item whole (16 px margin), and the chip is kept.
+- 「管理」 / 「收藏商家」 → 「收藏的商家」 sheet.
+- Chip → writes `s.plaza.cat`, re-renders the feed and scrolls it to the top. The category applies inside the chosen store, and to search results. 「鞋包」 matches `cat` shoes or bag; the other chips match `p.cat` exactly.
+- Banner slide (全部) → 「秋日灵感穿搭」 sheet. The ZARA banner, or 「店铺详情」 on a store card → that store's sheet.
 - Card → push `product` `{pid}` → `/plaza/p/:pid`. The whole card is a transparent button `.pz-open` with aria `查看 {name}，¥{price}`. The heart sits above it.
 - Heart (`VT.ui.heart`, global `fav` action) → toggles `s.favorites[pid]`. It updates every heart for that pid on screen (`aria-pressed`, aria 「收藏」/「取消收藏」, pop animation) and toasts 「已收藏」 / 「已取消收藏」 (2200 ms).
-- Search input → on every `input` event (no submit, no debounce) writes the raw value to `s.plaza.q` and re-renders only the grid. Scroll is not reset.
-  - Match rule: the query is trimmed and lower-cased. A product matches when the query is a substring of `name`, `cardName`, `tags`, `brand` and all colour names joined together. Colour names are concatenated with no separator, so 「白燕」 matches 奶油白 followed by 燕麦色.
-  - Not searched: price, description, category label (「上衣」 finds nothing).
-  - The query is combined (AND) with the active chip. A query of only spaces means no filter.
-  - Verified counts: 「衬衫」 4, 「reformation」 / 「REFORMATION」 1, 「蓝」 5, 「soft archive」 7, 「259」 0.
-- Chip → writes `s.plaza.cat`, re-renders the grid and scrolls it back to the top. 「鞋包」 matches `cat` shoes or bag; the other chips match `p.cat` exactly. Counts: 全部 28 · 上衣 10 · 下装 3 · 外套 8 · 连衣裙 1 · 鞋包 5 · 配饰 1.
+- Search input → on every `input` event (no submit, no debounce) writes the raw value to `s.plaza.q`. If the trimmed value isn't blank and a store other than 全部 is chosen, `s.plaza.store` becomes `'all'` and the bar re-renders, keeping its scroll position. Then the feed re-renders; its scroll is not reset. Matching rules and verified counts: HANDOFF §9.1.
+  - Matching stores (any of the 7, favourite or not, in `data.stores` order) come first, under the heading 「相关商家」. Each row is a card (`#FBF8F3`, radius 14) and the whole row is a transparent button (aria 「查看店铺 {full name}」) that opens the store sheet. It shows a 40 px logo, the full name (bold), 「{tagline} · 在售 {n} 件」, and a pill on top of the row button: 「收藏」 (dark) or 「已收藏」 (light), with `aria-pressed` and the store name as sr-only text. The pill toggles the favourite and refreshes the screen.
+  - Matching products follow in the grid, under the heading 「相关商品」 when there are store rows above them, without a heading otherwise. Store rows ignore the chip; products don't.
+  - Stores match but no products do: after the rows, the line 「没有找到「{q}」相关的单品」. Nothing matches: the empty state below.
+- 「清除搜索」 (empty state) → resets both `s.plaza.q = ''` and `s.plaza.cat = 'all'`, then re-renders the whole screen with `app.refresh()`. The store stays 全部.
+- 「查看全部分类」 (empty state) → the 全部 chip.
 - 购物袋 → push `checkout` with no params (`data-act="nav" data-to="checkout"`), so the stack becomes plaza › checkout with no product in between. Checkout shows `s.cart`, or the demo fallback cart (蓝色条纹衬衫 · M · ×1) when `s.cart` is null. This button resumes a pending checkout; it is not a cart list.
-- Bell → 「消息通知」 sheet. Scan → 「拍照找同款」 sheet.
-- 「清除搜索」 (empty state) → resets both `s.plaza.q = ''` and `s.plaza.cat = 'all'`, then re-renders the whole screen with `app.refresh()`.
-- Tapping the active 购物广场 tab again while at root → smooth-scrolls the grid to the top (instant with reduced motion).
+- 商家消息 → push `messages` → `/plaza/messages` (see 商家消息). Scan → 「拍照找同款」 sheet.
+- Tapping the active 购物广场 tab again while at root → smooth-scrolls the feed to the top (instant with reduced motion).
 
 **Overlays.** All sheets close via ×, scrim tap or Esc (generic `app.sheet`). `app.go` and `app.open` also close them instantly.
-- 「消息通知」 sheet. Three static notices, each a button with icon, bold title, line and time:
-  - 「心愿单降价提醒」 · `你关注的「条纹亚麻衬衫」本周可用 ¥20 优惠券` · 「10 分钟前」 → push `product` `{pid:'striped-shirt'}` → `/plaza/p/striped-shirt`.
-  - 「订单运输中」 · 「你的订单预计 7月18日 送达，点击查看物流」 · 「今天 08:32」 → `app.open('orders', {oid: data.seedOrder.id}, {anim:'fade'})`. This switches to 我的 and replaces its stack with 我的 › 我的订单 (`filter:'all'`) › 订单详情, at `/me/orders/o/VT20260715092418`. The copy says 物流, but it opens 订单详情, not 物流跟踪.
-  - 「AI 造型师」 · 「为你准备了 3 套朋友聚会穿搭，快去看看」 · 「昨天」 → contextual tab jump to `stylist` (its root, fade) → `/stylist`.
-- 「拍照找同款」 sheet:
+- **Store sheet** (`VT.plaza.openStore(app, storeId)`, class `ov--shop`; 商品详情's brand row opens the same sheet). Title: the store's full name, e.g. 「ZARA 官方旗舰店」.
+  - Head: 54 px logo; the store's `name` (bold); its tagline; 「在售 {n} 件 · 店铺评分 {rating}」 (rating with one decimal).
+  - Two buttons side by side: ghost 「联系商家」 (chat icon) and 「收藏店铺」 (dark, outline heart) or 「已收藏」 (ghost, filled heart), with `aria-pressed`.
+  - Heading 「店铺商品」, then one `.mini` row per product of the store in feed order (image `img.plaza || img.card`, name, tags, price), then the note 「演示数据」.
+  - 「收藏店铺」 / 「已收藏」 → toggles the favourite and swaps the button in place. When the sheet is open over 购物广场, the plaza behind it refreshes.
+  - 「联系商家」 → closes this sheet at once and opens the store's chat thread sheet (see 商家消息). It doesn't navigate.
+  - A product row → push `product` (`/plaza/p/:pid`; from 商品详情, `…/p/:pid/p/:pid2`).
+- **「收藏的商家」 sheet** (「管理」): lead 「收藏的商家会显示在购物广场顶部，左右滑动、点击即可切换。」, then the heading 「已收藏 {n}」 with one row per favourite (40 px logo, `name`, tagline, an 「已收藏」 pill), or 「还没有收藏的商家」 when there are none. Then, when some stores aren't favourites, the heading 「推荐商家」 with their rows and 「收藏」 pills. A pill toggles that store: the sheet body re-renders (the store moves to the other list; a new favourite goes to the top of 已收藏) and focus returns to that store's pill. The plaza behind the sheet refreshes.
+- Favouriting anywhere (search row, store sheet, 管理) puts the store first in `s.storeFavs`, so it shows right after 「全部」. Unfavouriting removes it, and if it was the chosen store the feed goes back to 全部. Toasts 「已收藏店铺「{name}」」 / 「已取消收藏「{name}」」, with the store's `name`.
+- **「秋日灵感穿搭」 sheet** (either banner slide, class `ov--shop`): lead 「本季精选单品 · 演示数据」, then `.mini` rows for `data.seasonPicks`: taupe-coat, knit-cardigan, maxi-skirt, brown-blazer, brown-sweater, black-cardigan, pleated-skirt. A row → push `product`. **[demo]**
+- **「拍照找同款」 sheet:**
   - Content: lead 「上传一张衣服照片，演示版会从本地商品库中推荐风格相近的单品（非真实图像识别）。」 and a dark button 「选择照片」 (a label wrapping a hidden `accept="image/*"` file input).
   - Non-image file → toast 「请选择图片文件」.
-  - Image file → shows a preview (object URL) tagged 「已上传」, then heading 「相似单品推荐」 with badge 「演示数据」, then the same three `.mini` rows every time: striped-shirt, oxford-shirt, white-shirt (image, name, tags, price). **[demo]** No image analysis.
+  - Image file → shows a preview (object URL) tagged 「已上传」, then heading 「相似单品推荐」 with badge 「演示数据」, then the same three `.mini` rows every time: striped-shirt, oxford-shirt, white-shirt (`img.card`, name, tags, price). **[demo]** No image analysis.
   - Tapping a row → push `product` → `/plaza/p/:pid`. Picking another photo replaces the result.
+- The 「消息通知」 sheet, which the bell used to open, now opens from 商家消息's first row.
 
-**Data.** Reads `data.plazaOrder`, `data.byId`, `data.plazaCats`, `data.inCat`, `data.seedOrder.id`, `s.plaza.{cat,q}`, `s.favorites`. Writes `s.plaza.q`, `s.plaza.cat` and `s.favorites[pid]`.
-- Query and category live in the persisted store. They survive tab switches, pushes and full reloads. The input value is re-rendered from `s.plaza.q`, raw and untrimmed.
-- `.pz-scroll` (`data-keep-scroll="pz"`) and the chip row (`data-keep-scroll="pz-chips"`) are restored whenever the plaza root shows again (tab switch, back, contextual jump to `plaza`). They are not kept across reloads.
+**Data.**
+- Reads `data.plazaOrder`, `data.byId`, `data.plazaCats`, `data.inCat`, `data.stores`, `data.storeById`, `data.storeOf`, `data.seasonPicks`, `s.plaza.{cat,q,store}`, `s.storeFavs`, `s.storeChats` (the badge), `s.favorites`. Writes `s.plaza.{q,cat,store}`, `s.storeFavs` and `s.favorites[pid]`.
+- **Stores** (`data.stores`, in this order). Every product belongs to the store whose `name` equals its `brand` (`data.storeOf`; no product falls through to its first-store fallback). Logo colours are in `data.js`.
+
+| id | `name` (bar label) | full name | tagline | mono | rating | products, in feed order |
+|---|---|---|---|---|---|---|
+| `zara` | ZARA | ZARA 官方旗舰店 | 简约与质感的日常时装 | ZARA | 4.9 | knit-cardigan, straight-jeans, brown-blazer, maxi-skirt |
+| `soft-archive` | Soft Archive | Soft Archive 官方店 | 柔软针织 · 基础衣橱 | SA | 4.8 | basic-cami, brown-sweater, black-cardigan, white-tee, black-sweater, ribbed-tank |
+| `linea-studio` | Linea Studio | Linea Studio 官方店 | 法式温柔 · 日常优雅 | LS | 4.8 | pleated-skirt, satin-slip-dress, white-shirt, beige-trousers, bow-blouse, oxford-shirt |
+| `mono-atelier` | Mono Atelier | Mono Atelier 官方店 | 利落剪裁 · 摩登通勤 | MA | 4.8 | black-blazer, taupe-coat, beige-blazer |
+| `forma` | Forma | Forma 官方旗舰店 | 鞋包配饰 · 简约实用 | F | 4.7 | brown-tote, white-sneakers, black-handbag, black-pumps, grey-hoodie, utility-jacket, strappy-heels, gold-hoops |
+| `reformation` | Reformation | Reformation 官方旗舰店 | 轻盈面料 · 经典衬衫 | R | 4.8 | striped-shirt |
+| `linea-denim` | Linea Denim | Linea Denim 官方店 | 经典丹宁 · 自在随性 | LD | 4.7 | denim-jacket |
+
+- The redesign moved knit-cardigan, straight-jeans and brown-blazer to brand ZARA and added maxi-skirt (ZARA, 下装, ¥359, model photo only), so the catalogue has 29 products. For the three moved products the plaza model photo is also the second gallery image on 商品详情 (`data.js:185-188`). ZARA is a real trademark, used here as a demo store (HANDOFF §13.1 #12).
+- Favourite stores: `s.storeFavs` (persisted), seed `['zara', 'soft-archive', 'linea-studio', 'mono-atelier', 'forma']`, so Reformation and Linea Denim start under 推荐商家. `s.plaza.store` (persisted, default `'all'`) counts only while that store is a favourite; otherwise the feed shows 全部.
+- Query, category and store live in the persisted store. They survive tab switches, pushes and full reloads. The input value is re-rendered from `s.plaza.q`, raw and untrimmed.
+- Kept scroll positions: `.pz-scroll` (`pz`), the chip row (`pz-chips`), the store bar (`pz-stores`) and the banner track (`pz-ban`), restored whenever the plaza root shows again (tab switch, back, contextual jump to `plaza`). They are not kept across reloads.
 - The input has `data-focus-key="pz-q"`, so focus comes back after an in-place refresh.
 
 **States & edge cases.**
-- Empty result: search icon, `没有找到「{q}」相关的单品` (raw query) and a ghost button 「清除搜索」. Every chip has at least one product, so this state only appears with a non-blank query, and the copy always names it.
+- Empty, no query: the head stays, then a search icon, 「这家店暂无「{chip label}」商品」 for a store (e.g. ZARA with 上衣) or 「暂无「{chip label}」商品」 for 全部, and a ghost button 「查看全部分类」. With the seed every chip has products under 全部, so only the store variant can appear.
+- Empty, with a query: search icon, 「没有找到「{q}」相关的商家或单品」 (the trimmed query) and a ghost button 「清除搜索」.
+- Typing moves the bar to 全部, and clearing the query doesn't bring the earlier store back.
+- Store rows ignore the chip: 「衬衫」 with 鞋包 shows the Reformation row (its tagline 「轻盈面料 · 经典衬衫」 matches) and 「没有找到「衬衫」相关的单品」.
+- Unfavouriting the chosen store sends the feed back to 全部. With no favourites, the bar shows only 「全部」 and 「收藏商家」.
 - The filter also runs on unfinished IME composition text (pinyin letters), because there is no `isComposing` guard. The empty state can flash while typing Chinese.
-- **[demo]** The notices are static (fixed dates; the ¥20 coupon is applied to every order anyway). Scan results are fixed, and the scan object URL is never revoked (04-plaza.js:112).
+- **[demo]** The banners, the 秋日灵感穿搭 picks, the store data and the scan results are static. The scan object URL is never revoked (`04-plaza.js:200`).
 - Same for logged-in and logged-out users.
 
-**Components used.** `VT.ui.iconBtn`, `VT.ui.heart` + global `fav`, global `nav`, `VT.ui.img`, `VT.ui.price`, `VT.ui.dots`, `VT.ui.tabBar` + global `tab`, `.chip`, `.scroll`, `app.sheet`, `.notice-list`, `.opt-list`, `.mini`, `.badge-demo`, `.sheet-lead`, `.btn--ghost.btn--sm`, `.btn--dark.btn--lg.btn--block`, `.sr-only`.
+**Components used.** `VT.ui.iconBtn`, `VT.ui.heart` + global `fav`, global `nav`, `VT.ui.img`, `VT.ui.price`, `VT.ui.dots`, `VT.ui.tabBar` + global `tab`, `.chip`, `.scroll`, `app.sheet`, `.opt-list`, `.mini`, `.badge-demo`, `.sheet-lead`, `.sheet-note`, `.btn--ghost.btn--sm`, `.btn--dark.btn--lg`, `.sr-only`. Local: `logo()` (`.st-logo` and its `--md` 40 px / `--lg` 54 px / `--msg` 44 px sizes), the store bar (`.pz-stores`, `.pz-st`), the banners (`.pz-banners`, `.pz-ban`, `.pz-ban-dots`), the store head (`.pz-shop-ban`, `.pz-shop`), the search results (`.pz-sec`, `.pz-srow`, `.pz-sfav`, `.pz-none`), the store sheet (`.ss-*`) and the 管理 sheet (`.ms-*`). Exports `VT.plaza = { openStore, manageStores, toggleFav, notices, logo, syncBadge }`.
 
-**Acceptance checks.** `AC3: tab → plaza`, `AC2/4: plaza has one bar with the 5 tabs`, `tab switch to plaza is instant`, `plaza has no back button (primary)`, `plaza search`, `plaza scroll kept after switching tabs`, `plaza heart toggles`, `plaza → product details`, `AC6: back from product → plaza`, `plaza tab returns to its own history (product page)`, `finished checkout removed from plaza history`, `mobile: tabs work`.
+**Acceptance checks.** `AC3: tab → plaza`, `AC2/4: plaza has one bar with the 5 tabs`, `tab switch to plaza is instant`, `plaza has no back button (primary)`, `plaza search`, `plaza scroll kept after switching tabs`, `plaza heart toggles`, `plaza → product details`, `AC6: back from product → plaza`, `plaza tab returns to its own history (product page)`, `finished checkout removed from plaza history`, `mobile: tabs work`. The stores block (mobile context, seed data): `plaza: store bar = 全部 + favourite stores only`, `plaza: 全部 shows every store, with the platform banner`, `plaza: a favourite store shows only its products` (ZARA: 4 products and its banner), `plaza: category narrows the chosen store` (ZARA + 外套 → knit-cardigan, brown-blazer), `plaza: search covers every store and product` (「Reformation」 → one store row, striped-shirt, bar on 全部), `plaza: favouriting a store from search adds it to the bar`, `plaza: 管理 removes a store from the bar`. 商家消息 lists the three checks that continue from here.
 
 
 ### 5. 个人衣橱 · `wardrobe`
@@ -335,7 +375,7 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
 - ＋ in the header, or 「添加衣物」 in the empty state → 添加衣物 sheet.
 - Re-tapping the active tab scrolls the grid to the top (global `tab` action).
 - Arrives from: the tab bar and 我的 → stats 「我的衣橱」 (both keep the tab's own stack), and 商品详情 → 「加入衣橱」 sheet → 「去衣橱看看」 (contextual jump, which resets the tab to its root).
-- **Try-on (`VT.tryOn`, `js/screens/05-product.js:202`)**, used by 「试穿这件」 and 「去试衣间」. For each product in order it sets `s.fit.outfit[slot]`, where the slot is the product `cat`. A dress removes top and bottom; a top or bottom removes the dress. Slots not touched stay in the outfit (merge, not replace). It sets 首页's left-menu category `s.fit.cat` from the first item and marks the avatar ready (`avatar.demo = true`) if there is none **[demo]**. Then it does a contextual tab jump to 首页 `/home` (fade). 420 ms later it shows the toast 「已为你的数字分身换上所选单品」, or 「演示版暂无「<name>」的上身图，已加入当前搭配」 (3000 ms, naming the first tried item that has no on-body image). The wardrobe stack is left as it was.
+- **Try-on (`VT.tryOn`, `js/screens/05-product.js:197`)**, used by 「试穿这件」 and 「去试衣间」. For each product in order it sets `s.fit.outfit[slot]`, where the slot is the product `cat`. A dress removes top and bottom; a top or bottom removes the dress. Slots not touched stay in the outfit (merge, not replace). It sets 首页's left-menu category `s.fit.cat` from the first item (the first `data.fitCatsAll` category that lists it, see 首页) and marks the avatar ready (`avatar.demo = true`) if there is none **[demo]**. Then it does a contextual tab jump to 首页 `/home` (fade). 420 ms later it shows the toast 「已为你的数字分身换上所选单品」, or 「演示版暂无「<name>」的上身图，已加入当前搭配」 (3000 ms, naming the first tried item that has no on-body image). The wardrobe stack is left as it was.
 
 **Overlays.**
 - **Item sheet** (title = item name). It shows a large image (catalog: `img.hd`, falling back to `img.tile`; uploaded: the photo) and a meta line `[source label or 「我的衣物」, colour name, size]` joined by 「 · 」. Colour and size exist only for collected or purchased items, or items re-added from 商品详情. Buttons:
@@ -416,7 +456,7 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
 - 历史造型 → 历史造型 sheet. This is not the 浏览记录 screen.
 - 分享对话 → the native share sheet (`navigator.share`, title 「AI 造型师」) with the fixed text 「AI 造型师为我推荐了 3 套朋友聚会造型：休闲时髦 / 摩登气质 / 优雅迷人」 (the same whatever the conversation); cancelling it is silent. Without native share, the text is copied and the toast 「对话摘要已复制」 shows; if the clipboard fails, the toast is 「分享面板在此浏览器不可用」. The prototype skips native share when embedded (`VT.framed`); the web build should drop that check.
 - ＋ → 更多 sheet. Re-tapping the active tab scrolls the thread to the top.
-- Arrives from: the tab bar (keeps the tab's own stack); 我的收藏 → 造型 empty state 「去问问 AI 造型师」 and the 「AI 造型师」 item in the 购物广场 「消息通知」 sheet (both contextual jumps, which reset the tab to its root).
+- Arrives from: the tab bar (keeps the tab's own stack); 我的收藏 → 造型 empty state 「去问问 AI 造型师」 and the 「AI 造型师」 item in the 「消息通知」 sheet on 商家消息 (both contextual jumps, which reset the tab to its root).
 
 **Overlays.**
 - **Look sheet** (full height). Title 「Look N · <sub>」, e.g. 「Look 1 · 休闲时髦 · 轻松有范」. Contents:
@@ -494,7 +534,7 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
 
 **Route** `/plaza/p/:pid` (canonical parent `plaza`; other paths below) · **Type** secondary · **Prototype** `js/screens/05-product.js`, `css/screens/05-product.css` · **Design ref** `reference/design/screens/05_product_details.png`
 
-**Other paths.** The screen is pushed onto whichever stack opened it: `/wardrobe/p/:pid`, `/stylist/p/:pid`, `/me/favorites/p/:pid`, `/me/history/p/:pid`, `/me/orders/p/:pid` (「再次购买」), `/me/orders/o/:oid/p/:pid`, `…/checkout/p/:pid` (checkout item card) and `…/p/:pid/p/:pid2` (brand sheet).
+**Other paths.** The screen is pushed onto whichever stack opened it: `/wardrobe/p/:pid`, `/stylist/p/:pid`, `/me/favorites/p/:pid`, `/me/history/p/:pid`, `/me/orders/p/:pid` (「再次购买」), `/me/orders/o/:oid/p/:pid`, `…/checkout/p/:pid` (checkout item card), `/plaza/messages/p/:pid` (the 「心愿单降价提醒」 notice on 商家消息) and `…/p/:pid/p/:pid2` (the store sheet's product rows).
 
 **Purpose.** Show one catalogue item (gallery, rating, brand, price, description), let the user choose colour and size, and send it to the wardrobe, to try-on on 首页, or to checkout.
 
@@ -504,7 +544,7 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
   - Hero image `gallery[i]` with alt `{name}（第 {i} 张，共 {n} 张）`. It uses `contain` when the path contains `model` or `items/` and `cover` otherwise; `small` products get padding. A transparent button (aria 「下一张图片」) covers the hero below the top bar.
   - Thumbnail strip (`role="tablist"` aria 「商品图片」, scrolls sideways), built from `galleryThumbs || gallery`. Each tab has aria `第 {i} 张图片`. The active thumb is wider and outlined.
   - Title row: h1 `name`, plus a rating button (★, `rating.toFixed(1)`, `({reviews})`; aria `评分 {rating}，{reviews} 条评价`).
-  - Brand button `{brand} ›`, then the large price `¥{price}`, then `desc` (`\n` becomes a line break).
+  - Brand button `{brand} ›` (the brand is the store's `name`, e.g. 「ZARA」), then the large price `¥{price}`, then `desc` (`\n` becomes a line break).
   - 「颜色」 heading with a link on the right that shows the current colour name and a ›. Below it, a swatch row (`role="radiogroup"` aria 「颜色」); each swatch is `role="radio"` with the colour name as aria-label. `stripe` swatches draw as stripes.
   - 「尺码」 heading with a link 「尺码指南」 › on the right. Below it, size pills (`role="radiogroup"` aria 「尺码」) from `p.sizes`: XS/S/M/L, shoes 35–39, bags and hoops 「均码」.
 - Fixed bottom CTA with two equal pills: light 「试穿上身」 (dress icon, aria 「立即试穿：试穿上身」) and dark 「加入衣橱」 (bag icon). There is no tab bar, no quantity selector and no 立即购买 on the page itself; buying goes through the 加入衣橱 sheet.
@@ -520,7 +560,7 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
   - It **does** change what gets saved or bought: the wardrobe entry's colour, the cart colour, and from there the checkout title prefix (`color.short + cardName`, e.g. 「黑色条纹衬衫」), the 颜色 chip, and the order's `title` / `colorLabel`.
   - Try-on ignores colour.
 - Size pill → `s.selections[pid].size` (persisted). The default is `p.defaultSize`: M when the product has it, otherwise its first size.
-- 「尺码指南」 opens the size guide sheet, the rating opens the reviews sheet, and the brand opens the brand sheet.
+- 「尺码指南」 opens the size guide sheet and the rating opens the reviews sheet. The brand opens the store sheet of the product's store (`data.storeOf(p)`, `05-product.js:133-137`): the same sheet as on 购物广场.
 - Heart → global `fav` on `s.favorites[pid]`, with toast 「已收藏」 / 「已取消收藏」.
 - Share. The text is `{name} ¥{price} — 来自「全新的购物体验」原型`.
   1. If `navigator.share` exists (and the page is not framed), call `navigator.share({title: name, text})`. On success or `AbortError`, stop silently. Any other error falls through to step 2.
@@ -528,7 +568,7 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
   3. If the clipboard call fails, toast 「分享面板在此浏览器不可用」.
 - 「试穿上身」 → `VT.tryOn(app, [pid])`:
   1. Sets `s.fit.outfit[slot] = pid`, with the slot from `data.slotOf` (top/bottom/outer/dress/shoes/bag/acc). A dress clears top and bottom; a top or bottom clears the dress; other slots stay.
-  2. Sets `s.fit.cat` to the first `data.fitCats` entry whose `items` contains the pid, so the 首页 side menu shows that category.
+  2. Sets `s.fit.cat` to the first `data.fitCatsAll` entry whose `items` contains the pid (skipping 「上装」 unless the product is a top or outer garment), so the 首页 side menu shows that category. These are the full lists, so a garment without a render still opens its category and stays on the rail while selected. maxi-skirt is in no list: `fit.cat` stays as it was, and the skirt never shows on the rail (HANDOFF §13.2 #35).
   3. If `s.avatar.status !== 'ready'` (none or stale), sets `status: 'ready'` and `demo: true`. 首页 draws the demo renders whatever the status; the flag only affects places like the size-guide tip and 我的形象.
   4. Contextual tab jump `app.go('fitting')` → 首页 root with fade, at `/home`. The product page stays on the opener's stack.
   5. After 420 ms it toasts. If `VT.fitting.pickRender(outfit).missing` includes the pid: `演示版暂无「{name}」的上身图，已加入当前搭配` (3000 ms). Otherwise: 「已为你的数字分身换上所选单品」.
@@ -543,7 +583,7 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
   - Table headers 「尺码」「胸围」「衣长」「肩宽」「袖长」. Rows: XS 88/64/38/54, S 92/66/39/55, M 96/68/40/56, L 100/70/41/57. The row matching the selected size is highlighted.
   - Note 「单位：cm，平铺测量，误差 ±1–2cm。」.
 - `商品评价 ({reviews})` **[demo]**: summary with `rating`, 「★★★★★」 and `98% 买家认为「尺码合适」`. Then three hard-coded reviews from the `reviews` array in 05-product.js (masked name, stars, text, `size · colour`). Note 「演示数据」.
-- Brand sheet **[demo]**, titled `{brand}`: lead 「品牌店铺 · 演示数据。以下为同品类在售单品：」, then up to 3 `.mini` rows of *other products with the same `cat`*, from any brand. Tapping a row closes the sheet instantly and pushes another `product` (`…/p/:pid/p/:pid2`).
+- Store sheet, from the brand button: `VT.plaza.openStore(app, data.storeOf(p).id)`, described under 购物广场. It is titled with the store's full name (「ZARA 官方旗舰店」) and lists every product of that store, this one included. A product row closes the sheet instantly and pushes another `product` (`…/p/:pid/p/:pid2`). 「联系商家」 opens that store's chat thread sheet over this page (see 商家消息); 「收藏店铺」 toggles the favourite store, which 购物广场's bar shows when the user returns there. The earlier brand sheet (lead 「品牌店铺 · 演示数据。以下为同品类在售单品：」, three products of the same category from any brand) is gone.
 - 加入衣橱 result sheet:
   - Title 「已加入衣橱」 (new entry) or 「已在你的衣橱中」 (existing entry).
   - A `.mini` row: image, name, `{colour name} / {size}`, price.
@@ -553,7 +593,8 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
   - Closing the sheet keeps the wardrobe change.
 
 **Data.**
-- Reads: `data.byId[pid]` (name, brand, rating, reviews, price, desc, colors, sizes, defaultSize, gallery, galleryThumbs, small, img.card, cat), `data.products`, `data.fitCats`, `data.slotOf`, `data.renders` (through `pickRender`), `s.selections`, `s.favorites`, `s.avatar.status`, `s.wardrobe`.
+- Reads: `data.byId[pid]` (name, brand, rating, reviews, price, desc, colors, sizes, defaultSize, gallery, galleryThumbs, small, img.card, cat), `data.storeOf` and the store data behind the store sheet (`data.stores`, `s.storeFavs`), `data.fitCatsAll`, `data.slotOf`, `data.renders` (through `pickRender`), `s.selections`, `s.favorites`, `s.avatar.status`, `s.wardrobe`.
+- For knit-cardigan, straight-jeans and brown-blazer the gallery's second image is the plaza model photo (`assets/plaza/models/…`), shown with `contain` like the other model shots. maxi-skirt has one image, its model photo.
 - Writes: `s.history`, `s.selections[pid]`, `s.favorites[pid]`, `s.wardrobe`, `s.cart`, `s.fit.outfit`, `s.fit.cat`, `s.avatar.status/demo`.
 - Kept UI state: `.pd-scroll` (`data-keep-scroll="pd"`). A missing `pid` defaults to 'striped-shirt'.
 
@@ -564,15 +605,15 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
   - **[demo]** The label is stored as text, so it still says 「今天」 on later days.
 - An unknown `pid` renders the striped shirt (05-product.js:22), but the actions look up `data.byId[pid]` and throw (verified by tapping a size). `mount` still writes the unknown id into history, and 我的 counts it (10-profile.js:73).
 - A product with one image: tapping the hero just re-shows the same image, and there is one thumb.
-- The brand sheet shows only the lead for categories with a single product (连衣裙, 配饰).
+- The store sheet lists the product on screen too: tapping its own row pushes a second copy of this page (`…/p/:pid/p/:pid`). Reformation and Linea Denim sell one product each, so their sheet lists only the current product.
 - The size table never matches shoe sizes or 均码. The tip ignores `s.body` and `s.avatarPrefs.sizeTips`.
 - Every product shows the same reviews (they mention 「蓝色条纹」), and the summary is always five stars.
 - 去衣橱看看 resets neither `s.wardrobeCat` nor the wardrobe scroll. If 个人衣橱 is filtered to another category, the new item is hidden (verified).
 - Prototype-only behaviour: the share text says 「原型」, and `VT.framed` (embedded preview) forces the clipboard path. Drop both in the web build.
 
-**Components used.** `VT.ui.backBtn`, `VT.ui.heart` + global `fav`, `VT.ui.iconBtn`, `VT.ui.img`, `VT.ui.price`, `VT.ui.nl2br`, `VT.ui.swatchStyle`, `.btn`, `app.sheet`, `.opt-list`/`.opt`/`.opt-sw`/`.radio`, `.guide-tip`, `.guide-table`, `.rv-sum`/`.rv-list`, `.mini`, `.sheet-actions`, `.sheet-lead`, `.sheet-note`, `app.toast`, `app.later`, `VT.store.h.selection/isFav/viewed`, `VT.fitting.pickRender`. Exports `VT.tryOn`, which is also used by 个人衣橱 (「试穿这件」, queue 「去试衣间」), AI造型师 (「去试衣间试穿」) and 我的收藏 (「去试衣间试穿」).
+**Components used.** `VT.ui.backBtn`, `VT.ui.heart` + global `fav`, `VT.ui.iconBtn`, `VT.ui.img`, `VT.ui.price`, `VT.ui.nl2br`, `VT.ui.swatchStyle`, `.btn`, `app.sheet`, `.opt-list`/`.opt`/`.opt-sw`/`.radio`, `.guide-tip`, `.guide-table`, `.rv-sum`/`.rv-list`, `.mini`, `.sheet-actions`, `.sheet-lead`, `.sheet-note`, `app.toast`, `app.later`, `VT.store.h.selection/isFav/viewed`, `VT.fitting.pickRender`, `VT.plaza.openStore` (the store sheet). Exports `VT.tryOn`, which is also used by 个人衣橱 (「试穿这件」, queue 「去试衣间」), AI造型师 (「去试衣间试穿」) and 我的收藏 (「去试衣间试穿」).
 
-**Acceptance checks.** `plaza → product details`, `secondary screen hides tab bar`, `AC6: back from product → plaza`, `加入衣橱 → 个人衣橱 tab`, `collected item at top of wardrobe`, `plaza tab returns to its own history (product page)`, `立即购买 → checkout`, `浏览记录 includes viewed products`, `look → 首页 with outfit` (via `VT.tryOn`).
+**Acceptance checks.** `plaza → product details`, `secondary screen hides tab bar`, `AC6: back from product → plaza`, `加入衣橱 → 个人衣橱 tab`, `collected item at top of wardrobe`, `plaza tab returns to its own history (product page)`, `立即购买 → checkout`, `浏览记录 includes viewed products`, `look → 首页 with outfit` (via `VT.tryOn`), `honest toast for garments without imagery` (via `VT.tryOn`), `product brand opens its store sheet` (the first 购物广场 card, knit-cardigan → 「ZARA 官方旗舰店」).
 
 
 ### 9. 结算下单 · `checkout`
@@ -619,7 +660,7 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
 
 **createOrder.** Runs in `onPaid`, so an order exists only after a successful simulated payment.
 - `id`: `VT` + local `YYYYMMDDhhmmss` (e.g. `VT20261017090335`).
-- `shop`: `{brand} 官方旗舰店`. Item fields: `p`; `title` (same as the checkout title); `color` (id); `colorLabel` (`colour.short`); `size`; `qty`; `price` (unit price).
+- `shop`: the full name of the product's store, `data.storeOf(p).full` (`08-checkout.js:240`), e.g. 「ZARA 官方旗舰店」 or 「Soft Archive 官方店」. Item fields: `p`; `title` (same as the checkout title); `color` (id); `colorLabel` (`colour.short`); `size`; `qty`; `price` (unit price).
 - Money and choices: `paid` = total; `coupon` 20; `shipping` 0 or 12; `payment` (method id); `address` = `s.checkout.address` (the stored id, which may be stale or null).
 - Initial status: `status: 0` (待发货), `progress: 1`, `eta: 'M月D日'` (today + 3 days, or + 1 for express).
 - `steps`: 已下单 (`M月D日 hh:mm`) · 已发货 (「待发货」) · 运输中 (「—」) · 预计送达 (`M月D日`).
@@ -695,9 +736,65 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
 **Acceptance checks.** `立即购买 → checkout`, `checkout address sheet lists address book`, `pay → 订单详情 (in 我的 → 我的订单)`, `new order 待发货`, `order details → back → 我的订单`, `我的订单 → back → 我的`, `finished checkout removed from plaza history`, `去支付 moves order out of 待付款` (reuses `VT.pay`).
 
 
+### 10. 商家消息 · `messages`
+
+**Route** `/plaza/messages` (proposed: HANDOFF §8, §13.1 #11) · **Type** secondary, parent 购物广场 · **Prototype** `js/screens/14-messages.js`, `css/screens/12-messages.css`; the 「消息通知」 sheet is `notices()` in `js/screens/04-plaza.js`; chats seed `storeChatSeed` in `js/data.js` · **Design ref** none: the screen was added after the mockups (514de38), so the prototype is the only reference.
+
+**Purpose.** The user's conversations with stores, newest first, under a row that opens the platform notices. Every store answer is scripted **[demo]**.
+
+**Layout (top → bottom).**
+- Sub-header (`VT.ui.subHead('商家消息')`): back button (aria 「返回」) and the centred title 「商家消息」. No tab bar.
+- Scroll (`.sub-scroll.msg-scroll`, `data-keep-scroll="msg"`):
+  - System row (a button, card background, radius 16, padding 12): a 44 px round bell icon; 「消息通知」 (bold) with the time 「10 分钟前」 on the right; below, 「心愿单降价提醒、订单物流与 AI 造型师推荐」 on one line.
+  - Heading 「商家」.
+  - One row per store chat that has at least one message, newest activity first (gap 8). Each row is a button with the same card look: the store's 44 px logo with, when it has unread messages, a red count badge at its top-right (`.msg-dot`, 18 px, `#C8473D`); the store's full name (bold, ellipsis) with the last message's time on the right; the last message on one line (ellipsis), prefixed 「我：」 when the user sent it. Unread rows end with sr-only 「，{n} 条未读」.
+  - Empty state, when no chat has a message: a chat icon, 「还没有和商家的聊天」 and a ghost button 「去购物广场逛逛」.
+  - Note 「演示对话，回复为预设内容」.
+
+**Interactions.**
+- Back → pop to 购物广场 `/plaza`. A deep link to `/plaza/messages` gets the same parent.
+- 「消息通知」 row → 「消息通知」 sheet.
+- A store row → that store's chat thread sheet. Opening it marks the chat read at once: its badge and the 购物广场 badge drop.
+- 「去购物广场逛逛」 → back.
+
+**Overlays.** Both sheets close via ×, scrim tap, Esc or back.
+- **「消息通知」 sheet** (`VT.plaza.notices(app)`; the bell on 购物广场 used to open it). Three static notices, each a button with an icon, bold title, line and time:
+  - 「心愿单降价提醒」 · `你关注的「条纹亚麻衬衫」本周可用 ¥20 优惠券` · 「10 分钟前」 → push `product` `{pid:'striped-shirt'}` on top of this screen → `/plaza/messages/p/striped-shirt`.
+  - 「订单运输中」 · 「你的订单预计 7月18日 送达，点击查看物流」 · 「今天 08:32」 → `app.open('orders', {oid: data.seedOrder.id}, {anim:'fade'})`. This switches to 我的 and replaces its stack with 我的 › 我的订单 (`filter:'all'`) › 订单详情, at `/me/orders/o/VT20260715092418`. The copy says 物流, but it opens 订单详情, not 物流跟踪 (HANDOFF §13.2 #17).
+  - 「AI 造型师」 · 「为你准备了 3 套朋友聚会穿搭，快去看看」 · 「昨天」 → contextual tab jump to `stylist` (its root, fade) → `/stylist`.
+- **Chat thread sheet** (`VT.storeChat.open(app, storeId)`, a full-height sheet). Also opened by 「联系商家」 on the store sheet, over 购物广场 or 商品详情, without navigating.
+  - Title: the store's full name.
+  - Thread (`.mchat`): the stored messages as bubbles, the store's on the left and the user's on the right. A store with no messages shows one greeting bubble, 「您好，欢迎光临 {full name}，请问有什么可以帮您？」, which is stored only once the user writes.
+  - Quick-question chips 「什么时候发货？」「尺码怎么选？」「有优惠券吗？」; an input (placeholder 「输入消息…」, aria 「输入消息」; Enter sends, not while composing) with a dark 「发送」 button; the note 「演示对话，回复为预设内容」.
+  - Opening sets the chat's `unread` to 0 and updates 商家消息 (when it is the screen underneath) or the 购物广场 badge.
+  - Sending (a chip, or the trimmed input; blank does nothing): the user's bubble appears at once and the message is stored with the time `HH:mm`. If the chat was empty, the greeting is stored first. 900 ms later the store's reply (HANDOFF §9.14) is stored and appended. If the sheet was closed in the meantime, the reply raises the chat's `unread` by 1 and the badges show it. Each message moves the chat to the top of the list. The thread scrolls to the bottom on open and after each bubble.
+
+**Data.** Reads `s.storeChats` and `data.storeById`. Writes `s.storeChats[storeId]` = `{ unread, at, msgs: [{ me, text, t }] }`: `unread` (opening, replies), `msgs` (sent and received messages, with `t` the display time) and `at` (last activity: `Date.now()` for new messages, small numbers in the seed; only used to order the list). Persisted. Keep scroll `msg`.
+
+Seed (`data.storeChatSeed`); the list shows ZARA, Mono Atelier, Forma and the 购物广场 badge reads 1:
+
+| Store | `unread` | `at` | Messages (`t`) |
+|---|---|---|---|
+| ZARA | 1 | 3 | store 「10:24」: 「您收藏的店铺上新啦！2024 秋冬系列已上线，收藏店铺的顾客可领取 ¥30 新品券～」 |
+| Mono Atelier | 0 | 2 | user 「昨天」: 「黑色西装外套还有 S 码吗？」 · store 「昨天」: 「亲，黑色 S 码有现货，下单后 48 小时内发货哦～」 |
+| Forma | 0 | 1 | store 「7月13日」: 「您的小白板鞋已送达，穿着还合适吗？有任何问题随时联系我们～」 |
+
+**States & edge cases.**
+- The empty state can't appear with the seed: three chats exist and nothing deletes one.
+- Times are stored as display text. A message sent today keeps saying `HH:mm` on later days, and the seed's 「10:24」 / 「昨天」 / 「7月13日」 never move (HANDOFF §13.2 #38).
+- Every store answers from the same keyword table **[demo]**. The ¥30 新品券 in the ZARA message and the coupon reply isn't applied anywhere; checkout keeps its flat ¥20 coupon.
+- A reply that lands after the user left this screen is still stored, and counts as unread when the thread sheet was closed.
+- The 「消息通知」 row has no unread state, and its time is fixed.
+- 订单详情's 「联系商家」 is a different, unstored chat with other scripted answers. It never shows up here (HANDOFF §13.2 #36).
+
+**Components used.** `VT.ui.subHead`, `VT.plaza.logo` (`.st-logo--msg`, 44 px), `VT.icon` (`bell`, `chat-dots`), `.msg-row`/`.msg-sys`/`.msg-face`/`.msg-dot`/`.msg-main`/`.msg-top`, `.msg-h`, `.ol-empty`, `.sheet-note`, `app.sheet` with `full: true`, `.mchat` with `.b.me`/`.b.them`, `.or-quick` chips, `.mchat-input`, `app.later`, `app.refresh`. Exports `VT.storeChat = { open, unread }`.
+
+**Acceptance checks.** `plaza: chat icon opens 商家消息` (the rows are ZARA, Mono Atelier, Forma, with one unread badge) · `plaza: store chat replies and clears unread` (ZARA, chip 「什么时候发货？」) · `plaza: back from 商家消息 → 购物广场`.
+
+
 ## Orders (我的 → 我的订单)
 
-### 10. 我的订单 · `orderlist`
+### 11. 我的订单 · `orderlist`
 
 **Route** `/me/orders?status=all|unpaid|toship|shipping|toreceive|aftersale` (prototype param `filter`, same values; missing → `all`) · **Type** secondary · **Prototype** `js/screens/09-orders.js` (`VT.screens.orderlist`, `listCard`, shared `orderActions`), `css/screens/09-orders.css` (`.ol-*`) · **Design ref** none
 
@@ -742,7 +839,7 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
 **Acceptance checks.** `我的 → 待收货 filter` · `待收货 shows the delivered order` · `全部 shows all orders` · `去支付 moves order out of 待付款` · `order details → back → 我的订单` · `我的订单 → back → 我的` · `我的 tab remembers its own history`
 
 
-### 11. 订单详情 · `orders`
+### 12. 订单详情 · `orders`
 
 **Route** `/me/orders/o/:oid` · **Type** secondary · **Prototype** `js/screens/09-orders.js` (`VT.screens.orders`, `progress`, `etaLine`, `openChat`), `css/screens/09-orders.css` (`.or-*`) · **Design ref** `reference/design/screens/09_orders_support.png`
 
@@ -782,7 +879,7 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
   - chips stay after use; the thread is not kept between openings; no reply if the sheet closed before 800 ms. All **[demo]**.
 - Sheets close with ✕ (aria 「关闭」), scrim tap or Esc. Pay layer, cancel and receive dialogs: see 我的订单.
 
-**Data.** Reads the order by `oid` (fallback `currentOrder`, then the first order; there is no not-found state), `data.byId[o.p]`, `returns[oid]`, `VT.store.h.address(s, o.address)` (live address-book lookup; falls back to the default address), `data.payments`. Writes through the shared actions. Keep scroll `or`. Also opened by checkout 「查看订单」 (`app.drop('checkout')`, then open chain 我的 › 我的订单 (全部) › 订单详情 with a fade; replaces the 我的 stack) and by the plaza 消息通知 sheet item 「订单运输中」 (same open chain to the seed order).
+**Data.** Reads the order by `oid` (fallback `currentOrder`, then the first order; there is no not-found state), `data.byId[o.p]`, `returns[oid]`, `VT.store.h.address(s, o.address)` (live address-book lookup; falls back to the default address), `data.payments`. Writes through the shared actions. Keep scroll `or`. Also opened by checkout 「查看订单」 (`app.drop('checkout')`, then open chain 我的 › 我的订单 (全部) › 订单详情 with a fade; replaces the 我的 stack) and by the 「订单运输中」 item of the 「消息通知」 sheet on 商家消息 (same open chain to the seed order).
 
 **States & edge cases.** −1: pay bar, 取消订单 row, info/help only. 0: tracker at step 1, 查看物流 still navigates. 2 and 3: 确认收货 button. 4: no button. The service chat gets no `oid`, so it answers about `currentOrder`, not this order. Deadline and logistics are **[demo]** data.
 
@@ -791,7 +888,7 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
 **Acceptance checks.** `pay → 订单详情 (in 我的 → 我的订单)` · `new order 待发货` · `order details → back → 我的订单` · `order details 运输中` · `订单详情 → 物流跟踪` · `物流跟踪 → back → 订单详情` · `订单详情 → 申请退换货` · `return submitted → back on details` · `merchant chat replies` · `order info sheet`
 
 
-### 12. 物流跟踪 · `tracking`
+### 13. 物流跟踪 · `tracking`
 
 **Route** `/me/orders/o/:oid/tracking` (from 订单详情) · `/me/orders/tracking/:oid` (from a 我的订单 card; back returns to the list) · **Type** secondary · **Prototype** `js/screens/09-orders.js` (`VT.screens.tracking`, `carrierParts`), `css/screens/09-orders.css` (`.tr-*`) · **Design ref** none
 
@@ -822,7 +919,7 @@ This screen doesn't read uploaded photos or `avatar.status`; the avatar is alway
 **Acceptance checks.** `订单详情 → 物流跟踪` · `tracking timeline` · `物流跟踪 → back → 订单详情`
 
 
-### 13. 申请退换货 · `returns`
+### 14. 申请退换货 · `returns`
 
 **Route** `/me/orders/o/:oid/returns` (from 订单详情) · `/me/orders/returns/:oid` (from the 我的订单 「申请售后」 / 「售后进度」 button; back returns to the list) · **Type** secondary · **Prototype** `js/screens/09-orders.js` (`VT.screens.returns`, `shrinkPhoto`, `drafts`, `RET_STAGES`), `css/screens/09-orders.css` (`.rt-*`) · **Design ref** none
 
@@ -882,7 +979,7 @@ Filters (`orderFilters`, order and icon): `all` 全部 · `unpaid` 待付款 wal
 | id | shop | `p` · title | colour / size | price → paid | pay · addr | status · progress | eta / payBy | carrier | created | log |
 |---|---|---|---|---|---|---|---|---|---|---|
 | VT20260715092418 | Reformation 官方旗舰店 | striped-shirt · 宽松棉麻衬衫 | 蓝色 / M | 259 → 239 | alipay · a1 | 2 运输中 · 2 | 7月18日 | 顺丰速运 SF1428 6630 9921 | 2026-07-15 09:24:18 | 4 |
-| VT20260717203305 | Mono Atelier 官方店 | brown-blazer · 灰褐气质西装外套 | 灰褐 / S | 399 → 379 | wechat · a1 | −1 待付款 · 1 | 付款后 3 天内 / 7月18日 20:33 | 待分配 | 2026-07-17 20:33:05 | 1 |
+| VT20260717203305 | ZARA 官方旗舰店 | brown-blazer · 灰褐气质西装外套 | 灰褐 / S | 399 → 379 | wechat · a1 | −1 待付款 · 1 | 付款后 3 天内 / 7月18日 20:33 | 待分配 | 2026-07-17 20:33:05 | 1 |
 | VT20260710151207 | Forma 官方旗舰店 | white-sneakers · 米白小白板鞋 | 米白 / 37 | 329 → 309 | alipay · a2 | 3 待收货 · 4 | 7月13日 | 中通快递 7311 2048 5566 | 2026-07-10 15:12:07 | 5 |
 | VT20260702110846 | Linea Studio 官方店 | pleated-skirt · 咖啡百褶半身裙 | 咖啡 / S | 259 → 239 | alipay · a1 | 4 已完成 · 4 | 7月5日 | 顺丰速运 SF1427 0951 3307 | 2026-07-02 11:08:46 | 4 |
 
@@ -890,7 +987,7 @@ Steps are 已下单 / 已发货 / 运输中 + a 4th label: 预计送达 (shirt, 
 
 **Seed return** (`seedReturns`): `VT20260702110846` → `{ type: '换货', reason: '尺码不合适', note: '想换大一码（M）', time: '7月8日 19:42', stage: 1 }`, no photos.
 
-**Orders created at checkout** (`createOrder` in `08-checkout.js`): id `VT` + `YYYYMMDDHHmmss`, added at the top, status 0, progress 1, eta = delivery date, 4th step 预计送达 + that date, carrier 待分配, one entry 「订单已提交并完成支付（演示），等待商家发货」.
+**Orders created at checkout** (`createOrder` in `08-checkout.js`): id `VT` + `YYYYMMDDHHmmss`, added at the top, `shop` = the product's store full name (`data.storeOf(p).full`), status 0, progress 1, eta = delivery date, 4th step 预计送达 + that date, carrier 待分配, one entry 「订单已提交并完成支付（演示），等待商家发货」.
 
 
 
@@ -906,7 +1003,7 @@ Shared by every screen in this group:
 
 ---
 
-### 14. 我的形象 · `avatarhub`
+### 15. 我的形象 · `avatarhub`
 
 **Route** `/me/avatar` · **Type** secondary · **Prototype** `js/screens/12-avatar-hub.js`, `css/screens/11-account.css` (`.ah-*`). Generation comes from `js/screens/02-avatar.js` (`VT.avatarGen`) and `css/screens/02-avatar.css` (`.av-gen*`). · **Design ref** none
 
@@ -986,7 +1083,7 @@ Shared by every screen in this group:
 5. A picked photo is stored at once. Going back without regenerating leaves the avatar `stale`, so 我的形象 then shows 「示例形象」 / 「尚未用你的照片生成」.
 
 
-### 15. 我的资料 · `editprofile`
+### 16. 我的资料 · `editprofile`
 
 **Route** `/me/profile` (also `/me/settings/profile` via 设置 → 个人资料) · **Type** secondary · **Prototype** `js/screens/11-account.js` (L24–70), `css/screens/11-account.css`; crop helper `VT.profile.squarePhoto` in `js/screens/10-profile.js` · **Design ref** none
 
@@ -1030,7 +1127,7 @@ Shared by every screen in this group:
 **Acceptance checks.** `我的 → 我的资料`, `我的资料 → back → 我的`, `edit profile saved`.
 
 
-### 16. 收货地址 · `addresses`
+### 17. 收货地址 · `addresses`
 
 **Route** `/me/addresses`. Also reached at `/me/settings/addresses`, and at `<product path>/checkout/addresses` from checkout's 「管理收货地址」 (e.g. `/plaza/p/:pid/checkout/addresses`). · **Type** secondary · **Prototype** `js/screens/11-account.js` (L72–157), `css/screens/11-account.css` (+ `.co-link` from `08-checkout.css`, `.ol-empty` from `09-orders.css`) · **Design ref** none
 
@@ -1091,7 +1188,7 @@ Shared by every screen in this group:
 **Acceptance checks.** `我的 → 收货地址`, `收货地址 → back → 我的`, `address added`. Related: `checkout address sheet lists address book`.
 
 
-### 17. 支付方式 · `payments`
+### 18. 支付方式 · `payments`
 
 **Route** `/me/payments` · **Type** secondary · **Prototype** `js/screens/11-account.js` (L159–186), `css/screens/11-account.css` · **Design ref** none
 
@@ -1127,11 +1224,11 @@ Shared by every screen in this group:
 **Acceptance checks.** `我的 → 支付方式`, `支付方式 → back → 我的`.
 
 
-### 18. 消息通知 · `notifications`
+### 19. 消息通知 · `notifications`
 
 **Route** `/me/notifications` (also `/me/settings/notifications`) · **Type** secondary · **Prototype** `js/screens/11-account.js` (L188–207) · **Design ref** none
 
-**Purpose.** Notification preferences. They are only stored.
+**Purpose.** Notification preferences. They are only stored. Not to be confused with the 「消息通知」 row on 商家消息, which opens the notices sheet.
 
 **Layout (top → bottom).**
 - Header 「消息通知」 (fixed).
@@ -1157,7 +1254,7 @@ Shared by every screen in this group:
 **Acceptance checks.** `我的 → 消息通知`, `消息通知 → back → 我的`.
 
 
-### 19. 设置 · `settings`
+### 20. 设置 · `settings`
 
 **Route** `/me/settings` (from the gear icon 「设置」 in 我的's header, or from the 「设置」 row) · **Type** secondary · **Prototype** `js/screens/11-account.js` (L250–327); login sheet `VT.login` in `js/screens/01-onboarding.js` · **Design ref** none
 
@@ -1217,7 +1314,7 @@ Shared by every screen in this group:
 **Acceptance checks.** `我的 → 设置`, `设置 → back → 我的`.
 
 
-### 20. 隐私与安全 · `privacy`
+### 21. 隐私与安全 · `privacy`
 
 **Route** `/me/settings/privacy`. The only entry is 设置 → 隐私与安全 (REPORT deviation 7). · **Type** secondary · **Prototype** `js/screens/11-account.js` (L209–248) · **Design ref** none
 
@@ -1261,7 +1358,7 @@ Shared by every screen in this group:
 **Acceptance checks.** None.
 
 
-### 21. 帮助与客服 · `help`
+### 22. 帮助与客服 · `help`
 
 **Route** `/me/help` (also `/me/orders/o/:oid/help` via 订单详情 → 帮助与客服) · **Type** secondary · **Prototype** `js/screens/11-account.js` (L329–370); chat in `js/screens/09-orders.js` `openChat` (L390–426); `.faq*` styles in `css/screens/09-orders.css` · **Design ref** none
 
@@ -1302,7 +1399,7 @@ Shared by every screen in this group:
 **Acceptance checks.** `我的 → 帮助与客服`, `帮助与客服 → back → 我的`.
 
 
-### 22. 我的收藏 · `favorites`
+### 23. 我的收藏 · `favorites`
 
 **Route** `/me/favorites` · **Type** secondary · **Prototype** `js/screens/13-collections.js`, `css/screens/11-account.css` (「我的收藏」 block; `.ol-empty` comes from `css/screens/09-orders.css`) · **Design ref** none
 
@@ -1343,7 +1440,7 @@ Shared by every screen in this group:
 **Acceptance checks.** `我的收藏 lists favourites`
 
 
-### 23. 浏览记录 · `history`
+### 24. 浏览记录 · `history`
 
 **Route** `/me/history` · **Type** secondary · **Prototype** `js/screens/13-collections.js`, `css/screens/11-account.css` (「浏览记录」 block; `.ol-empty` comes from `css/screens/09-orders.css`) · **Design ref** none
 
