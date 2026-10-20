@@ -1,4 +1,4 @@
-"""Acceptance test used to verify the HTML prototype (133 checks, all passing on v2).
+"""Acceptance test used to verify the HTML prototype (134 checks, all passing on v2).
 
 Port these CHECKS (not the selectors) to the web app's Playwright suite.
 Run against the prototype:
@@ -30,6 +30,19 @@ async def snap(pg, name):
 
 async def cur(pg):
     return await pg.evaluate('VT.liveApp.cur.id')
+
+
+async def avatar_render(pg, want=None, scope='.sim-app', timeout=10000):
+    """首页's body image once the swap has settled (images can take seconds on a real network):
+    waits for exactly one current image (showing `want`, if given) and returns the current
+    renders joined by '+', so a stacked image fails the check instead of crashing the run."""
+    sel = f'{scope} .screen.is-active .fit-avatar-img.is-cur'
+    cond = 'c.length === 1' + (f" && c[0].dataset.render === '{want}'" if want else '')
+    try:
+        await pg.wait_for_function(f"() => {{ const c = document.querySelectorAll('{sel}'); return {cond}; }}", timeout=timeout)
+    except Exception:
+        pass
+    return await pg.evaluate(f"[...document.querySelectorAll('{sel}')].map(i => i.dataset.render).join('+')")
 
 
 async def main():
@@ -104,13 +117,11 @@ async def main():
         await app.locator('.tabbar .tab[data-to="fitting"]').click()
         await app.locator('.fit-cat[data-cat="outer"]').click()
         await app.locator('.fit-thumb[data-pid="black-blazer"]').click()
-        await pg.wait_for_timeout(700)
-        r = await app.locator('.fit-avatar-img.is-cur').get_attribute('data-render')
+        r = await avatar_render(pg, 'look2')
         check('outfit change: blazer → look2 render', r == 'look2', r)
         await app.locator('.fit-cat[data-cat="dress"]').click()
         await app.locator('.fit-thumb[data-pid="satin-slip-dress"]').click()
-        await pg.wait_for_timeout(700)
-        r = await app.locator('.fit-avatar-img.is-cur').get_attribute('data-render')
+        r = await avatar_render(pg, 'look3')
         check('outfit change: dress → look3 render', r == 'look3', r)
         await app.locator('.fit-cat[data-cat="upper"]').click()
         # 推荐 lists every try-on garment of the category, the ones some render wears first
@@ -379,7 +390,7 @@ async def main():
         await pg.wait_for_timeout(400)
         await app.locator('.sheet [data-act="try"]').click()
         await pg.wait_for_timeout(900)
-        r = await app.locator('.fit-avatar-img.is-cur').get_attribute('data-render')
+        r = await avatar_render(pg)
         check('look → 首页 with outfit', await cur(pg) == 'fitting' and r in ('look1', 'look2', 'look3'), r)
 
         # ---- AC1 again: reload → straight to 首页
@@ -581,6 +592,40 @@ async def main():
         await wa.locator('.wr-moment-open').nth(1).click(); await wp.wait_for_timeout(600)
         related = await wa.locator('.wr-mo-item').count()
         check('穿搭瞬间 detail: photo, date, 仅自己可见, related garments, 再次试穿', await cur(wp) == 'moment' and related >= 1 and await wa.locator('.wr-private').count() == 1 and await wa.locator('[data-act="mo-again"]').count() == 1, str(related))
+        await b.close()
+
+        # ---- 首页 on a slow network: body images arrive 1.2 s late; quick picks must end on the newest outfit
+        b = await p.chromium.launch()
+
+        async def slow_fitting():
+            c = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2)  # empty image cache
+            sp = await c.new_page()
+            sp.on('pageerror', lambda e: errors.append('slow-network pageerror: ' + str(e)))
+
+            async def late(route):
+                await asyncio.sleep(1.2)
+                await route.continue_()
+            await sp.route('**/assets/people/avatar-look*.webp', late)
+            await sp.goto(BASE + '?app=fitting'); await sp.evaluate('localStorage.clear(); sessionStorage.clear()')
+            await sp.goto(BASE + '?app=fitting'); await sp.wait_for_timeout(900)
+            return sp
+
+        async def picks(sp, steps):
+            sa = sp.locator('.screen.is-active')
+            for cat, pid in steps:
+                await sa.locator(f'.fit-cat[data-cat="{cat}"]').click()
+                await sa.locator(f'.fit-thumb[data-pid="{pid}"]').click()
+
+        sp = await slow_fitting()
+        await picks(sp, [('outer', 'black-blazer'), ('dress', 'satin-slip-dress')])
+        r1 = await avatar_render(sp, 'look3', scope='')
+        await sp.wait_for_timeout(2500)  # the dropped blazer image arrives meanwhile
+        r1, n1 = await avatar_render(sp, scope=''), await sp.locator('.screen.is-active .fit-avatar-img').count()
+        sp = await slow_fitting()
+        await picks(sp, [('outer', 'black-blazer'), ('outer', 'black-blazer')])  # on, then off before it loads
+        await sp.wait_for_timeout(2500)
+        r2, n2 = await avatar_render(sp, scope=''), await sp.locator('.screen.is-active .fit-avatar-img').count()
+        check('slow network: quick picks end on the newest outfit, one image', r1 == 'look3' and n1 == 1 and r2 == 'base' and n2 == 1, f'{r1}×{n1} · {r2}×{n2}')
         await b.close()
     print('\n'.join(log))
     print('passed', sum(1 for l in log if l.startswith('PASS')), 'of', len(log))

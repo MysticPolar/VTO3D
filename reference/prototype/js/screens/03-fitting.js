@@ -290,8 +290,12 @@
     if (el) el.focus({ preventScroll: true });
   }
 
+  /** cross-fade to `render` once its image has loaded. The newest pick wins: on a slow network a
+      swap still waiting for its image is dropped, so picks in quick succession never stack images
+      or end on a garment that is no longer worn. */
   function swapRender(app, render) {
     const box = app.screenEl().querySelector('.fit-avatar');
+    box.querySelectorAll('.fit-avatar-img.is-next').forEach((n) => { n.onload = n.onerror = null; n.remove(); });
     const cur = box.querySelector('.fit-avatar-img.is-cur');
     if (cur && cur.dataset.render === render.id) return;
     const img = document.createElement('img');
@@ -303,9 +307,13 @@
     img.src = render.img;
     box.appendChild(img);
     const go = () => {
+      if (!img.isConnected) return; // dropped by a newer pick
       img.classList.add('is-cur');
       img.classList.remove('is-next');
-      if (cur) { cur.classList.remove('is-cur'); cur.classList.add('is-out'); app.later(() => cur.remove(), 450); }
+      box.querySelectorAll('.fit-avatar-img.is-cur').forEach((o) => {
+        if (o === img) return;
+        o.classList.remove('is-cur'); o.classList.add('is-out'); app.later(() => o.remove(), 450);
+      });
     };
     if (img.complete) requestAnimationFrame(go); else { img.onload = go; img.onerror = go; }
   }
