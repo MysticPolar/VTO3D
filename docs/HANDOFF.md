@@ -42,7 +42,7 @@ A Chinese-market (zh-CN) shopping app built around a digital avatar (数字分�
 | Tab | Route | What it is |
 |---|---|---|
 | 首页 | `/home` | Virtual fitting room: dress the avatar in garments, switch categories, open the camera preview |
-| 购物广场 | `/plaza` | Shop: search, categories, product grid → product → checkout |
+| 购物广场 | `/plaza` | Shop: search over every store and product, a bar of favourite stores, categories, product grid → product → checkout; store sheets; 商家消息 (chats with stores) |
 | 个人衣橱 | `/wardrobe` | Clothes the user owns or collected; queue items to try on; upload own garments |
 | AI造型师 | `/stylist` | Chat that suggests looks (scripted for now) |
 | 我的 | `/me` | Profile, orders, avatar management, addresses, settings, help |
@@ -157,8 +157,9 @@ This is the prototype's model (`reference/prototype/js/app.js`), expressed as UR
 | Segment | Screen (prototype id) | Allowed after |
 |---|---|---|
 | (tab root) `/home` `/plaza` `/wardrobe` `/stylist` `/me` | `fitting` `plaza` `wardrobe` `stylist` `profile` | (start) |
-| `p/:pid` | `product` | any entry (tab roots, `favorites`, `history`, `orders` (再次购买), `o/:oid`, `checkout`, another `p/:pid` (brand sheet)) |
+| `p/:pid` | `product` | any entry (tab roots, `favorites`, `history`, `orders` (再次购买), `o/:oid`, `checkout`, `messages` (the 消息通知 sheet), another `p/:pid` (the store sheet)) |
 | `checkout` | `checkout` | `p/:pid`; or directly after `/plaza` (the 购物袋 button, which reopens the saved checkout draft) |
+| `messages` | `messages` (商家消息) | `/plaza` (proposed, §13.1 #11) |
 | `addresses` | `addresses` | `/me`, `settings`, `checkout` |
 | `orders` (+ `?status=`) | `orderlist` | `/me` |
 | `o/:oid` | `orders` (order details) | `orders` |
@@ -221,8 +222,8 @@ How each prototype call maps: `app.go(secondaryId)` → `push`; `app.go(tabId, {
 
 | Kind | Where | Examples |
 |---|---|---|
-| Server state (will live on the backend) | TanStack Query, through `src/api/hooks` only | catalog, favourites, saved looks, wardrobe, orders, returns, addresses, profile, body data, avatar, settings, chat history, browsing history |
-| Client state | Zustand, persisted to `localStorage` key `vto-web-state-v1` | `session` (`setupDone`), `fitting` (active category, outfit, try-on queue), `drafts` (product colour/size choices, checkout draft), `ui` (plaza category and query, wardrobe category) |
+| Server state (will live on the backend) | TanStack Query, through `src/api/hooks` only | catalog, stores, favourites, favourite stores, saved looks, wardrobe, orders, returns, addresses, profile, body data, avatar, settings, chat history, store chats, browsing history |
+| Client state | Zustand, persisted to `localStorage` key `vto-web-state-v1` | `session` (`setupDone`), `fitting` (active category, outfit, try-on queue), `drafts` (product colour/size choices, checkout draft), `ui` (plaza category, query and chosen store, wardrobe category) |
 | In memory only | Zustand without persist, or component state | `nav.lastPath` per tab, overlay stack, toasts, unsent stylist text |
 | Mock database | `src/api/mock/db.ts`: JSON in `localStorage` key `vto-web-db-v1`; uploaded image blobs in IndexedDB (`idb-keyval`, store `vto-web-blobs`) served as object URLs | everything in the first row |
 
@@ -287,7 +288,7 @@ Generate `src/components/Icon/icons.ts` from `reference/prototype/js/icons.js` w
 
 ### 5.6 Images
 
-- Copy `reference/prototype/assets/{people,clothing,ui,backgrounds}` to `public/assets/` keeping the sub-paths, so the seed data's paths port unchanged (as `/assets/...`).
+- Copy `reference/prototype/assets/{people,clothing,plaza,ui,backgrounds}` to `public/assets/` keeping the sub-paths, so the seed data's paths port unchanged (as `/assets/...`). `plaza/` (banners, model photos and cleaned-up card shots for 购物广场) arrived with the stores redesign (514de38), after Phase 0 copied the others.
 - Every `<img>` gets `width`/`height` or an aspect-ratio box (no layout shift), Chinese `alt` text (the product name) or `alt=""` when decorative, `decoding="async"`. Below-the-fold images `loading="lazy"`; the 首页 avatar, onboarding photo and product hero `fetchpriority="high"`.
 
 ### 5.7 Component inventory
@@ -416,6 +417,7 @@ Prototype screen id ↔ web route ↔ component. Use the prototype id in `data-s
 | `avatar` | (same screen, 我的形象 context) | `/me/avatar/upload` | `routes/AvatarUpload` | `avatar&from=profile` |
 | `product` | 商品详情 | `<parent>/p/:pid`, canonical `/plaza/p/:pid` | `routes/Product` | `product&pid=striped-shirt` |
 | `checkout` | 结算下单 | `<parent>/p/:pid/checkout` | `routes/Checkout` | `checkout` |
+| `messages` | 商家消息 | `/plaza/messages` (proposed) | `routes/Messages` | `messages` |
 | `orderlist` | 我的订单 | `/me/orders?status=all` | `routes/OrderList` | `orderlist&filter=all` |
 | `orders` | 订单详情 | `/me/orders/o/:oid` | `routes/OrderDetail` | `orders&oid=VT20260715092418` |
 | `tracking` | 物流跟踪 | `/me/orders/o/:oid/tracking` | `routes/Tracking` | `tracking&oid=VT20260715092418` |
@@ -432,7 +434,9 @@ Prototype screen id ↔ web route ↔ component. Use the prototype id in `data-s
 | `favorites` | 我的收藏 | `/me/favorites` | `routes/Favorites` | `favorites` |
 | `history` | 浏览记录 | `/me/history` | `routes/History` | `history` |
 
-25 baselines. A screen's web route for the baseline is its canonical route with the same parameters (e.g. `/plaza/p/striped-shirt/checkout?frame=iphone`).
+26 baselines. A screen's web route for the baseline is its canonical route with the same parameters (e.g. `/plaza/p/striped-shirt/checkout?frame=iphone`).
+
+`messages` (商家消息) arrived with the 购物广场 stores redesign (prototype commit 514de38, 19 Oct 2026), after Phase 0 captured 25 baselines. Its route is a proposal until confirmed (§13.1 #11): a segment `messages` after `/plaza`, so the screen sits on the plaza stack like the prototype's `PARENT` map (`messages: 'plaza'`) and back returns to 购物广场. Products opened from its 消息通知 sheet push on top of it (`/plaza/messages/p/:pid`).
 
 ---
 
@@ -440,22 +444,28 @@ Prototype screen id ↔ web route ↔ component. Use the prototype id in `data-s
 
 Port these as plain functions in `src/features/` (used by the mock and, where noted, by the UI) with unit tests covering at least the listed cases. Values come from the prototype; file references point into `reference/prototype/js/`.
 
-### 9.1 Search and category filters
+### 9.1 Search, store and category filters
 
 - **Category filter** (`data.inCat`): `all` matches everything; `shoesbag` matches category `shoes` or `bag`; any other id matches the same category.
-- **购物广场 search** (`screens/04-plaza.js:10-14`): `q = query.trim().toLowerCase()`; empty `q` = no filter. A product matches when `[name, cardName, tags, brand, colourNames.join('')].join(' ').toLowerCase()` contains `q`. AND with the category. Feed order is `data.plazaOrder`.
+- **A product's store** (`data.storeOf`, `data.js:202-204`): the store whose `name` equals the product's `brand`, with the first store as a fallback that no seed product needs. The seven stores are listed in SCREENS.md (购物广场).
+- **购物广场 feed** (`screens/04-plaza.js:12-17`, `:36-45`), always in `data.plazaOrder` order:
+  - Without a query: the chosen store's products AND the category. The chosen store is `plaza.store` while that store is one of the favourite stores; otherwise, and for `'all'`, every store.
+  - With a query: every store's products, whichever store is chosen, AND the category. Typing a non-blank query also sets `plaza.store` to `'all'`; tapping a store tab clears the query.
+- **购物广场 search** (`screens/04-plaza.js:36-50`): `q = query.trim().toLowerCase()`; empty `q` = no search. A product matches when `[name, cardName, tags, brand, storeFullName, colourNames.join('')].join(' ').toLowerCase()` contains `q`. A store matches when `[name, fullName, tagline].join(' ').toLowerCase()` contains `q`. All seven stores are searched, favourite or not, in `data.stores` order, and the category doesn't apply to them.
 - **个人衣橱 search** (`screens/06-wardrobe.js:17-22`): same normalisation; matches `(name + tags).toLowerCase()`; uploads match their own name. AND with the category.
-- Cases: 「衬衫」 → 4 products; 「reformation」 and 「REFORMATION」 → 1; 「蓝」 → 5; 「soft archive」 → 7; 「259」 → 0 (price isn't searched); 「上衣」 → 0 (category labels aren't searched); 「白燕」 → matches knit-cardigan (奶油白 + 燕麦色). Plaza chip counts: 全部 28 · 上衣 10 · 下装 3 · 外套 8 · 连衣裙 1 · 鞋包 5 · 配饰 1. Wardrobe seed counts: 全部 15 · 上衣 5 · 下装 3 · 鞋包 2 · 配饰 0 · 外套 5 · 连衣裙 0.
-- The web build calls `catalog.list` with the query debounced by 200 ms and keeps the previous results on screen while the next arrive, so the grid never flashes empty. The wardrobe filters its own list locally.
+- Cases (matching stores · products): 「衬衫」 → Reformation, through its tagline 「轻盈面料 · 经典衬衫」 · 4; 「reformation」 and 「REFORMATION」 → Reformation · 1 (striped-shirt); 「蓝」 → none · 5; 「soft archive」 → Soft Archive · 6; 「zara」 → ZARA · 4; 「旗舰店」 → ZARA, Forma, Reformation · 13 (store full names are searched); 「面料」 → Reformation · 0; 「259」 → none · 0 (price isn't searched); 「上衣」 → none · 0 (category labels aren't searched); 「白燕」 → none · knit-cardigan and maxi-skirt (奶油白 + 燕麦色); 「衬衫」 with the 鞋包 chip → Reformation · 0.
+- Counts. Plaza chips under 全部: 全部 29 · 上衣 10 · 下装 4 · 外套 8 · 连衣裙 1 · 鞋包 5 · 配饰 1. Products per store: ZARA 4 · Soft Archive 6 · Linea Studio 6 · Mono Atelier 3 · Forma 8 · Reformation 1 · Linea Denim 1. A store with a chip: ZARA + 外套 → knit-cardigan, brown-blazer; ZARA + 上衣 → nothing (「这家店暂无「上衣」商品」). Wardrobe seed counts: 全部 15 · 上衣 5 · 下装 3 · 鞋包 2 · 配饰 0 · 外套 5 · 连衣裙 0.
+- The web build searches with the query debounced by 200 ms (products and stores alike) and keeps the previous results on screen while the next arrive, so the feed never flashes empty. The wardrobe filters its own list locally.
 
 ### 9.2 Outfit slots and try-on
 
-- Seven slots: `top`, `bottom`, `dress`, `outer`, `shoes`, `bag`, `acc`. A product's slot is its category (`data.slotOf`), not the 首页 menu it was picked from (「上装」 also lists four outer garments, which fill `outer`).
+- Seven slots: `top`, `bottom`, `dress`, `outer`, `shoes`, `bag`, `acc`. A product's slot is its category (`data.slotOf`), not the 首页 menu it was picked from (「上装」 lists black-blazer, which fills `outer`; three more outer garments in its full list show only while selected).
 - **Toggle on 首页:** tapping a selected item removes it; tapping another item for an occupied slot replaces it. A `dress` clears `top` and `bottom`; a `top` or `bottom` clears `dress`. `outer`, `shoes`, `bag`, `acc` combine with anything.
-- **`applyTryOn(outfit, productIds)`** (`VT.tryOn`, `screens/05-product.js:202`), used by 试穿上身, the wardrobe queue, look cards and 我的收藏: applies each product in order with the rules above, merging into the current outfit; sets the 首页 menu category to the first `tryOnCategories` entry containing the first product; if the avatar isn't ready, calls `avatar.useDemo()`; then `jumpToTab('home')`. 420 ms later it toasts 「已为你的数字分身换上所选单品」, or, if any sent product is in `missing`, 「演示版暂无「{name}」的上身图，已加入当前搭配」 (3000 ms) naming the first such product.
+- **首页 rail** (`screens/03-fitting.js:46-59`; `data.fitCatsAll` filtered into `data.fitCats` at `data.js:253-256`): each category lists, in the order of its full list (`data.fitCatsAll`), the garments that at least one render wears, plus any selected garment, which stays until it is tapped off. With nothing selected that is 10 of the 28 try-on garments: 上装 black-blazer, basic-cami · 下装 straight-jeans · 连衣裙 satin-slip-dress · 外套 black-blazer · 鞋履 white-sneakers, black-pumps, strappy-heels · 包包 brown-tote, black-handbag · 配饰 gold-hoops. Cases: `{top: grey-hoodie}` → 上装 [black-blazer, basic-cami, grey-hoodie]; `{outer: knit-cardigan}` → 上装 [knit-cardigan, black-blazer, basic-cami] and 外套 [black-blazer, knit-cardigan]; `{bottom: maxi-skirt}` → 下装 [straight-jeans], because maxi-skirt is in no full list (§13.2 #35). A render added to the seed brings the garments it wears back to the rail.
+- **`applyTryOn(outfit, productIds)`** (`VT.tryOn`, `screens/05-product.js:197`), used by 试穿上身, the wardrobe queue, look cards and 我的收藏: applies each product in order with the rules above, merging into the current outfit; sets the 首页 menu category to the first try-on category whose full list contains the first product, skipping 「上装」 unless that product is a `top` or `outer` garment (`:211`), so a garment without a render still opens its own category and stays on the rail while selected; leaves the category as it is when no list contains the product; if the avatar isn't ready, calls `avatar.useDemo()`; then `jumpToTab('home')`. 420 ms later it toasts 「已为你的数字分身换上所选单品」, or, if any sent product is in `missing`, 「演示版暂无「{name}」的上身图，已加入当前搭配」 (3000 ms) naming the first such product.
 - **Toasts when toggling on 首页:** added and missing → 「演示版暂无「{name}」的上身图，已加入当前搭配」 (2800 ms); added and shown → 「已试穿：{name}」; removed → no toast.
 - **Wardrobe 「去试衣间」:** takes the queue in order, drops uploaded items, empties the queue, then `applyTryOn`. If nothing is left: toast 「所选衣物暂不支持试穿」 and stay.
-- Cases: `{}` + [black-blazer] → `{outer}`; `{top: basic-cami, bottom: straight-jeans}` + [satin-slip-dress] → `{dress}` only; `{dress}` + [striped-shirt] → `{top: striped-shirt}`; Look 1 items → `{top: basic-cami, bottom: straight-jeans, bag: brown-tote, shoes: white-sneakers}`.
+- Cases: `{}` + [black-blazer] → `{outer}`; `{top: basic-cami, bottom: straight-jeans}` + [satin-slip-dress] → `{dress}` only; `{dress}` + [striped-shirt] → `{top: striped-shirt}`; Look 1 items → `{top: basic-cami, bottom: straight-jeans, bag: brown-tote, shoes: white-sneakers}`. Menu category after `applyTryOn`: grey-hoodie, utility-jacket, knit-cardigan, black-blazer → `upper`; brown-blazer, taupe-coat → `outer`; pleated-skirt → `lower`; maxi-skirt → unchanged.
 
 ### 9.3 Choosing the on-body image (`pickRender`)
 
@@ -583,7 +593,8 @@ Waits that stand for server work live in the mock; waits that are purely visual 
 |---|---|---|
 | Avatar generation progress | 4200 ms (900); result 350 ms after 100 % | UI animation; mock job finishes within it |
 | Stylist reply | 1100 ms (200) | mock `stylist.send` |
-| Merchant / service chat reply | 800 ms | mock `support.send` |
+| Merchant / service chat reply (订单详情, 帮助与客服) | 800 ms | mock `support.send` |
+| Store chat reply (商家消息) | 900 ms; no reduced-motion variant | mock (§9.14) |
 | Cashier opening (「正在调起…」) | 900 ms (150) | UI (demo cashier) |
 | Payment processing | 900 ms (200) minimum | UI waits for the mock calls and at least this long |
 | Login completes → next step | 500 ms after the success toast | UI |
@@ -598,6 +609,11 @@ Waits that stand for server work live in the mock; waits that are purely visual 
 - Favourites list in the order first hearted (re-hearting keeps the old position, as the prototype's map does). Saved looks newest first.
 - **History:** record a view every time the product page is shown (first open, back from checkout, returning to its tab); one entry per product, newest first, at most 30. Store `viewedAt`; group as 今天 / 昨天 / `M月D日` at render time (§13.2 #23). Seed entries are placed relative to the first run: today 09:12 and 09:05, yesterday 21:40 and 21:31, three days ago (twice), so the demo looks the same as the prototype on day one.
 - Hearting anywhere (购物广场, 商品详情, 我的收藏) toasts 「已收藏」 / 「已取消收藏」 and updates every heart for that product on screen, including `aria-pressed` and the 「收藏」/「取消收藏」 label.
+- **Stores and store chats** (§9.14):
+  - The 商家消息 badge on 购物广场 is the sum of `unread` over all store chats: seed 1 (ZARA). It shows the number, 「99+」 above 99, nothing at 0; the button's aria-label is then 「商家消息，{n} 条未读」 instead of 「商家消息」.
+  - The store bar is 「全部」 plus the favourite stores, seed 5 (ZARA, Soft Archive, Linea Studio, Mono Atelier, Forma); 「已收藏 {n}」 on the 管理 sheet counts them.
+  - 「在售 {n} 件」 is the number of catalogue products of that store, whatever chip is active: ZARA 4 · Soft Archive 6 · Linea Studio 6 · Mono Atelier 3 · Forma 8 · Reformation 1 · Linea Denim 1.
+  - 商家消息 lists the chats with at least one message, newest activity first: seed ZARA, Mono Atelier, Forma.
 
 ### 9.13 Avatar, setup and session
 
@@ -610,6 +626,27 @@ Waits that stand for server work live in the mock; waits that are purely visual 
 - **Body data:** height 130–210, weight 30–150, shoe 33–46 (inclusive; checked in that order with 「身高请填写 130–210 cm」, 「体重请填写 30–150 kg」, 「鞋码请填写 33–46」); size one of XS–XL.
 - **Profile edit:** name trimmed, required (「昵称不能为空」), at most 12; bio at most 20; gender 女 / 男 / 保密; nothing is stored until 「保存」, which goes back and toasts 「资料已保存」.
 - **Addresses:** name required (「请填写收货人」); phone `^1\d{10}$` for a new address or when typed while editing (「请输入 11 位手机号」), stored masked (`139****5678`); address at least 6 characters after trimming (「请填写完整的详细地址」), at most 48; tag 家 / 公司 / 学校 (default 家). Exactly one default while the book isn't empty: turning the default on moves it; deleting the default makes the first address the default; the first address added becomes the default. The book can be empty (§13.2 #32).
+
+### 9.14 Stores, favourite stores and store chats
+
+Added with the 购物广场 stores redesign (prototype commit 514de38). Screens: SCREENS.md, 购物广场 and 商家消息.
+
+- **Favourite stores** (`s.storeFavs`, `screens/04-plaza.js:253-268`): an ordered list of store ids; seed `zara, soft-archive, linea-studio, mono-atelier, forma`. Any of the seven stores can be favourited (search rows, the store sheet, 管理). Favouriting puts the store first. Unfavouriting removes it and, when it was the chosen store (`plaza.store`), sets the chosen store back to `'all'`. Toasts 「已收藏店铺「{name}」」 / 「已取消收藏「{name}」」. Cases: seed + favourite reformation → [reformation, zara, soft-archive, linea-studio, mono-atelier, forma]; then unfavourite reformation → the seed order; chosen store mono-atelier + unfavourite mono-atelier → chosen store `'all'`.
+- **Store chats** (`s.storeChats`, `screens/14-messages.js`), demo behaviour of the mock:
+  - One thread per store, with an unread count, its last activity and its messages (mine or the store's, text, display time). The seed is in SCREENS.md (商家消息).
+  - The 商家消息 list holds the threads with at least one message, newest activity first.
+  - Opening a thread sets its unread count to 0. A thread with no messages shows the greeting 「您好，欢迎光临 {full name}，请问有什么可以帮您？」 without storing it.
+  - Sending stores my message at once (time `HH:mm`), storing the greeting first when the thread was empty, and makes the thread the newest. 900 ms later the store's reply is stored the same way. The reply adds 1 to the unread count unless the thread is still open on screen.
+  - Reply rules, checked in this order; the first rule with any keyword contained in the message (plain substring, no normalisation) wins:
+    1. 发货 什么时候 多久 到货 快递 → 「亲，现货商品下单后 48 小时内发货，一般 2–3 天送达～」
+    2. 尺码 码 大小 身高 体重 合身 → 「亲，可以参考商品页的「尺码表」；告诉我身高体重，也可以帮您推荐尺码哦～」
+    3. 优惠 券 便宜 活动 折扣 打折 → 「收藏店铺的顾客可领取 ¥30 新品券，下单时自动抵扣（演示数据）～」
+    4. 退 换 → 「支持 7 天无理由退换，签收后可在「我的订单」中申请～」
+    5. 面料 起球 洗 材质 → 「面料正常穿着不易起球，建议冷水轻柔手洗或干洗～」
+    - none → 「收到～客服稍后为您详细解答（演示回复）。」
+  - Quick questions under the thread: 「什么时候发货？」「尺码怎么选？」「有优惠券吗？」.
+  - Cases: 「什么时候发货？」 → 1; 「尺码怎么选？」 → 2; 「有优惠券吗？」 → 3; 「可以退货吗？」 and 「可以换颜色吗」 → 4; 「这件会起球吗？」 → 5; 「退货多久能退款？」 → 1 (order wins); 「手机号码多少」 → 2 (「码」 alone matches); 「多少钱？」 and 「你好」 → fallback.
+- The merchant chat on 订单详情 and the service chat (§9.11) are separate from the store chats: nothing is stored, and they never appear in 商家消息 (§13.2 #36).
 
 ---
 
@@ -634,10 +671,14 @@ Waits that stand for server work live in the mock; waits that are purely visual 
 - The flows that start from the simulator's side list start from a URL instead.
 - Use the fixtures in `reference/acceptance/fixtures/` (`me_full.jpg`, `me_face.jpg`, `my_jacket.jpg`, `not_image.txt`). The camera checks run in Chromium with `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream` and the camera permission granted.
 - Run the suite with `reducedMotion: 'reduce'` (faster timers), except the transition tests.
+- The prototype's test has 113 checks. The 首页 rail checks 「首页 rail lists only garments with a render」 and 「selected garment without a render shows until tapped off」 came with 051585b; the prototype sends the garment through `VT.tryOn`, so the web test sends it from a screen instead (个人衣橱's 「试穿这件」 on striped-shirt works before 商品详情 exists).
+- The 购物广场 stores block (11 checks, 514de38) runs last in the prototype, in the mobile context, from the seed with setup done. Its checks build on each other's state (a store favourited from search and removed again in 管理, the ZARA chat read and answered), so port them as one serial file that starts from `devtools.reset()` with `setupDone`: 「plaza: store bar = 全部 + favourite stores only」, 「plaza: 全部 shows every store, with the platform banner」, 「plaza: a favourite store shows only its products」, 「plaza: category narrows the chosen store」, 「plaza: search covers every store and product」, 「plaza: favouriting a store from search adds it to the bar」, 「plaza: 管理 removes a store from the bar」, 「plaza: chat icon opens 商家消息」, 「plaza: store chat replies and clears unread」, 「plaza: back from 商家消息 → 购物广场」, 「product brand opens its store sheet」. The store reply takes 900 ms even with reduced motion (§9.11).
 
 ### 10.2 Visual baselines
 
 `pnpm visual:baseline` (script `scripts/visual/capture-prototype.ts`) serves `reference/prototype/` on a free port and screenshots each `?app=<id>&<params>` URL from §8 into `e2e/visual/__baseline__/<id>.png` (the second variants are `avatar-profile.png`, `returns-progress.png`; the first `returns` row is `returns.png`). `pnpm visual` screenshots the same screens from the web app and compares with `expect(screenshot).toMatchSnapshot('<id>.png')` (`snapshotPathTemplate` points at `__baseline__`). **Never run the visual suite with `--update-snapshots`**: that would overwrite the prototype baselines with the app's own screenshots. Commit the baselines.
+
+The baselines Phase 0 captured predate the 购物广场 stores redesign (prototype commit 514de38): `plaza` changed with it, `orderlist` too (the unpaid order's shop is now 「ZARA 官方旗舰店」), and `messages` is new. Re-capture them all from 514de38 or later, adding the `messages` row (`?app=messages`), before Phase 3 compares anything.
 
 **Inset check.** `pnpm visual` also renders each screen at `--top-inset: 0` in a 390 × 800 viewport and compares it with the same baseline cropped to y ≥ 44 (same threshold). This catches top offsets that were converted wrongly (§4.2). 首页 and 启动页 have full-bleed photos that don't move, so review those two by eye.
 
@@ -692,26 +733,26 @@ Done when:
 
 Done when:
 - [ ] All §9 cases pass.
-- [ ] A seed-parity test loads `reference/prototype/js/data.js` in a Node `vm` with a fake `window` and checks that `seed.ts` matches it (catalog, renders, looks, seed orders and return, addresses, shipping, payments, FAQs, chat).
-- [ ] Mock round trips (Vitest, latency 0): checkout creates an order → it appears under the right filter → pay → 待发货; confirm receipt → 已完成; submit and withdraw a return; address add/edit/delete keeps exactly one default; adding to the wardrobe puts the item first; `reset()` restores the seed.
+- [ ] A seed-parity test loads `reference/prototype/js/data.js` in a Node `vm` with a fake `window` and checks that `seed.ts` matches it (catalog, try-on categories against `fitCatsAll`, renders, looks, stores, favourite stores, store chats, season picks, seed orders and return, addresses, shipping, payments, FAQs, chat).
+- [ ] Mock round trips (Vitest, latency 0): checkout creates an order → it appears under the right filter → pay → 待发货; confirm receipt → 已完成; submit and withdraw a return; address add/edit/delete keeps exactly one default; adding to the wardrobe puts the item first; favouriting a store puts it first and unfavouriting removes it; a store chat message gets its reply, which counts as unread unless the thread is still open (§9.14); `reset()` restores the seed.
 - [ ] Coverage at least 90% of lines in `src/features` and `src/api/mock`.
 
 ### Phase 3 · The five tab screens
 
-首页, 购物广场, 个人衣橱, AI造型师, 我的, with all their sheets, at full fidelity (SCREENS.md). Includes the image pipeline (§9.9) for garment upload and the stylist photo. The camera layer waits for Phase 6: until then the camera button opens the layer's permission explainer only.
+首页, 购物广场, 个人衣橱, AI造型师, 我的, with all their sheets, at full fidelity (SCREENS.md). 购物广场's sheets include the store sheet, 管理 (「收藏的商家」) and 「秋日灵感穿搭」; its secondary screen 商家消息, with the 「消息通知」 sheet and the store chat sheet (which the store sheet's 「联系商家」 also opens), is built here too. Includes the image pipeline (§9.9) for garment upload and the stylist photo. The camera layer waits for Phase 6: until then the camera button opens the layer's permission explainer only.
 
 Done when:
-- [ ] Visual diff ≤ 2% for `fitting`, `plaza`, `wardrobe`, `stylist`, `profile`.
-- [ ] Acceptance: 「outfit change: blazer → look2 render」, 「outfit change: dress → look3 render」, 「honest toast for garments without imagery」, 「plaza search」, 「plaza scroll kept after switching tabs」, 「plaza heart toggles」, 「wardrobe filter 下装」, 「wardrobe queue bar」, 「uploaded garment saved」, 「stylist draft kept across tabs」, 「AI stylist reply with looks」, 「look → 首页 with outfit」.
-- [ ] Hearts, filters, the outfit and the try-on queue survive a reload.
+- [ ] Visual diff ≤ 2% for `fitting`, `plaza`, `wardrobe`, `stylist`, `profile`, `messages`.
+- [ ] Acceptance: 「outfit change: blazer → look2 render」, 「outfit change: dress → look3 render」, 「首页 rail lists only garments with a render」, 「honest toast for garments without imagery」, 「selected garment without a render shows until tapped off」 (both sent from 个人衣橱 until 商品详情 exists, §10.1), 「plaza search」, 「plaza scroll kept after switching tabs」, 「plaza heart toggles」, 「plaza: store bar = 全部 + favourite stores only」, 「plaza: 全部 shows every store, with the platform banner」, 「plaza: a favourite store shows only its products」, 「plaza: category narrows the chosen store」, 「plaza: search covers every store and product」, 「plaza: favouriting a store from search adds it to the bar」, 「plaza: 管理 removes a store from the bar」, 「plaza: chat icon opens 商家消息」, 「plaza: store chat replies and clears unread」, 「plaza: back from 商家消息 → 购物广场」, 「wardrobe filter 下装」, 「wardrobe queue bar」, 「uploaded garment saved」, 「stylist draft kept across tabs」, 「AI stylist reply with looks」, 「look → 首页 with outfit」.
+- [ ] Hearts, filters (including the chosen store), favourite stores, store chats, the outfit and the try-on queue survive a reload.
 
 ### Phase 4 · Launch, product and checkout flows
 
-启动页 and the login sheet, avatar upload and generation (first-launch context), 商品详情, 结算下单, the payment sheet and the after-payment navigation.
+启动页 and the login sheet, avatar upload and generation (first-launch context), 商品详情 (its brand row opens the store sheet from Phase 3), 结算下单, the payment sheet and the after-payment navigation.
 
 Done when:
 - [ ] Visual diff ≤ 2% for `onboarding`, `avatar`, `product`, `checkout`.
-- [ ] Acceptance: 「开始体验 → avatar creation」, 「photo upload previews」, 「non-image rejected」, 「AC1: setup complete → 首页 (virtual fitting room)」, 「setupDone stored」, 「plaza → product details」, 「AC6: back from product → plaza」, 「加入衣橱 → 个人衣橱 tab」, 「collected item at top of wardrobe」, 「plaza tab returns to its own history (product page)」, 「立即购买 → checkout」, 「checkout address sheet lists address book」, 「pay → 订单详情 (in 我的 → 我的订单)」, 「finished checkout removed from plaza history」. An unknown `pid` shows 「没有找到这个商品」 and records nothing in 浏览记录.
+- [ ] Acceptance: 「开始体验 → avatar creation」, 「photo upload previews」, 「non-image rejected」, 「AC1: setup complete → 首页 (virtual fitting room)」, 「setupDone stored」, 「plaza → product details」, 「AC6: back from product → plaza」, 「加入衣橱 → 个人衣橱 tab」, 「collected item at top of wardrobe」, 「plaza tab returns to its own history (product page)」, 「立即购买 → checkout」, 「checkout address sheet lists address book」, 「pay → 订单详情 (in 我的 → 我的订单)」, 「finished checkout removed from plaza history」, 「product brand opens its store sheet」. 商品详情 「试穿上身」 on a garment without a render (e.g. grey-hoodie) gives the 「演示版暂无…」 toast and keeps it on the 首页 rail until tapped off. An unknown `pid` shows 「没有找到这个商品」 and records nothing in 浏览记录.
 
 ### Phase 5 · 我的 flows
 
@@ -773,6 +814,8 @@ For Walker to confirm. Until then, build the default; nothing here blocks a phas
 | 8 | Consent screen before uploading face and body photos (PIPL, §14). Not in the prototype | Backend phase |
 | 9 | Where to show the ICP 备案 number (e.g. 设置 → 关于) | Backend phase |
 | 10 | Demo-only UI (重置演示数据, 重新体验首次启动, 演示 notes, the demo verification code, the 「原型演示」 group and 「原型 v2.0」 in 设置) | Keep, behind `isDemo()` |
+| 11 | Route for 商家消息, the screen the 购物广场 stores redesign added (prototype commit 514de38, 19 Oct 2026): `/plaza/messages`, a `messages` segment after `/plaza` (§4.3, §8) | Use it |
+| 12 | ZARA is a real trademark (Inditex). The demo uses it as one of its seven stores: the store name 「ZARA 官方旗舰店」, a ZARA wordmark as its logo, a banner image with a ZARA wordmark (`assets/plaza/banners/zara.webp`), four products, a seed order and chat copy (「2024 秋冬系列」). The public GitHub Pages copy of the prototype already shows it | Keep it in the demo seed as the prototype has it (acceptance checks and baselines depend on it); replace it with a fictional or licensed store before any public launch |
 
 ### 13.2 Known prototype issues
 
@@ -794,10 +837,10 @@ Found while writing `docs/SCREENS.md` (file:line in `reference/prototype/js/` un
 | 12 | Amounts mix 「¥2,331」 and 「¥2311」 (`ui.js:16` vs `:37`) | **Fix:** thousands separators everywhere |
 | 13 | Quantity 「+」 is never disabled at 9 (`screens/08-checkout.js:122`) | **Fix:** disabled at 9 |
 | 14 | Choosing a payment method at checkout overwrites the 支付方式 default, contradicting its note 「结算时默认选中，可在下单时临时更换」; 「使用新银行卡支付」 then leaves 支付方式 with nothing selected (`screens/08-checkout.js:90`, `screens/11-account.js:175-183`) | **Fix:** separate default and per-checkout choice (§9.4) |
-| 15 | 「去衣橱看看」 keeps the wardrobe's category and search (`screens/05-product.js:172`); saving an upload resets the category but keeps an open search (`screens/06-wardrobe.js:197-205`); either can hide the new item | **Fix:** reset to 全部 and clear the search |
+| 15 | 「去衣橱看看」 keeps the wardrobe's category and search (`screens/05-product.js:167`); saving an upload resets the category but keeps an open search (`screens/06-wardrobe.js:197-205`); either can hide the new item | **Fix:** reset to 全部 and clear the search |
 | 16 | An unknown product id renders the fallback shirt, its actions throw, and the bad id is recorded in 浏览记录 (`screens/05-product.js:22`, `:78`); an unknown order id shows another order | **Fix:** not-found states (§13.1); nothing recorded |
-| 17 | The 「订单运输中」 notice says 「点击查看物流」 but opens 订单详情 (`screens/04-plaza.js:89`) | **Keep:** 订单详情 shows the tracker |
-| 18 | The brand sheet lists the same category, not the same brand; every product shows the same size table, tip and reviews | **Keep** **[demo]** |
+| 17 | The 「订单运输中」 notice (「消息通知」 sheet, now opened from 商家消息) says 「点击查看物流」 but opens 订单详情 (`screens/04-plaza.js:343`, `:348`) | **Keep:** 订单详情 shows the tracker |
+| 18 | **Resolved in the prototype** (514de38): the brand sheet listed the same category, not the same brand; the brand row now opens the store sheet with that store's products (SCREENS.md, 商品详情). Still true: every product shows the same size table, tip and reviews | **Keep** the size table, tip and reviews **[demo]** |
 | 19 | Settings that are stored but change nothing: notification and privacy switches, 尺码标准, 小额免密, body data, avatar preferences | **Keep:** the backend gives them meaning |
 | 20 | The wardrobe heart and the look-card save update `aria-pressed` but leave their `aria-label` stale (`screens/06-wardrobe.js:97`, `screens/07-stylist.js:100`); the look sheet's 「保存搭配」 leaves both stale (`:214`) | **Fix** |
 | 21 | Only the avatar picker has the 25 MB limit: the wardrobe, stylist, return, profile-photo and 拍照找同款 pickers have none; a stylist photo that can't be decoded is stored at full size (`screens/06-wardrobe.js:180`, `screens/07-stylist.js:136`, `:160`) | **Fix:** one pipeline (§9.9) |
@@ -813,6 +856,16 @@ Found while writing `docs/SCREENS.md` (file:line in `reference/prototype/js/` un
 | 31 | The 「退出登录」 / 「登录 / 注册」 button (`.set-logout`) has no CSS, so it renders as plain ink text | **Keep** that look |
 | 32 | The address book can't be empty: deleting every address brings the two seeds back, and the next save re-inserts them (`store.js:117`, `screens/11-account.js:100`) | **Fix:** an empty book stays empty and shows 「还没有收货地址」; checkout then shows the §13.1 address copy |
 | 33 | Dead code: the `.or-lg-*` CSS, `isNew` on orders, `avatar.demo`, `VT.avatarGen.readImage`, `.onb-shade` | Don't port |
+
+Rows 34–38 were found while bringing this spec in line with prototype commits 051585b (首页 rail) and 514de38 (购物广场 stores). Their defaults are proposals: confirm or override them like the rest of §13.
+
+| # | Issue | Default |
+|---|---|---|
+| 34 | Tapping off a selected garment that no render wears removes its thumbnail from the 首页 rail; the handler can't find it to refocus, so keyboard focus drops to the page (`screens/03-fitting.js:113-114`) | **Fix:** move focus to the active category pill |
+| 35 | maxi-skirt (added in 514de38) is in no try-on category (`data.fitCatsAll`). 试穿上身 on it leaves the 首页 menu where it was, and the skirt never shows on the rail, so it can't be tapped off; only another bottom or a dress replaces it | **Fix:** list it under 下装, after beige-trousers, in the seed's try-on categories; the seed-parity test allows that one difference from `data.js` (or add it to `data.js` too, so both agree) |
+| 36 | Two merchant chats: 订单详情's 「联系商家」 (`screens/09-orders.js:390`) is unstored, answers exact questions after 800 ms and greets 「您好，我是店铺客服…」; the store chats on 商家消息 (`screens/14-messages.js`) are stored, answer by keyword after 900 ms and greet 「您好，欢迎光临 {店铺}…」. A chat started from an order never shows up in 商家消息 | **Keep** both as they are; merge them when the backend brings real merchant chat |
+| 37 | The new 购物广场 and 商家消息 text (copy, aria-labels, reply keywords) uses 13 characters that the prototype's subset fonts lack (义便列右折抵探摆般迎逸顶飘), so the prototype draws the visible ones, such as 「欢迎光临」 and 「飘逸」, in the system font. Phase 0's `charset.txt` predates them | **Keep** in the prototype. The web build's `pnpm fonts` covers them once re-run; recreate `charset.txt` from the current prototype. Expect those glyphs to differ from the baselines after Phase 6 |
+| 38 | Store chat times are stored as display text (`t`: 「10:24」, 「昨天」, 「7月13日」, or `HH:mm` for new messages), so they never age into 「昨天」 (`screens/14-messages.js:19`, `data.js:208-212`) | **Fix:** store timestamps and format them when rendering, like 浏览记录 (§13.2 #23); place the seed times relative to the first run |
 
 ---
 
