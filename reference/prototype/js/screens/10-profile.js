@@ -42,7 +42,7 @@
   }
 
   function avatarThumb(s) {
-    const src = s.avatar.portrait ? s.avatar.portrait.src : 'assets/people/chat-user.webp';
+    const src = VT.media.src(s.avatar.portrait) || 'assets/people/chat-user.webp';
     return `<span class="me-ava-thumb">${VT.ui.img(src, '')}</span>`;
   }
 

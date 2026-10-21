@@ -1,4 +1,4 @@
-"""Acceptance test used to verify the HTML prototype (136 checks, all passing on v2).
+"""Acceptance test used to verify the HTML prototype (170 checks, all passing on v2).
 
 Port these CHECKS (not the selectors) to the web app's Playwright suite.
 Run against the prototype:
@@ -45,6 +45,62 @@ async def avatar_render(pg, want=None, scope='.sim-app', timeout=10000):
     return await pg.evaluate(f"[...document.querySelectorAll('{sel}')].map(i => i.dataset.render).join('+')")
 
 
+# ---- 创建数字分身 (screen 'avatar'): five photos, the checks the browser really runs, generation
+PHOTOS = [('front', 'me_full.jpg'), ('back', 'body_back.webp'), ('left', 'body_left.webp'), ('right', 'body_right.webp'), ('face', 'me_face.jpg')]
+SLOTS = """(root) => [...document.querySelectorAll(root + ' .screen.is-active .av-slot')].map((s) => {
+  const m = s.querySelector('.av-slot-msg');
+  return s.dataset.slot + ':' + (s.className.match(/is-(empty|checking|ok|fail)\\b/) || [])[1] + (m ? ':' + m.textContent : '');
+})"""
+ROWS = "(root) => [...document.querySelectorAll(root + ' .screen.is-active .av-crow')].map((r) => r.querySelector('b').textContent + ':' + r.querySelector('.av-chip:last-child').textContent)"
+IDB_COUNT = """new Promise((ok) => {
+  const r = indexedDB.open('vt-prototype-media');
+  r.onsuccess = () => { const db = r.result; if (!db.objectStoreNames.contains('blobs')) { ok(0); return; } const c = db.transaction('blobs').objectStore('blobs').count(); c.onsuccess = () => ok(c.result); };
+  r.onerror = () => ok(-1);
+})"""
+
+
+async def consent(pg, root):
+    """上传前请确认: tick the box and agree (the sheet only comes before the first photo or video)"""
+    agree = pg.locator(f'{root} .ov .av-agree'.strip())
+    if await agree.count():
+        await agree.click()
+        await pg.locator(f'{root} .ov [data-act="yes"]'.strip()).click()
+        await pg.wait_for_timeout(400)
+
+
+async def put_photo(pg, root, slot, name):
+    """choose a file for one photo slot and wait until the browser has checked it"""
+    sel = f'{root} .screen.is-active'.strip()
+    await pg.locator(f'{sel} input[data-change="photo"][data-slot="{slot}"]').set_input_files(FIX + name)
+    await pg.wait_for_timeout(150)
+    await pg.wait_for_selector(f'{sel} .av-slot[data-slot="{slot}"]:is(.is-ok, .is-fail)', timeout=8000)
+
+
+async def checked(pg, root):
+    """the 智能检测 rows once they have all been revealed"""
+    await pg.wait_for_function(f"() => document.querySelectorAll('{root} .screen.is-active .av-crow').length > 0 && !document.querySelector('{root} .screen.is-active .av-crow.is-pending')")
+    return await pg.evaluate(ROWS, root)
+
+
+async def make_avatar(pg, root, samples=False, tap='click'):
+    """on the open avatar screen: 照片上传 (the five fixtures, or the labelled demo samples) → 下一步
+    → 智能检测 → 开始生成建模 → 创建完成. Returns the 智能检测 rows."""
+    a = pg.locator(f'{root} .screen.is-active'.strip())
+    await a.locator('.av-method[data-m="photo"]').click()
+    await pg.wait_for_timeout(400)
+    await consent(pg, root)
+    if samples:
+        await a.locator('[data-act="samples"]').click()
+    else:
+        for slot, name in PHOTOS:
+            await put_photo(pg, root, slot, name)
+    await a.locator('[data-act="to-check"]').click()
+    rows = await checked(pg, root)
+    await getattr(a.locator('[data-act="generate"]'), tap)()
+    await a.locator('.av-result').wait_for(timeout=15000)
+    return rows
+
+
 async def main():
     os.makedirs(OUT, exist_ok=True)
     async with async_playwright() as p:
@@ -81,22 +137,63 @@ async def main():
         await app.locator('[data-act="start"]').click()
         await pg.wait_for_timeout(600)
         check('开始体验 → avatar creation', await cur(pg) == 'avatar')
-        await app.locator('input[data-slot="fullbody"]').set_input_files(FIX + 'me_full.jpg')
-        await pg.wait_for_timeout(900)
-        await app.locator('input[data-slot="portrait"]').set_input_files(FIX + 'me_face.jpg')
-        await pg.wait_for_timeout(900)
-        check('photo upload previews', await app.locator('.av-badge').count() == 2)
-        await app.locator('input[data-slot="portrait"]').set_input_files(FIX + 'not_image.txt')
+        av = app.locator('.screen.is-active')
+        check('选择上传方式: 照片上传 or 视频上传, 跳过 kept, 4-step progress', await av.locator('.av-method').count() == 2 and await av.locator('.av-skip').count() == 1 and await av.locator('.av-steps .av-step').count() == 4)
+        await av.locator('.av-method[data-m="photo"]').click()
+        await pg.wait_for_timeout(400)
+        terms = await app.locator('.ov .av-consent').inner_text()
+        locked = await app.locator('.ov [data-act="yes"]').is_disabled()
+        await app.locator('.ov [data-act="no"]').click()
+        await pg.wait_for_timeout(400)
+        t = await app.locator('.toast').inner_text()
+        check('consent before any upload (purpose, on-device, deletion, third-party AI); 不同意 uploads nothing', locked and '第三方' in terms and '删除' in terms and await av.locator('.av-method').count() == 2 and '同意' in t, t)
+        await av.locator('.av-method[data-m="photo"]').click()
+        await pg.wait_for_timeout(400)
+        await consent(pg, '.sim-app')
+        check('consent stored', await pg.evaluate('VT.store.get().mediaConsent.v') == 1)
+        labels = [x.replace('\n', '').strip() for x in await av.locator('.av-slot-h').all_inner_texts()]
+        refs = await av.locator('.av-slot.is-empty .av-slot-img img[src*="avatar-onboarding/ref/"]').count()
+        check('照片上传: 4 full-body angles + 面部生活照, each with an example; tips; 正确 / 错误示范', labels == ['1正面全身', '2背面全身', '3左侧全身', '4右侧全身', '5面部生活照'] and refs == 5 and await av.locator('.av-tips-card li').count() == 6 and await av.locator('.av-ex').count() == 2, ','.join(labels))
+        check('下一步 disabled until the photos pass', await av.locator('[data-act="to-check"]').is_disabled())
+        await av.locator('input[data-slot="front"]').set_input_files(FIX + 'not_image.txt')
         await pg.wait_for_timeout(500)
         t = await app.locator('.toast').inner_text()
         check('non-image rejected', '图片' in t, t)
-        await app.locator('[data-act="generate"]').click()
-        await pg.wait_for_timeout(5800)
+        for slot, name in [('front', 'me_full.jpg'), ('back', 'body_back.webp'), ('left', 'too_dark.webp'), ('right', 'body_back.webp'), ('face', 'too_blurry.webp')]:
+            await put_photo(pg, '.sim-app', slot, name)
+        st = await pg.evaluate(SLOTS, '.sim-app')
+        check('real checks: too dark, blurry and the same photo twice → 需重拍 with the fix', st[0] == 'front:ok' and st[1] == 'back:ok' and '光线过暗' in st[2] and '同一张照片' in st[3] and '模糊' in st[4] and await av.locator('[data-act="to-check"]').is_disabled(), ' | '.join(st))
+        await av.locator('.av-slot[data-slot="face"] [data-act="photo-del"]').click()
+        await pg.wait_for_timeout(300)
+        check('delete a photo → its slot shows the example again', (await pg.evaluate(SLOTS, '.sim-app'))[4] == 'face:empty')
+        for slot, name in PHOTOS[2:]:
+            await put_photo(pg, '.sim-app', slot, name)
+        st = await pg.evaluate(SLOTS, '.sim-app')
+        check('replacing them: 5 × 通过, 下一步 enabled', all(s.endswith(':ok') for s in st) and not await av.locator('[data-act="to-check"]').is_disabled(), ' | '.join(st))
+        await pg.wait_for_timeout(300)
+        n_idb = await pg.evaluate(IDB_COUNT)
+        raw = await pg.evaluate("Object.keys(localStorage).some((k) => String(localStorage.getItem(k)).includes('data:image'))")
+        check('photos stay on this device in IndexedDB, never in localStorage', n_idb == 5 and not raw, f'{n_idb} blobs, data URLs in localStorage: {raw}')
+        await av.locator('[data-act="to-check"]').click()
+        rows = await checked(pg, '.sim-app')
+        check('智能检测: what the browser measured 通过, AI-only checks 无法检测', rows == ['基础检测:通过', '身体完整度:无法检测', '面部清晰度:通过', '背景简洁度:无法检测', '光线质量:通过', '角度完整性:无法检测'], ' | '.join(rows))
+        check('the materials are previewed before generating, each replaceable', await av.locator('.av-mstrip li').count() == 5 and await av.locator('.av-mstrip .av-medit').count() == 5)
+        await av.locator('[data-act="generate"]').click()
+        await pg.wait_for_timeout(1500)
+        stage = await av.locator('.av-ring').get_attribute('aria-valuetext')
+        ring = await av.locator('.av-ring').inner_text()
+        sim = await av.locator('.av-sim').inner_text()
+        check('生成建模: 5 stages, labelled as simulated, no percentage or time estimate', await av.locator('.av-stages li').count() == 5 and stage.startswith('第 1 步') and '%' not in ring and '模拟进度' in sim, f'{stage} · {sim}')
+        await av.locator('.av-result').wait_for(timeout=15000)
+        tag = await av.locator('.av-result-tag').inner_text()
+        check('创建完成: a 2D preview (not called 3D), name, 修改名称 / 重新生成 / 更换素材', tag == '2D 形象预览 · 演示版' and await av.locator('[data-act="rename"]').count() == 1 and await av.locator('[data-act="regen"]').count() == 1 and await av.locator('[data-act="redo"]').count() == 1, tag)
         await snap(pg, '02_generated')
-        await app.locator('.av-gen [data-act="enter"]').click()
+        await av.locator('[data-act="enter"]').click()
         await pg.wait_for_timeout(700)
         check('AC1: setup complete → 首页 (virtual fitting room)', await cur(pg) == 'fitting')
         check('setupDone stored', await pg.evaluate('VT.store.get().setupDone') is True)
+        mats = await pg.evaluate("(() => { const m = VT.store.get().avatar.materials; return m.method + ':' + Object.values(m.photos).filter((p) => p.media).length; })()")
+        check('the avatar keeps its 5 photos as IndexedDB references', mats == 'photo:5', mats)
 
         # ---- AC2/AC4: exactly five tabs, same bar on every primary screen
         for t_id in TABS:
@@ -314,9 +411,9 @@ async def main():
         await app.locator('[data-act="photos"]').click()
         await pg.wait_for_timeout(450)
         check('我的形象 → 上传照片', await cur(pg) == 'avatar' and await app.locator('.av-skip').count() == 0)
-        await app.locator('[data-act="generate"]').click()
-        await pg.wait_for_timeout(5800)
-        await app.locator('.av-gen [data-act="done"]').click()
+        rows = await make_avatar(pg, '.sim-app', samples=True)
+        check('demo samples: no check is claimed as passed', len(rows) == 6 and all(r.endswith(':无法检测') for r in rows), ' | '.join(rows))
+        await app.locator('.screen.is-active [data-act="done"]').click()
         await pg.wait_for_timeout(600)
         check('generate → back to 我的形象', await cur(pg) == 'avatarhub')
         await app.locator('[data-act="regen"]').click()
@@ -562,14 +659,104 @@ async def main():
         await fp.locator('.ov .js-name').fill('朋友')
         await fp.locator('.ov [data-act="as-next"]').click(); await fp.wait_for_timeout(700)
         is_new = await fp.evaluate('VT.liveApp.cur.id') == 'avatar' and await fa.locator('.av-skip').count() == 0
-        await fa.locator('[data-act="generate"]').click()
-        await fp.wait_for_selector('.av-gen [data-act="try"]', timeout=9000)
-        await fp.locator('.av-gen [data-act="try"]').click(); await fp.wait_for_timeout(900)
+        await make_avatar(fp, '', samples=True, tap='dblclick')  # a double tap starts one job
+        await fa.locator('[data-act="enter"]').click(); await fp.wait_for_timeout(900)
         names = await S("s.avatars.map(a => a.name || '本人')")
-        check('新建数字分身: its own empty wardrobe, now active', is_new and await fp.evaluate('VT.liveApp.cur.id') == 'fitting' and names == ['本人', '伴侣', '爸爸', '妈妈', '朋友'] and await S('s.wardrobe.length') == 0, ','.join(names))
+        check('新建数字分身: one new avatar, its own empty wardrobe, now active', is_new and await fp.evaluate('VT.liveApp.cur.id') == 'fitting' and names == ['本人', '伴侣', '爸爸', '妈妈', '朋友'] and await S('s.wardrobe.length') == 0, ','.join(names))
         await fa.locator('[data-act="role"]').click(); await fp.wait_for_timeout(400)
+        opts = await fp.locator('.as-opt').count()
+        check('the new avatar is listed in 切换角色', opts == 5 and await fp.locator('.as-opt.is-on').inner_text() != '' and '朋友' in await fp.locator('.as-opt.is-on').inner_text(), str(opts))
         await fp.locator('.as-opt[data-id="me"]').click(); await fp.wait_for_timeout(500)
         check('切换角色 back to 本人 restores her wardrobe', await S('s.activeAvatar') == 'me' and await S('s.wardrobe.length') == n1, str(await S('s.wardrobe.length')))
+        await b.close()
+
+        # ---- 创建数字分身: 视频上传 and in-app recording, a failed check, a failed generation, deleting the media, 360 px
+        b = await p.chromium.launch(args=['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])
+        c = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2)
+        await c.grant_permissions(['camera'], origin=ORIGIN)
+        vp = await c.new_page()
+        vp.on('console', lambda m: errors.append(f'avatar {m.type}: {m.text}') if m.type in ('error', 'warning') else None)
+        vp.on('pageerror', lambda e: errors.append('avatar pageerror: ' + str(e)))
+        await vp.goto(BASE + '?app=avatar'); await vp.evaluate('localStorage.clear(); sessionStorage.clear()')
+        await vp.goto(BASE + '?app=avatar'); await vp.wait_for_timeout(900)
+        va = vp.locator('.screen.is-active')
+        await va.locator('.av-method[data-m="video"]').click(); await vp.wait_for_timeout(400)
+        await consent(vp, '')
+        check('视频上传: the turn shown in 4 steps, 8 capture conditions, 上传视频 + 开始拍摄', await va.locator('.av-turn li').count() == 4 and await va.locator('.av-req li').count() == 8 and await va.locator('.av-vbox input[data-change="video"]').count() == 1 and await va.locator('[data-act="record"]').count() == 1)
+        await va.locator('.av-vbox input[data-change="video"]').set_input_files(FIX + 'turn_3s.webm')
+        await va.locator('.av-vcard').wait_for(timeout=15000)
+        msg = await va.locator('.av-vmsg').inner_text()
+        check('a 3-second video fails its length check; 下一步 stays disabled', '3.0 秒' in msg and await va.locator('[data-act="to-check"]').is_disabled(), msg)
+        await va.locator('.av-vacts input[data-change="video"]').set_input_files(FIX + 'turn_10s.webm')
+        await vp.wait_for_selector('.screen.is-active .av-vcard.is-ok', timeout=15000)
+        meta = await va.locator('.av-vmeta span').first.inner_text()
+        check('a 10-second video passes (length read from the file)', '时长 10.' in meta and not await va.locator('[data-act="to-check"]').is_disabled(), meta)
+        await va.locator('.av-vplay').click(); await vp.wait_for_timeout(500)
+        check('the video plays back before it is submitted', await vp.locator('.ov video.av-vprev').count() == 1)
+        await vp.keyboard.press('Escape'); await vp.wait_for_timeout(400)
+        await va.locator('[data-act="record"]').click()
+        await vp.wait_for_function("document.querySelector('.av-rec .cam-view') && document.querySelector('.av-rec .cam-view').dataset.state === 'live'", timeout=8000)
+        await vp.locator('.av-rec .av-rec-btn').click()
+        await vp.wait_for_timeout(5500)  # 3-2-1, then about 2 s into the recording
+        timer = await vp.locator('.av-rec .js-time').inner_text()
+        steps = await vp.locator('.av-rec-steps li.is-on').count()
+        await vp.wait_for_function("document.querySelector('.screen.is-active .av-vcard.is-ok') && !document.querySelector('.av-rec')", timeout=20000)
+        name = await va.locator('.av-vmeta b').inner_text()
+        check('开始拍摄 (MediaRecorder): 3-2-1, a 10 s timer with the turn steps, then checked like an upload', timer.startswith('00:0') and timer.endswith('/ 00:10') and steps == 1 and name.startswith('录制视频'), f'{timer} · {name}')
+        await va.locator('[data-act="to-check"]').click()
+        rows = await checked(vp, '')
+        check('智能检测 (video): 4 frames + play; format/length and light measured, the rest 无法检测', await va.locator('.av-mstrip--video img').count() == 4 and await va.locator('.av-mplay').count() == 1 and rows[0] == '基础检测:通过' and rows[4] == '光线质量:通过' and rows[-1] == '视频稳定性:无法检测' and sum(r.endswith(':无法检测') for r in rows) == 5, ' | '.join(rows))
+        await vp.evaluate("localStorage.setItem('vto-mock-fail', 'avatar.generate')")
+        await va.locator('[data-act="generate"]').click()
+        await va.locator('[data-act="retry"]').wait_for(timeout=12000)
+        stopped, done = await va.locator('.av-stages li.is-fail').count(), await va.locator('.av-stages li.is-done').count()
+        await vp.evaluate("localStorage.removeItem('vto-mock-fail')")
+        await va.locator('[data-act="retry"]').click()
+        await va.locator('.av-result').wait_for(timeout=15000)
+        check('failed generation shows where it stopped; 重试 (same materials) → 创建完成', stopped == 1 and done >= 1, f'{done} done, {stopped} failed')
+        await va.locator('[data-act="enter"]').click(); await vp.wait_for_timeout(800)
+        kept = await vp.evaluate("(() => { const m = VT.store.get().avatar.materials; return m.method + ':' + m.video.frames.length + ':' + ('url' in m.video); })()")
+        check('a video avatar keeps 4 frames on the device, not the video', kept == 'video:4:false' and await cur(vp) == 'fitting', kept)
+        await vp.goto(BASE + '?app=avatar&mockFail=avatar.check'); await vp.wait_for_timeout(900)
+        await va.locator('.av-method[data-m="photo"]').click(); await vp.wait_for_timeout(400)
+        await va.locator('[data-act="samples"]').click()
+        await va.locator('[data-act="to-check"]').click()
+        rows = await checked(vp, '')
+        fix = await va.locator('.av-fix li > span').first.inner_text()
+        blocked = await va.locator('[data-act="generate"]').is_disabled()
+        await va.locator('.av-fix [data-act="edit"]').click(); await vp.wait_for_timeout(500)
+        back_to = await va.locator('.av-bar-t').inner_text()
+        await put_photo(vp, '', 'front', 'me_full.jpg')
+        await va.locator('[data-act="to-check"]').click()
+        await checked(vp, '')
+        check('a failed check (simulated AI result, labelled 演示) names the fix; replacing the photo clears it', '身体完整度:需要重新上传' in rows and '正面全身照缺少脚部' in fix and '演示' in fix and blocked and back_to == '照片上传' and await va.locator('.av-fix').count() == 0 and not await va.locator('[data-act="generate"]').is_disabled(), fix)
+        await vp.goto(BASE + '?app=privacy'); await vp.wait_for_timeout(900)
+        n0 = await vp.evaluate(IDB_COUNT)
+        await va.locator('[data-act="clearphotos"]').click(); await vp.wait_for_timeout(400)
+        await vp.locator('.ov [data-act="yes"]').click(); await vp.wait_for_timeout(700)
+        n1 = await vp.evaluate(IDB_COUNT)
+        check('隐私与安全 → 清除已上传的照片 deletes the avatar media from the device', n0 >= 4 and n1 == 0 and await vp.evaluate('VT.store.get().avatar.materials') is None, f'{n0} → {n1} blobs')
+        n = await b.new_context(viewport={'width': 360, 'height': 740}, device_scale_factor=2, reduced_motion='reduce')
+        np = await n.new_page()
+        np.on('pageerror', lambda e: errors.append('avatar 360 pageerror: ' + str(e)))
+        await np.goto(BASE + '?app=avatar'); await np.evaluate('localStorage.clear()')
+        await np.goto(BASE + '?app=avatar'); await np.wait_for_timeout(900)
+        na = np.locator('.screen.is-active')
+        fits = "(() => { const s = document.querySelector('.screen.is-active .av-scroll'); return document.documentElement.scrollWidth <= innerWidth && s.scrollWidth <= s.clientWidth; })()"
+        wide = []
+        for step, act in [('method', None), ('photo', '.av-method[data-m="photo"]'), ('samples', '[data-act="samples"]'), ('check', '[data-act="to-check"]'), ('gen', '[data-act="generate"]'), ('done', None), ('video', None)]:
+            if step == 'done':
+                await na.locator('.av-result').wait_for(timeout=8000)
+            elif step == 'video':
+                await np.goto(BASE + '?app=avatar'); await np.wait_for_timeout(700)
+                await na.locator('.av-method[data-m="video"]').click(); await np.wait_for_timeout(400)
+            elif act:
+                await na.locator(act).click(); await np.wait_for_timeout(400)
+                if step == 'photo':
+                    await consent(np, '')
+            if not await np.evaluate(fits):
+                wide.append(step)
+        check('360 px: every step of 创建数字分身 fits the width', not wide, ','.join(wide))
         await b.close()
 
         # ---- 个人衣橱 V2: portrait row (切换角色, shared with 首页), 衣服 / 搭配集 / 穿搭瞬间, long-press, 保存造型

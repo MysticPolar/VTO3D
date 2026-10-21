@@ -33,6 +33,13 @@
  * DRAFT, needs approval (HANDOFF §13.1 #14; 首页 update, 20 Oct 2026): digital avatars. `Avatar`
  * gains `id`, `name`, `self` and `wardrobeCount`; `AvatarCreateInput` is new; `OrderDraft` names
  * the avatar whose wardrobe a purchase joins. The matching operations are in api.ts.
+ *
+ * DRAFT, needs approval (HANDOFF §13.1 #14, §9.16; avatar onboarding upgrade, 21 Oct 2026):
+ * `AvatarPhotoKind` becomes the five photos (front, back, left, right, face); an avatar is made
+ * from photos or a video (`AvatarMaterials`, `AvatarVideo`), and new materials stay a `draft`
+ * until a generation finishes; `AvatarCheck` is a 智能检测 row; `AvatarJob` gains `stage`, and its
+ * `progress` is null when the service only reports status; `MediaConsent` records the consent
+ * to process face and body media. `fullbody` and `portrait` stay, derived by the server.
  */
 
 export type ImageUrl = string;
@@ -307,15 +314,30 @@ export interface RecentChat {
 
 /* ---------------------------------------------------------------- avatar */
 
-/** 'stale' = a photo was replaced after the last generation */
+/** 'stale' = the materials changed after the last generation (no longer produced: new materials
+ *  stay a draft until a generation finishes) */
 export type AvatarStatus = 'none' | 'ready' | 'stale';
 
-export type AvatarPhotoKind = 'fullbody' | 'portrait';
+/** DRAFT: the five photos of the photo method (正面全身, 背面全身, 左侧全身, 右侧全身, 面部生活照) */
+export type AvatarPhotoKind = 'front' | 'back' | 'left' | 'right' | 'face';
 
 export interface AvatarPhoto {
   url: ImageUrl;
-  name: string; // original file name, shown as 「已上传：…」
+  name: string; // original file name
 }
+
+/** DRAFT: the video of the video method (about 10 s, a full turn) */
+export interface AvatarVideo {
+  name: string; // original file name
+  seconds: number;
+  /** frames the server took for previews (4); whether it keeps the video itself is its retention rule */
+  frames: ImageUrl[];
+}
+
+/** DRAFT: what an avatar is generated from: five photos or one video */
+export type AvatarMaterials =
+  | { method: 'photo'; photos: Partial<Record<AvatarPhotoKind, AvatarPhoto>> }
+  | { method: 'video'; video: AvatarVideo };
 
 export interface Avatar {
   /** DRAFT: one of the account's digital avatars (HANDOFF §9.15) */
@@ -327,27 +349,62 @@ export interface Avatar {
   /** wardrobe items, for the 切换角色 list (「衣橱 {n} 件」) */
   wardrobeCount: number;
   status: AvatarStatus;
-  fullbody: AvatarPhoto | null; // 全身照
-  portrait: AvatarPhoto | null; // 生活照 (also the fallback profile picture)
+  /** DRAFT: what the current avatar was generated from; null for the demo avatar */
+  materials: AvatarMaterials | null;
+  /** DRAFT: materials uploaded since and not generated yet (an open upload flow); the current
+   *  avatar stays as it is until a generation from the draft finishes */
+  draft: AvatarMaterials | null;
+  /** the 正面全身 photo, or the video's first frame (我的形象's 全身照) */
+  fullbody: AvatarPhoto | null;
+  /** the 面部生活照 photo (also the fallback profile picture); null for a video avatar */
+  portrait: AvatarPhoto | null;
   /** null when the avatar became ready without generating (跳过, 登录, 试穿 before setup) */
   generatedAt: ISODateTime | null;
 }
 
-/** DRAFT: 新建数字分身. The photos are the ones picked on the upload screen (already downscaled). */
+/** DRAFT: 新建数字分身. The new avatar is unlisted until its first generation finishes; its
+ *  materials are uploaded to it like any avatar's (api.ts `avatar.uploadPhoto` / `uploadVideo`). */
 export interface AvatarCreateInput {
   name: string; // 1–8 characters
-  fullbody: { image: Blob; fileName: string } | null;
-  portrait: { image: Blob; fileName: string } | null;
 }
+
+/** DRAFT: progress of an upload (photo or video); `fraction` is 0–1 */
+export interface UploadOptions {
+  onProgress?: (fraction: number) => void;
+  signal?: AbortSignal;
+}
+
+/** DRAFT: one row of 智能检测与确认. The client adds its own measurements (HANDOFF §9.16). */
+export interface AvatarCheck {
+  key: 'body' | 'face' | 'background' | 'light' | 'angles' | 'stability';
+  /** 'unavailable' = this service can't check it: shown as 无法检测, never as passed */
+  status: 'checking' | 'pass' | 'fail' | 'unavailable';
+  detail: string; // display: what was checked, e.g. 「5 个角度齐全」
+  /** display: the concrete fix and the material to replace, when failed */
+  fix?: { text: string; target: AvatarPhotoKind | 'video' };
+}
+
+/** DRAFT: the generation stages shown on 生成建模 (素材解析中 … 创建完成) */
+export type AvatarJobStage = 'parse' | 'body' | 'face' | 'refine' | 'done';
 
 export interface AvatarJob {
   id: string;
   status: 'running' | 'done' | 'failed' | 'cancelled';
-  /** 0–1, as reported by the server; the demo UI animates its own bar (HANDOFF §9.13) */
-  progress: number;
-  /** true when sample photos stood in for missing uploads */
+  /** DRAFT */
+  stage: AvatarJobStage;
+  /** 0–1 only when the service reports real progress; null = status only, and the UI then shows
+   *  no percentage (HANDOFF §9.13). The demo mock reports null. */
+  progress: number | null;
+  /** true when the demo samples stood in for the materials */
   usedSamples: boolean;
   error?: string; // display, when failed
+}
+
+/** DRAFT: the consent to process face and body photos and video (PIPL; HANDOFF §9.16, §14) */
+export interface MediaConsent {
+  /** version of 《敏感个人信息处理规则》 that was agreed to */
+  version: number;
+  at: ISODateTime;
 }
 
 export interface Body {

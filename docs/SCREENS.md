@@ -19,7 +19,7 @@ Every screen of the app: what it shows, what each control does, its sheets and d
 | # | Screen | Id | Route |
 |---|---|---|---|
 | 1 | 启动页 | `onboarding` | `/welcome` |
-| 2 | 上传照片 · 创建数字分身 | `avatar` | `/welcome/avatar` |
+| 2 | 上传照片 / 视频 · 创建数字分身 | `avatar` | `/welcome/avatar` |
 | 3 | 首页 · 虚拟试衣间 | `fitting` | `/home` |
 | 4 | 购物广场 | `plaza` | `/plaza` |
 | 5 | 个人衣橱 | `wardrobe` | `/wardrobe` |
@@ -84,69 +84,236 @@ Every screen of the app: what it shows, what each control does, its sheets and d
 **Acceptance checks.** `启动页 reachable as a flow screen` (simulator entry) · `开始体验 → avatar creation` · `first launch (no setup) opens 启动页` · `mobile: full-screen app, first launch`.
 
 
-### 2. 上传照片 · 创建数字分身 · `avatar`
+### 2. 上传照片 / 视频 · 创建数字分身 · `avatar`
 
-**Route** `/welcome/avatar` (first launch, `params.from = 'launch'`) · `/me/avatar/upload` (from 我的形象, `params.from = 'profile'`) · `/home/avatars/new?name=…` (切换角色 → 新建数字分身, `params.ctx = 'new'`; proposed, HANDOFF §13.1 #13; pushed on 个人衣橱's stack when started there) · **Type** launch (first launch) | secondary (from 我的形象 or 切换角色) · **Prototype** `js/screens/02-avatar.js`, `css/screens/02-avatar.css` · **Design ref** `reference/design/screens/02_avatar_upload.png`
+**Route** `/welcome/avatar` (first launch, `params.from = 'launch'`) · `/me/avatar/upload` (from 我的形象, `params.from = 'profile'`) · `/home/avatars/new?name=…` (切换角色 → 新建数字分身, `params.ctx = 'new'`; proposed, HANDOFF §13.1 #13; pushed on 个人衣橱's stack when started there) · **Type** launch (first launch) | secondary (from 我的形象 or 切换角色) · **Prototype** `js/screens/02-avatar.js`, `css/screens/02-avatar.css`, `js/media.js` · **Design ref** `reference/design/screens/02_avatar_onboarding_v2.webp` (the five-screen mockup; the brief's rules win where they differ, see the end of this section)
 
-**Purpose.** The user picks a full-body photo and a portrait, then runs the simulated digital-avatar generation: for their own avatar (本人), or, in the `new` context, for another person's avatar (HANDOFF §9.15).
+**Purpose.** A guided flow that turns photos or a short video into a digital avatar: for the user's own avatar (本人), or, in the `new` context, for another person's (HANDOFF §9.15). The user picks a method, uploads five photos or a video of about 10 s, reviews the materials and the checks, then runs the generation, which is simulated in the demo. One route with six steps: **选择上传方式 → 照片上传 | 视频上传 → 智能检测与确认 → 生成建模 → 创建完成**. The steps change in place (no push), and each step's heading takes focus.
 
-**Layout (top → bottom).**
+**Honesty rules (from the brief, built into the prototype).**
+- A check shows 通过 or 需要重新上传 only if the browser really measured it (format, size, resolution, orientation, brightness, sharpness, duplicates, video length). Body, face, background, angle and stability recognition need an AI service and show 「无法检测」 with the reason.
+- With job status only (the demo), generation shows stages and an indeterminate ring, never a percentage or a time estimate.
+- The result is labelled a 2D preview, never a 3D model.
+- Photos and video frames stay on the device (IndexedDB), never in `localStorage`. Nothing is uploaded before consent, and the third-party AI provider is disclosed. Every demo shortcut says 「演示」.
+
+**Layout, common to every step.**
 - Fake status bar (dark). Drop it in the web build.
-- Scroll area (`data-keep-scroll="av"`). Everything scrolls except the bottom CTA:
-  - Top row: back button (aria 「返回」) on the left and a 「跳过」 pill on the right. **「跳过」 appears on first launch only** (hidden when `from === 'profile'` and in the `new` context). The design ref has no 「跳过」; it was added on purpose (REPORT deviation 10).
-  - h1 「上传照片，创建数字分身」. Two-line lead: 「上传清晰的全身照和生活照，」 / 「我们将为你生成专属的3D数字分身，用于虚拟试衣。」 In the `new` context: 「上传「{name}」清晰的全身照和生活照，」 / 「我们将为 TA 生成专属的3D数字分身，用于虚拟试衣。」
-  - Three-step stepper (aria 「创建进度」): 「上传照片」 (current) → 「生成建模」 → 「完成」. Finished steps show ✓, and the current step has `aria-current="step"`.
-  - Two cards side by side with the same structure:
-    - **全身照**: 「上传全身照」, 「展示你的身材和体型特征」. Sample image `assets/people/upload-fullbody.webp`. Tips 「请上传正面、站立的全身照片」 / 「建议光线充足，背景简洁」.
-    - **生活照**: 「上传生活照」, 「展示你的面部特征和气质」. Sample image `assets/people/upload-portrait.webp`. Tips 「请上传清晰、自然的正面照」 / 「建议素颜或淡妆，五官清晰」.
-    - Each card has a tall photo frame that shows the sample until the user uploads. A round button sits at the bottom centre of the frame. It is a `<label>` wrapping a hidden `<input type="file" accept="image/*">`, with a ＋ icon and aria 「上传全身照」 / 「上传生活照」. The tips sit under the frame.
-  - After an upload, the card shows the user's photo (alt 「已上传的全身照预览」 / 「已上传的生活照预览」) with a badge at the top left (check icon + 「已上传」). The button turns into ↻ with aria 「重新选择全身照」 / 「重新选择生活照」. The tips become check icon + 「已上传：{file name}」 / 「点击按钮可重新选择」; names over 14 characters show the first 13 plus 「…」.
-- Fixed bottom CTA, outside the scroll area, with a fade above it: dark 「生成我的数字分身」 (first launch), 「重新生成数字分身」 (from 我的形象) or 「生成数字分身」 (`new`), each followed by a → icon.
+- Header (`.av-bar`, 82 px): a back button (aria 「返回」), except on 创建完成. A centred title: 「照片上传」 · 「视频上传」 · 「智能检测与确认」 · 「生成建模」 · 「创建完成」 (none on 选择上传方式, which has its own h1). A 「跳过」 pill **on first launch only**, hidden on 生成建模 and 创建完成.
+- Four-step progress (aria 「创建进度」): 「上传素材」 → 「智能检测」 → 「生成建模」 → 「完成」. Finished steps show ✓, and the current one has `aria-current="step"`. 选择上传方式, 照片上传 and 视频上传 are step 1.
+- Scroll area (`data-keep-scroll="av-{step}"`), then the bottom action area. It has a solid background with an 18 px fade above it, an optional hint line (`aria-live="polite"`) and the step's buttons.
 
-**Interactions.**
-- Back → pop to `/welcome` (first launch), `/me/avatar` (我的形象) or the screen that opened 新建数字分身 (`new`; nothing is created).
-- Photo button → native file picker. While a file is processed, that slot shows a 「处理中…」 overlay with a spinner and its input is disabled. Then `readImage(file)` runs:
-  - The type must start with `image/`, otherwise toast 「请选择图片文件（JPG / PNG / HEIC 等）」.
-  - Files over **25 MB** (25×1024×1024 bytes) get the toast 「图片超过 25MB，请换一张」.
-  - The file is decoded with `<img>`. If decoding fails, toast 「无法读取这张图片，请换一张试试」.
-  - The image is downscaled so the **longest side is at most 900 px** (it is never upscaled), then re-encoded as a **JPEG at quality 0.8** data URL. The slot stores `{ src, name, w, h }`.
-  - On success, toast 「全身照已上传」 / 「生活照已上传」 (check icon). If the avatar was `'ready'`, it becomes `'stale'`. Picking again replaces the photo. This screen has no delete control.
-- 「跳过」 (first launch only) → sets `avatar.status = 'ready'` and `demo = true` if not already ready, then calls `enterMain()`: 首页 with a fade, history cleared. 300 ms later it shows the toast 「已使用示例数字分身，可在「我的 → 我的形象」中更换」 **[demo]**.
-- In the `new` context the photos go to a draft, not to the active avatar. The draft is emptied when the screen is pushed and kept when the user comes back to it (a reload loses it); nothing reaches the store until generation finishes.
-- CTA → `runGeneration(app, usingSamples, ctx)`, where `usingSamples = !fullbody || !portrait` and `ctx` is `'new'` when `params.ctx === 'new'`, `'profile'` when `from === 'profile'`, otherwise `'launch'`. The CTA is never disabled: generating without photos is allowed, and the sample photos are used instead.
+**Step 选择上传方式.**
+- h1 on two lines, 「上传照片 / 视频，」 / 「创建数字分身」. Lead: 「上传清晰的照片或视频，生成专属于你的数字分身，」 / 「体验全新的虚拟试衣方式。」. In the `new` context: 「上传「{name}」清晰的照片或视频，」 / 「为 TA 生成专属的数字分身，体验全新的虚拟试衣。」.
+- Two method cards (buttons) with an icon tile, a title, a line and a caption, a preview on the right and a chevron:
+  - 「照片上传」 · 「上传 4 张全身照 + 1 张清晰面部生活照」 · 「展示你的身材、体型和面部特征，生成更精准的数字分身」. Preview `avatar-onboarding/method/photo.webp`.
+  - 「视频上传」 · 「上传或拍摄 10 秒全身展示视频」 · 「按照示范动作拍摄，全方位展示你的身材与气质，效果更真实自然」. Preview: three turn frames with a play glyph.
+- Note (shield icon): 「照片和视频只保存在本机，仅用于生成数字分身」.
+- Action: 「开始上传」 (→ icon), which works like the 照片上传 card.
+- A card or 开始上传 → the consent sheet if consent isn't stored yet, then 照片上传 or 视频上传.
 
-**Overlays.**
-- **Generation layer** (`runGeneration`). It is full screen (aria 「正在生成数字分身」) and sits above everything. **[demo]**: there is no backend.
-  - Content: a fake status bar; the stepper at step 2 (「上传照片」 ✓, 「生成建模」 current); the full-body photo (uploaded or sample) in a frame with an animated scan line and grid; a large 「{n}%」 readout (aria-live) and a progress bar (aria 「生成进度」); a four-item checklist 「解析身材比例与体型特征」「识别面部特征与发型」「构建数字分身模型」「匹配肤色与光影细节」; the note 「未上传全部照片，演示将使用示例照片」 when `usingSamples`; and a 「取消」 button in the footer.
-  - Timing: progress runs **4200 ms** (900 ms with reduced motion), eased with `1 − (1 − t)^1.6`. Checklist item *i* (0–3) is highlighted while progress is between i×24 % and (i+1)×24 %, and ticked from (i+1)×24 %. The result appears **350 ms** after progress reaches 100 %.
-  - 「取消」 → closes the layer and shows the toast 「已取消生成」. The store is unchanged, unless 取消 is pressed after progress reaches 100 % (HANDOFF §13.2 #2). Esc and back also close the layer, but without the toast.
-  - Result (`finish`): the store gets `avatar.status = 'ready'`, `generatedAt = Date.now()` and `demo = true`. The stepper moves to step 3. The layer shows `assets/people/avatar-base.webp` (always the preset, never the user's photos), 「数字分身已生成」 and two lines: 「演示原型使用预设的数字分身（2D 形象预览）。」 / 「真实产品将基于你上传的照片进行三维重建。」 **[demo]**. When `usingSamples` it also shows the toast 「已使用示例照片生成演示分身」. The primary button gets focus.
-  - Finish buttons depend on the context:
-    - `launch`: 「进入虚拟试衣间」 (→ icon) calls `enterMain()`, which sets `setupDone`, clears history and shows 首页. 「重新上传照片」 closes the layer and stays on this screen; the avatar stays `'ready'`.
-    - `profile`: 「完成」 closes the layer, pops back to 我的形象 `/me/avatar` and shows the toast 「数字分身已更新」 (check icon). 「去首页试穿」 makes a contextual tab jump to 首页 `/home`. 我的 keeps `/me/avatar/upload` on its stack, so tapping 我的 afterwards shows this upload screen again.
-    - `new`: the result creates the avatar first (`VT.store.avatars.create(name, { status: 'ready', fullbody, portrait, generatedAt, demo: true })`), with an empty wardrobe and outfit, and makes it the active avatar. 「完成」 closes the layer, pops back to the screen that opened 新建数字分身 and toasts 「已切换到「{name}」」 (check icon). 「去首页试穿」 drops this screen from every stack, then goes to 首页 (pop on 首页's own stack, fade from 个人衣橱) and shows the same toast 300 ms later. 取消, Esc and back before the result create nothing.
-    - `hub` (started from 我的形象's 「重新生成」 through `VT.avatarGen.run`): the same two buttons. 「完成」 closes the layer and re-renders 我的形象 in place, which then shows 「更新于 …」, with the toast 「数字分身已更新」. 「去首页试穿」 goes to 首页.
+**Consent sheet** (`withConsent`; once, before the first photo or video). Title 「上传前请确认」. Lead: 「人脸和身材照片属于敏感个人信息。上传前，请了解我们如何使用它们：」. Three items:
+- 「用途」 「照片和视频仅用于生成你的数字分身和虚拟试衣效果」
+- 「存储」 「演示版只保存在本设备，不会上传到任何服务器；可随时在「我的形象」或「隐私与安全」中删除」
+- 「第三方处理」 「正式版将由第三方 AI 建模服务处理（服务商以正式协议为准），传输前会再次征得你的同意」
 
-**Data.** Reads `avatar.fullbody`, `avatar.portrait` and `avatar.status`. Writes:
-- `avatar.fullbody` / `avatar.portrait` = `{ src: JPEG data URL, name, w, h }`
-- `avatar.status`: `'none'` → `'ready'`, or `'ready'` → `'stale'` when a new photo is uploaded
-- `avatar.generatedAt`
-- `avatar.demo` (written but never read anywhere)
-- `setupDone` (through `enterMain`)
+Then a checkbox, 「我已阅读并同意《敏感个人信息处理规则》」, and the buttons 「不同意」 and 「同意并继续」. 同意并继续 stays disabled until the box is ticked.
+- 同意并继续 stores `mediaConsent = { v: 1, at }` and continues to the chosen method.
+- Closing without agreeing (不同意, ✕, scrim, Esc) shows the toast 「需要你的同意才能上传照片或视频」, and the step stays 选择上传方式.
 
-Side effect: `avatar.portrait.src` doubles as the fallback profile picture (`VT.ui.profilePhoto`, ui.js:93) on 我的, 编辑资料 and the AI造型师 user bubble, and as the thumbnail on the 我的形象 row of 我的 (10-profile.js:45). Keep `data-keep-scroll="av"`. The busy slot is transient UI state.
-**`VT.avatarGen` = `{ run(app), readImage(file, max = 900, quality = 0.8) }`.** `run` starts the generation in the `hub` context. Only 我的形象's 「重新生成」 calls it. 首页 uses `readImage` for garment photos (`520`, `0.82`). The other uploaders have their own copies with slightly different JPEG quality (for example 06-wardrobe.js:217, 09-orders.js:283, 10-profile.js:15), so the web build can share one helper.
+**Step 照片上传.**
+- Lead: 「请上传 5 张照片，确保展示完整的身材和面部特征」 / 「建议在光线充足、背景简洁的环境下拍摄。」.
+- 「拍摄建议」 card, one line each with an icon: 「保持自然站立，展示完整身体」 · 「身体与面部清晰，避免过度修图」 · 「使用均匀光线，避免逆光」 · 「穿着相对合身、能看清身体轮廓的普通服装」 · 「保持背景简洁」 · 「确保照片中只有目标人物」.
+- Five slots on a 6-column grid: ①「正面全身」 ②「背面全身」 ③「左侧全身」 (a third each, 164 px frames), then ④「右侧全身」 ⑤「面部生活照」 (a half each, 196 px frames). Each slot has a numbered label and a frame:
+  - **Empty:** the example photo (`avatar-onboarding/ref/<slot>.webp`, faded), the tag 「示例」 and a round ＋. The ＋ is a `<label>` around `<input type="file" accept="image/*">`, aria 「上传{label}」. On phones the native picker offers the camera.
+  - **Checking:** a dark overlay with a spinner and 「检测中…」.
+  - **Uploaded:** the photo, with a pill: 「通过」 (green) or 「需重拍」 (red). A failed slot also gets a red outline and its first problem under the frame. Two round buttons: ↻, a `<label>` with the file input (aria 「重新选择{label}」), and 🗑 (aria 「删除{label}」), which deletes the photo and toasts 「已删除{label}」.
+  - **Demo sample:** the example photo with the tag 「示例照片」.
+- Count row: 「已上传 {n}/5」, plus 「 · {k} 张需要重新上传」 (red) when photos fail, and the pill 「演示：使用示例照片」 **[demo]**. The pill fills all five slots with samples and toasts 「已填入示例素材（演示），不会用到你的照片」.
+- 「正确示范」 (green; 「符合以下要求，建模效果更好」): six examples, scrolling sideways: 头脚完整 · 自然站立 · 面部清晰 · 光线充足 · 背景简洁 · 单人入镜.
+- 「错误示范」 (red; 「请避免以下常见问题」): seven examples: 身体被裁剪 · 画面模糊 · 面部遮挡 · 滤镜过重 · 多人入镜 · 过暗或过曝 · 背景杂乱. Images `avatar-onboarding/wrong/*.webp`; `heavy_filter.webp` was made from the kit's face portrait.
+- Bottom: a hint, 「正在检测照片…」, 「请重新上传标记「需重拍」的照片」 or 「还差 {n} 张照片」, then 「下一步」 (→). 下一步 stays disabled until all five slots show 通过.
+- **A chosen photo** (`takePhoto`, HANDOFF §9.16):
+  1. If its type doesn't start with `image/` → toast 「请选择图片文件（JPG / PNG / HEIC 等）」.
+  2. Over 25 MB → toast 「图片超过 25MB，请换一张」.
+  3. The browser decodes it, so HEIC works only where the browser can decode it. If decoding fails → toast 「无法读取这张图片，请换一张试试」, and the slot keeps its previous photo.
+  4. The photo is measured, downscaled (longest side ≤ 900 px, JPEG 0.82) and stored as a Blob in IndexedDB. A replaced photo's blob is deleted.
+  5. The checks run in this order, and the slot shows the first problem:
+     - 「分辨率太低，请上传更清晰的原图」
+     - 「全身照请竖拍，让头到脚都在画面中」 (full-body slots only)
+     - 「光线过暗，请在明亮、均匀的光线下拍摄」 or 「画面过曝，请避开强光直射」
+     - 「画面模糊，请对焦后重新拍摄」
+     - 「与「{label}」是同一张照片，请换一张」 (always the later slot)
+
+**Step 视频上传.**
+- Lead: 「上传或拍摄一段 10 秒的全身展示视频，」 / 「帮助系统获取多角度身体信息。」.
+- Upload box: a video icon, 「上传视频 / 开始拍摄」 and 「支持 MP4、MOV，时长约 10 秒，不超过 200MB」. Two buttons:
+  - 「上传视频」: a `<label>` with `<input type="file" accept="video/*">`.
+  - 「开始拍摄」: opens the recorder. Where `MediaRecorder` or `getUserMedia` is missing: on a touch device it opens the system camera (`<input accept="video/*" capture="user">`); elsewhere the button is disabled, with the note 「当前浏览器不支持直接录制，请使用「上传视频」」 (the toast says the same).
+- While a video is being checked: 「正在检测视频…」 「读取时长并截取画面」.
+- Video card:
+  - The first frame with a play button (aria 「播放已上传的视频」), which opens the sheet 「视频预览」 (a `<video controls>`, 「视频只保存在本机内存中，用于本次创建」).
+  - The file name, 「时长 {s} 秒 · {w}×{h}」, the chip 「通过」 or 「需要重新上传」, and the first problem.
+  - Links: 「重新拍摄」, 「更换视频」 and 「删除」.
+- Demo sample **[demo]** (「演示：使用示例素材」): 「示例素材（无实际视频）」, 「演示：4 张示范截帧」, chip 「示例素材」.
+- 「请按以下顺序完成动作，保持全身在画面中」: four frames, each lit in turn (4.8 s loop; static with reduced motion):
+  - ①「正面站立」「面向镜头自然站立」
+  - ②「缓慢转身」「展示左右两侧」
+  - ③「展示背面」「背对镜头稍作停留」
+  - ④「完成一圈」「转回正面结束」
+- 「视频拍摄要求」: eight icons: 时长约 10 秒 · 全身入镜 · 镜头稳定 · 单人入镜 · 光线明亮均匀 · 背景简洁 · 姿态自然 · 衣物不宜过松.
+- 「错误示范」: 身体被裁剪 · 画面模糊 · 多人入镜 · 过暗或过曝.
+- Bottom: a hint, 「请上传或拍摄一段视频」, 「正在检测视频…」 or 「请重新上传或拍摄视频」, then 「下一步」. 下一步 stays disabled until the video shows 通过.
+- **A chosen video** (`takeVideo`, HANDOFF §9.16):
+  - Errors and their toasts:
+    - type isn't `video/*` → 「请选择视频文件（MP4 / MOV 等）」
+    - over 200 MB → 「视频超过 200MB，请缩短或压缩后再上传」
+    - can't be decoded → 「无法读取这段视频，请上传 MP4 或 MOV 格式」
+    - anything else → 「视频检测失败，请重试」
+  - The length comes from the file. WebM recordings report an infinite duration, so their length is read by seeking to the end, with the recorder's clock as the fallback.
+  - Four frames at 10 / 36 / 62 / 88 % are kept: ≤ 480 px, JPEG 0.82, in IndexedDB.
+  - The video itself stays in memory (an object URL) for this visit only.
+  - Problems:
+    - 「无法读取视频时长，请换一段视频」
+    - 「视频只有 {s} 秒，请拍摄约 10 秒」 (< 6 s)
+    - 「视频有 {n} 秒，请控制在 10 秒左右」 (> 20 s)
+    - 「视频分辨率太低，请用更高清晰度拍摄」 (short side < 360)
+    - 「画面过暗，请在明亮、均匀的光线下拍摄」
+    - 「画面模糊，请保持镜头稳定并对焦」
+
+**Recorder layer** (开始拍摄; `app.layer`, cls `cam av-rec`, aria 「拍摄展示视频」).
+- Layout:
+  - The camera preview (the front camera is mirrored) with a dashed body frame.
+  - Top: ✕ (aria 「关闭拍摄」), a timer 「00:00 / 00:10」 with a red dot, and a camera flip (aria 「切换前后摄像头」).
+  - Panel states: 「正在打开摄像头…」, or an error with the camera texts (HANDOFF §9.10) and the buttons 「重试」 and 「返回上传视频」.
+  - Bottom: the four steps as pills, the tip 「站到能拍到全身的位置，点击开始后有 3 秒准备」, and a record button (aria 「开始录制」, then 「停止录制」).
+- Recording:
+  - A tap starts a 3-2-1 countdown (1 with reduced motion), then records MP4 if supported, otherwise WebM.
+  - The lit step moves every 2.5 s and the tip follows it.
+  - Recording stops at 10 s or on a tap. The layer closes, and the video is checked like an upload (named 「录制视频.mp4」 or 「录制视频.webm」).
+  - Closing during a recording discards it and releases the camera.
+
+**Step 智能检测与确认.**
+- 「已上传的素材」 / 「请确认以下素材是否正确，或重新上传。」.
+- Materials card:
+  - Photos: 「照片（5/5）」, five thumbnails with their labels and ✎ (aria 「更换{label}」). ✎ goes back to 照片上传 and scrolls to that slot, which flashes and takes focus.
+  - Video: 「视频（1/1）」, the four frames, a play button (aria 「播放视频」) that opens 视频预览, and ✎ 「更换视频」.
+- 「素材检测结果」, with the note 「已在本机完成基础检测；人体、面部与背景识别需接入 AI 服务」. Each row has an icon, a title, a line saying how it was checked, and a status. Rows first show 「检测中」 (spinner), then their result one by one: 300 ms, then every 260 ms, all at once with reduced motion.
+
+| Row | Photos | Video |
+|---|---|---|
+| 基础检测 | 「格式、分辨率、竖拍、锐度、重复照片」 → 通过 / 需要重新上传 | 「格式、时长 {s} 秒、分辨率、画面锐度」 → 通过 / 需要重新上传 |
+| 身体完整度 | 无法检测 · 「需接入 AI 识别，演示版未检测」 | same |
+| 面部清晰度 | 「按面部照片的锐度检测，未做人脸识别」 → 通过 / 需要重新上传 | 无法检测 · 「需接入 AI 识别人脸，演示版未检测」 |
+| 背景简洁度 | 无法检测 | 无法检测 |
+| 光线质量 | 「5 张照片的亮度均在正常范围」 or 「{labels} 亮度异常」 | 「按截取画面的亮度检测」 |
+| 角度完整性 | 无法检测 · 「5 个角度均已上传，实际角度需 AI 识别」 | 无法检测 · 「需 AI 确认是否转身一圈」 |
+| 视频稳定性 | — | 无法检测 |
+
+- With demo samples, every row shows 无法检测. The measured rows say 「示例照片，未检测」 or 「示例素材，未检测」.
+- 「需要处理」 box, only when something failed. One line per fix, e.g. 「「左侧全身」光线过暗，请在明亮、均匀的光线下拍摄」, each with 「去重新上传」, which goes to that slot.
+  - **[demo]** With `?mockFail=avatar.check`, 身体完整度 shows 需要重新上传 (「演示：模拟识别结果」). The fix is tagged 「演示」 and reads 「正面全身照缺少脚部，请重新上传一张包含头部到脚部的完整照片。」 (video: 「视频中有画面缺少脚部，请重新拍摄，让头部到脚部始终在画面中。」). It clears once 正面全身 or the video is replaced.
+- 「拍摄要点」 box:
+  1. 「在光线充足的环境下拍摄，避免逆光或昏暗」
+  2. 「穿着相对合身的普通服装，能看清身体轮廓」
+  3. 「确保背景简洁、无杂物，画面中只有一人」
+- Bottom: 「重新上传」 (back to the upload step) and 「开始生成建模」 (→). 开始生成建模 is disabled while 需要处理 lists anything.
+
+**Step 生成建模** **[demo: simulated]**.
+- Heading: 「正在生成数字分身」, with the line 「我们正在根据你上传的素材，创建专属于你的数字分身。」.
+- Progress ring: `role="progressbar"`, aria 「生成进度」.
+  - With job status only (the demo), an arc keeps turning. The centre shows 「{n}/5」 and the stage name, and `aria-valuetext` reads 「第 n 步，共 5 步：{stage}」.
+  - A percentage (`aria-valuenow`) appears only when the service reports real progress.
+  - At 创建完成 the ring is full.
+  - Beside the ring: the preset model (`assets/people/avatar-base.webp`) with a light that moves down it.
+- 「模拟进度 · 演示版未接入建模服务」.
+- Stages:
+  1. 「素材解析中」 「分析上传的照片与视频」
+  2. 「身体模型生成中」 「构建身体结构与比例」
+  3. 「面部特征生成中」 「提取面部关键特征」
+  4. 「细节优化中」 「优化肤质与服装贴合」
+  5. 「创建完成」 「生成你的专属数字分身」
+
+  Done stages show a green ✓; the current one shows ●.
+- Card: 「建模完成后」 「即可进入虚拟试衣间，体验专属穿搭」.
+- Bottom: 「生成中…」 (disabled).
+- **Timing [demo]:** 6400 ms (1200 ms with reduced motion). Stage = ⌊elapsed / total × 4⌋ until the end, then 创建完成. The result follows 450 ms later.
+- **One job at a time.** A tap while a job is running is ignored, and the step's re-render replaces the button.
+- **Back while running** opens the dialog 「停止生成？」 「已上传的素材会保留，之后可以重新开始生成。」, with 「停止」 and 「继续生成」. 停止 returns to 智能检测 and toasts 「已取消生成」. Nothing is created.
+- **Failure [demo]**: `?mockFail=avatar.generate`, or `localStorage['vto-mock-fail']` (comma-separated; `*` = all). The job fails at 55 %, and the step shows:
+  - 「生成没有完成」 and 「你的素材已保留，可以直接重试」
+  - the ring with ⚠ 「生成失败」
+  - 「演示：模拟生成失败（?mockFail=avatar.generate）」 and 「服务暂时不可用，请稍后重试。重试不会重新上传素材。」
+  - the stages done so far with ✓, and the failed one with ✕ (red)
+
+  It also toasts 「生成失败，可以直接重试」. Bottom: 「返回检查」 and 「重试」. 重试 runs a new job on the same materials.
+
+**Step 创建完成.**
+- No back button. Heading: 「你的数字分身已创建！」.
+- Preview: the preset model, full body, in a 176 × 330 frame, labelled 「2D 形象预览 · 演示版」.
+- 「角色」 with the name, the tag 「本人」 for 本人, and 「修改名称」 (✎). 修改名称 opens the sheet 「修改名称」:
+  - For 本人, the field is 「昵称（本人的名称即你的昵称）」, max 12; empty → 「昵称不能为空」.
+  - For others, 「名称」, max 8; empty → 「请填写名称」.
+  - 「保存」 toasts 「名称已保存」.
+- 「演示原型使用预设的数字分身形象，并非三维模型；」 / 「真实产品将基于你上传的素材进行三维重建。」.
+- 「重新生成」 runs 生成建模 again on the same materials. 「更换素材」 goes back to the upload step.
+- Bottom, by context:
+  - `launch`: 「进入虚拟试衣间」 (→) runs `enterMain()`.
+  - `new`: the same label. It drops this screen from every stack, then shows 首页 and, 300 ms later, the toast 「已切换到「{name}」」.
+  - `profile`: 「去首页试穿」 drops this screen and goes to 首页; 「完成」 goes back to 我的形象 with the toast 「数字分身已更新」.
+- With demo samples it also toasts 「已使用示例素材生成演示分身」.
+
+**Other interactions.**
+- Back:
+  - 照片上传 / 视频上传 → 选择上传方式.
+  - 智能检测 → its upload step.
+  - 生成建模 → the stop dialog.
+  - 选择上传方式 → pop: `/welcome` on first launch, `/me/avatar` from 我的形象, or the screen that opened 新建数字分身 (nothing is created).
+- 「跳过」 (first launch only) sets `avatar.status = 'ready'` and `demo = true` if not ready yet, then runs `enterMain()`. 300 ms later it toasts 「已使用示例数字分身，可在「我的 → 我的形象」中更换」 **[demo]**.
+
+**我的形象 → 「重新生成」** (`VT.avatarGen.run`, the `hub` context). A full-screen layer (`.av-gen`, aria 「正在生成数字分身」) runs the same simulated job:
+- Content: 「正在重新生成数字分身」, the same ring, stage list and 「模拟进度 …」 note, and 「取消」.
+- 取消, Esc and back all cancel it and toast 「已取消生成」.
+- Result:
+  - 「数字分身已更新」, the 2D preview and 「演示原型使用预设的数字分身形象，并非三维模型」.
+  - 「完成」 closes the layer, re-renders 我的形象 and toasts 「数字分身已更新」.
+  - 「去首页试穿」 goes to 首页.
+
+**Data.** Reads `avatar`, `mediaConsent`, the active avatar's record and the profile name. Writes:
+- `mediaConsent = { v: 1, at }`
+- When generation finishes, `avatar = { status: 'ready', generatedAt, demo: true, materials, fullbody, portrait }`:
+  - `materials` is `{ method: 'photo', photos: { front, back, left, right, face } }`. Each photo is `{ media, name, w, h }`, or `{ src, name: '示例照片', sample: true }` for a sample.
+  - Or `materials` is `{ method: 'video', video: { name, sec, sample, frames: [{ media, w, h }] } }`.
+  - `fullbody` is the front photo or the first frame. `portrait` is the face photo, `null` for a video.
+- Where it goes:
+  - In the `new` context, `VT.store.avatars.create(name, avatar)` creates the avatar and makes it active.
+  - Otherwise the data replaces the active avatar's, and its old media are deleted.
+- `setupDone`, through `enterMain`.
+- Media (`js/media.js`, `VT.media`):
+  - Photos and frames are Blobs in IndexedDB (`vt-prototype-media` / `blobs`), referenced by key. The page reads them through object URLs.
+  - At start-up, old data URLs are migrated and unreferenced blobs are deleted, so an unfinished visit's drafts go. Starting another visit also deletes the previous visit's drafts.
+- Side effect: the face photo is the fallback profile picture (`VT.ui.profilePhoto`) and the 我的形象 thumbnail on 我的.
+
+**`VT.avatarGen` = `{ run(app), readImage(file, max = 900, quality = 0.8) }`.** 首页 uses `readImage` for garment photos.
 
 **States & edge cases.**
-- First launch vs 我的形象 vs `new`: only 「跳过」, the lead, the CTA label, the back target, where the photos are kept and the finish buttons differ. Uploads and generation work the same way.
-- A deep link without `from` behaves like first launch (its parent is 启动页).
-- `'stale'` means the photos changed since the last generation. Until the user regenerates, 我的形象 shows 「示例形象」 / 「尚未用你的照片生成」, and 启动页's 「开始体验」 sends `'stale'` to this screen.
-- HEIC files pass the type check, but browsers other than Safari usually can't decode them, so they get 「无法读取这张图片，请换一张试试」.
-- Edge case: pressing Esc in the last ~280 ms of progress still completes the generation after the layer has gone (status `'ready'`, and the samples toast if `usingSamples`).
+- A deep link without `from` behaves like first launch.
+- Leaving mid-visit drops the drafts. Coming back starts at 选择上传方式, with empty slots.
+- A slot that is still being checked has no ↻ or 🗑.
+- Replacing a photo re-checks duplicates for every slot.
+- The recorder and the camera layers stop the camera stream when they close, including during the close animation.
+- Errors from a video that can't be read leave the previous video in place.
+- In the `new` context nothing reaches the store until generation finishes. A second finish (重新生成) updates the avatar it created.
 
-**Components used.** `VT.ui.statusBar`, `VT.ui.backBtn`, `VT.ui.img`, `.scroll`, `.btn--dark.btn--xl` + `.btn-arrow`, `.btn--ghost.btn--lg.btn--block`, `.spinner`, `.sr-only` file input, the local `stepper()` (`.av-steps`), `app.layer`, `app.toast`, `app.refresh`, `app.enterMain`, `app.back`, `app.go`.
+**Deliberate differences from the mockup** (all from the brief):
+- The subtitle uses the brief's copy (no 3D claim) and the 拍摄建议 card is added.
+- The video takes 10 s (the mockup says 10–15 s).
+- 「AI 智能检测结果」 / 「系统已完成素材质量检测」 become 「素材检测结果」 and an honest note. Rows that can't be measured show 无法检测.
+- The mockup's 「68%」, 「预计用时约 1-2 分钟」 and 「预计还需约 40 秒」 become stages and a step count. 「高精度的 3D 数字分身」 is not claimed.
+- 背景简洁度 is used for the brief's 背景清晰度 (Background suitability), following the mockup's 「背景简洁」.
 
-**Acceptance checks.** `开始体验 → avatar creation` · `photo upload previews` · `non-image rejected` · `AC1: setup complete → 首页 (virtual fitting room)` · `setupDone stored` · `我的形象 → 上传照片` (asserts there is no 「跳过」) · `generate → back to 我的形象` · `重新生成 stays on 我的形象` (`VT.avatarGen.run`, hub context).
+**Components used.** `VT.ui.statusBar`, `VT.ui.backBtn`, `VT.ui.img`, `.scroll`, `.btn--dark.btn--xl` + `.btn-arrow`, `.btn--ghost`, `.spinner`, `.sr-only` file inputs, the local `stepper()` (`.av-steps`), `app.sheet`, `app.layer`, `app.dialog`, `app.toast`, `app.refresh`, `app.later`, `app.enterMain`, `app.back`, `app.drop`, `app.go`, `VT.camera.errorCopy` / `blockedByHost`, `VT.media`.
+
+**Acceptance checks.** `开始体验 → avatar creation` · `选择上传方式: 照片上传 or 视频上传, 跳过 kept, 4-step progress` · `consent before any upload (purpose, on-device, deletion, third-party AI); 不同意 uploads nothing` · `consent stored` · `照片上传: 4 full-body angles + 面部生活照, each with an example; tips; 正确 / 错误示范` · `下一步 disabled until the photos pass` · `non-image rejected` · `real checks: too dark, blurry and the same photo twice → 需重拍 with the fix` · `delete a photo → its slot shows the example again` · `replacing them: 5 × 通过, 下一步 enabled` · `photos stay on this device in IndexedDB, never in localStorage` · `智能检测: what the browser measured 通过, AI-only checks 无法检测` · `the materials are previewed before generating, each replaceable` · `生成建模: 5 stages, labelled as simulated, no percentage or time estimate` · `创建完成: a 2D preview (not called 3D), name, 修改名称 / 重新生成 / 更换素材` · `AC1: setup complete → 首页 (virtual fitting room)` · `setupDone stored` · `the avatar keeps its 5 photos as IndexedDB references` · `我的形象 → 上传照片` · `demo samples: no check is claimed as passed` · `generate → back to 我的形象` · `重新生成 stays on 我的形象` · `新建数字分身: one new avatar, its own empty wardrobe, now active` · `the new avatar is listed in 切换角色` · and the 创建数字分身 block: `视频上传: the turn shown in 4 steps, 8 capture conditions, 上传视频 + 开始拍摄` · `a 3-second video fails its length check; 下一步 stays disabled` · `a 10-second video passes (length read from the file)` · `the video plays back before it is submitted` · `开始拍摄 (MediaRecorder): 3-2-1, a 10 s timer with the turn steps, then checked like an upload` · `智能检测 (video): 4 frames + play; format/length and light measured, the rest 无法检测` · `failed generation shows where it stopped; 重试 (same materials) → 创建完成` · `a video avatar keeps 4 frames on the device, not the video` · `a failed check (simulated AI result, labelled 演示) names the fix; replacing the photo clears it` · `隐私与安全 → 清除已上传的照片 deletes the avatar media from the device` · `360 px: every step of 创建数字分身 fits the width`.
 
 
 ## The five tabs
@@ -1070,7 +1237,9 @@ Shared by every screen in this group:
     - Left: a taupe plate (`assets/backgrounds/fitting-plate.webp`) holding the full-body figure `assets/people/avatar-base.webp`. It is **always the preset figure**, whatever the state.
     - Right, top to bottom: the status chip, title 「我的数字分身」 (an avatar other than 本人 shows its name), the status line, the note 「2D 形象预览 · 演示版」 **[demo]**, and a small dark button 「去试衣间」 (dress icon) pinned to the bottom.
   - **「生成照片」.** A card with two tiles, 「全身照」 and 「生活照」.
-    - Each tile shows the uploaded photo (`avatar.fullbody.src` / `avatar.portrait.src`) or a sample (`assets/people/upload-fullbody.webp` / `upload-portrait.webp`). A caption pill shows the label plus 「已上传」 or 「示例」. The tiles cannot be tapped.
+    - Each tile shows the avatar's own image or a sample (`assets/people/upload-fullbody.webp` / `upload-portrait.webp`). A caption pill shows the label plus 「已上传」 or 「示例」. The tiles cannot be tapped.
+      - 全身照: `VT.media.src(avatar.fullbody)`, which is the 正面全身 photo, or the first frame of a video.
+      - 生活照: `VT.media.src(avatar.portrait)`, which is the 面部生活照 photo. A video avatar has none, so it shows the sample.
     - Under the card: a ghost button 「更换照片」 (upload icon) and a dark button 「重新生成」 (refresh icon).
   - **「身材数据」.**
     - Row 「身高 / 体重」, value 「{height} cm · {weight} kg」.
@@ -1084,8 +1253,8 @@ Shared by every screen in this group:
 
 **Interactions.**
 - 「去试衣间」 (`data-act="tab"`) → **switches tab** to 首页 exactly like the tab bar (`{tab:true}`). 首页 keeps its own stack, there is no animation, and 我的 stays on 我的形象.
-- 「更换照片」 → **push** the avatar upload screen `avatar` with `{from:'profile'}`, at `/me/avatar/upload` (see the note at the end of this section). The task brief and acceptance check call this button 上传照片.
-- 「重新生成」 → runs the generation layer in place (`VT.avatarGen.run(app)`, context `hub`). Missing photos are replaced by samples.
+- 「更换照片」 → **push** the avatar upload screen `avatar` with `{from:'profile'}`, at `/me/avatar/upload`. It starts at 选择上传方式 (see the note at the end of this section). The task brief and acceptance check call this button 上传照片.
+- 「重新生成」 → runs the generation layer in place (`VT.avatarGen.run(app)`, context `hub`), from the avatar's current materials.
 - Either 身材数据 row → the 身材数据 sheet.
 - The two switches flip `avatarPrefs.*`.
 
@@ -1099,21 +1268,17 @@ Shared by every screen in this group:
     2. Weight → 「体重请填写 30–150 kg」.
     3. Shoe size → 「鞋码请填写 33–46」.
   - Success → `body = { height, weight, size, shoe: String(shoe) }` (height and weight stay numbers). The sheet closes, the screen refreshes, and the toast 「身材数据已更新」 (✓) shows.
-- **Full-screen generation layer** (`.av-gen`, the same layer as first launch):
-  - Stepper at step 2: 「上传照片」 ✓, 「生成建模」 current, 「完成」.
-  - A scanning card showing the uploaded full-body photo, or the sample.
-  - A percentage from 0 to 100 and a progress bar. They run for **4200 ms** (900 ms with reduced motion) on an ease-out curve.
-  - Four stage lines, 「解析身材比例与体型特征」「识别面部特征与发型」「构建数字分身模型」「匹配肤色与光影细节」, each lighting up per 24 % step.
-  - If a photo is missing: 「未上传全部照片，演示将使用示例照片」.
-  - 「取消」 → the layer closes, toast 「已取消生成」, nothing is stored (unless pressed after progress reaches 100 %, HANDOFF §13.2 #2). Esc also closes it, but with no toast.
-  - **350 ms** after 100 %:
+- **Full-screen generation layer** (`.av-gen`, aria 「正在生成数字分身」). It runs the same simulated job as the upload screen's 生成建模 step **[demo]** (SCREENS.md 2, 「我的形象 → 「重新生成」」):
+  - The 4-step progress at step 3, and 「正在重新生成数字分身」.
+  - The indeterminate ring with 「{n}/5」 and the stage name, the preset figure, 「模拟进度 · 演示版未接入建模服务」 and the five stages.
+  - Timing: **6400 ms** (1200 ms with reduced motion).
+  - 「取消」, Esc and back all close it, toast 「已取消生成」 and store nothing.
+  - **450 ms** after the last stage:
     - The store gets `avatar.status = 'ready'`, `generatedAt = Date.now()` and `demo = true`.
-    - The stepper moves to step 3, and a result card shows the preset avatar with 「数字分身已生成」 and 「演示原型使用预设的数字分身（2D 形象预览）。」 + line break + 「真实产品将基于你上传的照片进行三维重建。」 **[demo]**.
-    - If samples were used, the toast 「已使用示例照片生成演示分身」 shows.
+    - The progress moves to step 4, and the layer shows 「数字分身已更新」, the preset avatar labelled 「2D 形象预览 · 演示版」 and 「演示原型使用预设的数字分身形象，并非三维模型」.
   - Result buttons:
     - 「完成」 → the layer closes, 我的形象 re-renders, toast 「数字分身已更新」 (✓).
     - 「去首页试穿」 → **contextual tab jump** to 首页 (`app.go('fitting')`: the tab's root, with a fade). 我的 stays on 我的形象 and there is no toast.
-  - The whole generation is simulated **[demo]**.
 
 **Data.**
 - Reads `avatar.{status,fullbody,portrait,generatedAt}`, `body` (default `{ height: 165, weight: 48, size: 'M', shoe: '37' }`) and `avatarPrefs` (both default true). `avatar` and `body` are the **active avatar's** (a new avatar starts from the default body data); `avatarPrefs` are shared by all avatars.
@@ -1122,7 +1287,7 @@ Shared by every screen in this group:
 
 **States & edge cases.**
 - `status === 'ready'`: the chip shows ✓ 「已生成」 in green. The status line is 「更新于 {M}月{D}日 {HH}:{mm}」 when `generatedAt` is set (local time; month and day not zero-padded, time zero-padded, e.g. 「更新于 10月9日 08:53」). Without it the line is 「使用示例照片生成」; this happens when the avatar became ready via 跳过, 启动页 登录, or 商品详情 试穿上身.
-- Any other status (`none`, or `stale` after replacing a photo): the chip shows a neutral 「示例形象」 and the line is 「尚未用你的照片生成」. In normal use, `none` can only be reached by a deep link, because setup always ends with `ready`.
+- Any other status (`none` or `stale`): the chip shows a neutral 「示例形象」 and the line is 「尚未用你的照片生成」. In normal use, `none` can only be reached by a deep link, because setup always ends with `ready`. The upload flow replaces an avatar's photos only when a generation finishes, so `stale` now comes only from data saved before 21 Oct 2026.
 - After 重新生成, only the chip and the status line change. The hero figure and the photo tiles stay the same.
 - The photo tiles follow uploads, not status. For example, after 清除已上传的照片 the status is still `ready` but both tiles show 「示例」.
 
@@ -1130,12 +1295,13 @@ Shared by every screen in this group:
 
 **Acceptance checks.** `我的 → 我的形象`, `我的形象 → back → 我的`, `我的形象 → 上传照片`, `generate → back to 我的形象`, `重新生成 stays on 我的形象`, `avatar preference toggle`.
 
-**See also: the upload screen at `/me/avatar/upload`.** This is `avatar` with `from: 'profile'`. Its full spec is in the launch flow's 上传照片 section (`/welcome/avatar`). Seen from 我的形象, it differs from first launch in five ways:
+**See also: the upload screen at `/me/avatar/upload`.** This is `avatar` with `from: 'profile'`. Its full spec is in the launch flow's 上传照片 / 视频 section (`/welcome/avatar`). Seen from 我的形象, it differs from first launch in four ways:
 1. There is no 「跳过」.
-2. The CTA reads 「重新生成数字分身」.
+2. 创建完成 shows 「去首页试穿」 and 「完成」 instead of 「进入虚拟试衣间」.
 3. 「完成」 pops back to `/me/avatar` and shows 「数字分身已更新」.
-4. 「去首页试穿」 leaves the upload screen on 我的's stack.
-5. A picked photo is stored at once. Going back without regenerating leaves the avatar `stale`, so 我的形象 then shows 「示例形象」 / 「尚未用你的照片生成」.
+4. 「去首页试穿」 drops the upload screen first, so 我的 returns to 我的形象 (HANDOFF §13.2 #5).
+
+The avatar keeps its current photos until a generation finishes. Leaving midway leaves it as it was, and the unfinished drafts are deleted.
 
 
 ### 16. 我的资料 · `editprofile`
@@ -1393,7 +1559,10 @@ Shared by every screen in this group:
 **Interactions.**
 - 「登录密码」 → toast 「演示版暂不支持修改密码」 **[demo]**.
 - The two switches flip `privacy.*`.
-- 「清除已上传的照片」 → dialog. On confirm, it sets `avatar.fullbody`, `avatar.portrait` (of every digital avatar) and `profile.photo` to `null` and empties every `returns[oid].photos`. Toast 「已清除本机照片」 (✓). `avatar.status` does not change. Wardrobe garment uploads are not touched. This screen does not re-render (nothing on it changes).
+- 「清除已上传的照片」 → dialog. On confirm:
+  - It deletes the avatar photos and video frames from the device (IndexedDB, `VT.media`).
+  - It sets `avatar.fullbody`, `avatar.portrait` and `avatar.materials` (of every digital avatar) and `profile.photo` to `null`.
+  - It empties every `returns[oid].photos`. Toast 「已清除本机照片」 (✓). `avatar.status` does not change. Wardrobe garment uploads are not touched. This screen does not re-render (nothing on it changes).
 - 「导出我的数据」 → toast 「演示版暂不支持导出数据」 **[demo]**.
 - 「注销账号」 → info dialog only; nothing changes **[demo]**.
 

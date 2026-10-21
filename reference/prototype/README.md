@@ -18,7 +18,7 @@ A high-fidelity, interactive HTML/CSS/JS prototype of the virtual try-on & perso
 
 | Primary screens (bottom tabs) | Secondary screens (back button, no tab bar) |
 |---|---|
-| 1 首页 · 虚拟试衣间 | 启动页 → 上传照片 · 创建数字分身 (first launch only) |
+| 1 首页 · 虚拟试衣间 | 启动页 → 上传照片 / 视频 · 创建数字分身 (选择上传方式 → 照片 or 视频 → 智能检测 → 生成建模 → 完成; first launch only) |
 | 2 购物广场 | 商品详情 → 结算下单 → 支付成功 · 商家店铺 (from a store banner's 进入店铺, 商品详情's brand row or 商家消息) · 商家消息 |
 | 3 个人衣橱 | 搭配集详情 · 穿搭瞬间 · 商品详情 (from any item) |
 | 4 AI 造型师 | 商品详情, look sheets |
@@ -55,10 +55,12 @@ js/store.js             state + localStorage persistence
 js/ui.js                shared render helpers (tab bar, sub-page header, list rows, switches…)
 js/app.js               navigation (per-tab stacks, launch flow), transitions, events, overlays
 js/camera.js            video try-on camera preview (getUserMedia)
+js/media.js             avatar photos and video frames as Blobs in IndexedDB (never in localStorage)
 js/screens/01–09        onboarding, avatar, 首页, 购物广场, product, 衣橱 (+ 搭配集详情, 穿搭瞬间), AI 造型师, checkout, orders
 js/screens/10–15        我的, account & settings, 我的形象, 我的收藏 / 浏览记录, 商家消息, 商家店铺
 js/showcase.js          board, simulator, mobile/solo mode, deep links
 assets/people|clothing|icons|backgrounds|ui|fonts|wardrobe (个人衣橱 V2 kit: portraits, square garment shots, 搭配集 covers, 穿搭瞬间 photos)
+                        |avatar-onboarding (创建数字分身 kit: reference photos, 正确 / 错误示范, turn frames, method previews)
 docs/                   comparison screenshots + feature report
 tools/                  font subsetting + the asset pipeline used to prepare images
 ```
@@ -74,6 +76,7 @@ tools/                  font subsetting + the asset pipeline used to prepare ima
   python3 tools/subset_fonts.py
   ```
   This needs Noto Sans CJK **2.004** (`NotoSansCJK-{Regular,Medium,Bold,Black}.ttc` from [noto-cjk Sans2.004](https://github.com/notofonts/noto-cjk/tree/Sans2.004/Sans/OTC) or the `fonts-noto-cjk` package), read from `$VT_FONTS_SRC`, the repo's git-ignored `fonts-src/`, `~/.cache/vto3d/fonts/noto-cjk-2.004/` or the Debian/Ubuntu font folders. Another version would change the existing glyphs and line metrics; the script warns when it does. Inter is optional: it is cut to a fixed Latin range that new copy never changes. The script fails if any collected character the source has is missing from the result. Until you re-run it, new characters fall back to the system font (PingFang SC / Microsoft YaHei).
-- Demo state (setup flag, digital avatars with their wardrobes, 搭配集 and 穿搭瞬间, orders, favourites, profile, addresses, chat, uploads, the 首页 backdrop) is stored in `localStorage` under `vt-prototype-state-v1`. 首页's 我的上传 (garment photos for try-on) lives in `sessionStorage` under `vt-fit-uploads-v1`, so it lasts for the browser session only.
+- Demo state (setup flag, digital avatars with their wardrobes, 搭配集 and 穿搭瞬间, orders, favourites, profile, addresses, chat, uploads, the 首页 backdrop) is stored in `localStorage` under `vt-prototype-state-v1`. 首页's 我的上传 (garment photos for try-on) lives in `sessionStorage` under `vt-fit-uploads-v1`, so it lasts for the browser session only. Avatar photos and video frames live in IndexedDB (`vt-prototype-media`); the state keeps only their keys.
+- Demo failures for the avatar flow: `?mockFail=avatar.generate` (generation fails at 55 %) and `?mockFail=avatar.check` (a simulated AI check fails until 正面全身 is replaced), or the same names in `localStorage['vto-mock-fail']`.
 
 See `docs/REPORT.md` for which features are real and which are simulated.

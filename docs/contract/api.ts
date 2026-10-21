@@ -11,8 +11,11 @@ import type {
   AddressInput,
   Avatar,
   AvatarCreateInput,
+  AvatarCheck,
   AvatarJob,
   AvatarPhotoKind,
+  MediaConsent,
+  UploadOptions,
   Banner,
   Body,
   CategoryTab,
@@ -161,9 +164,10 @@ export interface Api {
   /** DRAFT: the account's digital avatars, 本人 first (HANDOFF §9.15, §13.1 #14) */
   avatars: {
     list(): Promise<Avatar[]>;
-    /** 新建数字分身: creates the avatar from the picked photos and starts generating it. Cancelling the
-     *  job removes the avatar again, so a cancelled creation leaves nothing behind. */
-    create(input: AvatarCreateInput): Promise<{ avatar: Avatar; job: AvatarJob }>;
+    /** 新建数字分身: an avatar that stays unlisted until its first generation finishes. Its materials
+     *  are uploaded and generated with the `avatar` calls. Leaving the flow before that removes it
+     *  (`remove`); the server also drops unfinished ones after 24 h. */
+    create(input: AvatarCreateInput): Promise<Avatar>;
     /** rejects with VALIDATION for 本人 (rename the profile instead) */
     rename(avatarId: string, name: string): Promise<Avatar>;
     /** deletes the avatar with its photos and wardrobe; rejects with VALIDATION for 本人 */
@@ -173,11 +177,22 @@ export interface Api {
   /** DRAFT: one avatar's photos, generation and body data; the calls name the avatar */
   avatar: {
     get(avatarId: string): Promise<Avatar>;
-    /** stores a photo (already downscaled); a ready avatar becomes 'stale' */
-    uploadPhoto(avatarId: string, kind: AvatarPhotoKind, image: Blob, fileName: string): Promise<Avatar>;
+    /** DRAFT: stores a photo (already downscaled and checked, HANDOFF §9.16) in the avatar's draft;
+     *  the current avatar is untouched until a generation from the draft finishes */
+    uploadPhoto(avatarId: string, kind: AvatarPhotoKind, image: Blob, fileName: string, opts?: UploadOptions): Promise<Avatar>;
+    /** DRAFT: stores a video (≤ 200 MB, 6–20 s) as the draft; the server takes the preview frames */
+    uploadVideo(avatarId: string, video: Blob, fileName: string, opts?: UploadOptions): Promise<Avatar>;
+    /** DRAFT: removes one draft photo, or the draft video */
+    removeMaterial(avatarId: string, kind: AvatarPhotoKind | 'video'): Promise<Avatar>;
+    /** DRAFT: drops the whole draft (leaving the upload flow) */
+    discardDraft(avatarId: string): Promise<Avatar>;
+    /** DRAFT: the AI quality checks of the draft (智能检测). The mock answers 'unavailable' for all */
+    check(avatarId: string): Promise<AvatarCheck[]>;
     /** use the preset demo avatar without generating (跳过, 登录, 试穿 before setup) */
     useDemo(avatarId: string): Promise<Avatar>;
-    /** start generating from the stored photos (samples stand in for missing ones) */
+    /** start generating from the draft (重新生成: from the current materials). When the job is done
+     *  the draft becomes the avatar's materials and the avatar is 'ready'. One job per avatar at a time:
+     *  while one runs, this resolves with that job. */
     generate(avatarId: string): Promise<AvatarJob>;
     job(jobId: string): Promise<AvatarJob>;
     cancel(jobId: string): Promise<void>;
@@ -237,8 +252,12 @@ export interface Api {
   };
 
   privacy: {
-    /** 清除已上传的照片: avatar photos, profile photo and return evidence */
+    /** 清除已上传的照片: avatar photos and videos (with their frames), profile photo and return evidence */
     clearUploadedPhotos(): Promise<void>;
+    /** DRAFT: the consent to process face and body media, null before the first agreement */
+    mediaConsent(): Promise<MediaConsent | null>;
+    /** DRAFT: records the agreement (上传前请确认) before anything is uploaded */
+    recordMediaConsent(version: number): Promise<MediaConsent>;
   };
 
   support: {
