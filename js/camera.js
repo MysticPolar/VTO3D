@@ -236,5 +236,5 @@
     return ov;
   }
 
-  VT.camera = { open, capture };
+  VT.camera = { open, capture, errorCopy, blockedByHost };
 })();

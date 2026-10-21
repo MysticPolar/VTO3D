@@ -93,7 +93,7 @@
     profilePhoto(s) {
       const self = s.avatars && s.avatars.find((a) => a.self);
       const a = self && self.id !== s.activeAvatar ? self.data && self.data.avatar : s.avatar;
-      return (s.profile && s.profile.photo) || (a && a.portrait && a.portrait.src) || 'assets/people/chat-user.webp';
+      return (s.profile && s.profile.photo) || (a && VT.media.src(a.portrait)) || 'assets/people/chat-user.webp';
     },
   };
 
