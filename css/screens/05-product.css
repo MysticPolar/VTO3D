@@ -30,8 +30,13 @@
 .pd-rating svg { width: 16.5px; height: 16.5px; margin-right: 2px; }
 .pd-rating b { font-weight: 500; }
 .pd-rating span { color: #7A736C; font-weight: 400; }
-.pd-brand { display: inline-flex; align-items: center; gap: 6px; margin-top: -0.2px; font-family: "VT Inter", var(--font); font-size: 13.3px; color: #6F6862; letter-spacing: .01em; height: 22px; }
+.pd-brand { position: relative; display: inline-flex; align-items: center; gap: 6px; margin-top: -0.2px; font-family: "VT Inter", var(--font); font-size: 13.3px; color: #6F6862; letter-spacing: .01em; height: 22px; }
+.pd-brand::after { content: ''; position: absolute; inset: -11px -6px; } /* 44px touch target */
 .pd-brand svg { width: 14px; height: 14px; }
+/* the store entry: its logo, the brand and 进入店铺 (opens the store's page) */
+.st-logo--pd { width: 20px; height: 20px; font-size: 7.6px; letter-spacing: 0; }
+.st-logo--pd.is-word { font-size: 6.2px; }
+.pd-brand-go { display: inline-flex; align-items: center; gap: 1px; margin-left: 3px; padding-left: 9px; border-left: 1px solid #DDD5CC; font-family: var(--font-cjk); font-size: 12px; line-height: 13px; color: #8A837C; }
 .pd-price { margin-top: -0.6px; }
 .pd-price .price { font-size: 25px; font-weight: 800; color: #161514; letter-spacing: -.02em; }
 .pd-price .price-cur { font-size: 16px; margin-right: 2px; }

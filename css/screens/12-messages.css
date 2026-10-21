@@ -14,3 +14,17 @@
 .msg-main em { font-style: normal; font-size: 12.5px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .msg-h { margin: 18px 4px 10px; font-size: 13px; font-weight: 700; color: var(--text-2); }
 .msg-empty { padding-top: 40px; }
+
+/* a store chat row: the store's avatar is its own button on top of the row (opens the store's page);
+   the row keeps an empty face of the same size, so the layout is unchanged */
+.msg-item { position: relative; }
+.msg-row .msg-face:empty { width: 44px; height: 44px; }
+.msg-shop { position: absolute; left: 12px; top: 50%; width: 44px; height: 44px; margin-top: -22px; border-radius: 50%; }
+
+/* chat sheet header: the store's avatar and name, one button (opens the store's page) */
+.ov--chat .sheet-head h3 { min-width: 0; }
+.mchat-who { display: inline-flex; align-items: center; gap: 9px; max-width: 100%; text-align: left; letter-spacing: inherit; }
+.mchat-who span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mchat-who svg { flex: none; width: 15px; height: 15px; color: var(--text-3); }
+.st-logo--chat { width: 30px; height: 30px; font-size: 10.5px; letter-spacing: .02em; }
+.st-logo--chat.is-word { font-size: 8.6px; }
