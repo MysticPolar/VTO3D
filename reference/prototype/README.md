@@ -55,7 +55,7 @@ js/store.js             state + localStorage persistence
 js/ui.js                shared render helpers (tab bar, sub-page header, list rows, switches…)
 js/app.js               navigation (per-tab stacks, launch flow), transitions, events, overlays
 js/camera.js            video try-on camera preview (getUserMedia)
-js/media.js             avatar photos and video frames as Blobs in IndexedDB (never in localStorage)
+js/media.js             personal photos (avatar, 头像, 售后凭证, AI 造型师) as Blobs in IndexedDB (never in localStorage)
 js/screens/01–09        onboarding, avatar, 首页, 购物广场, product, 衣橱 (+ 搭配集详情, 穿搭瞬间), AI 造型师, checkout, orders
 js/screens/10–14        我的, account & settings, 我的形象, 我的收藏 / 浏览记录, 商家消息
 js/showcase.js          board, simulator, mobile/solo mode, deep links
@@ -76,7 +76,7 @@ tools/                  font subsetting + the asset pipeline used to prepare ima
   python3 tools/subset_fonts.py
   ```
   This needs Noto Sans CJK **2.004** (`NotoSansCJK-{Regular,Medium,Bold,Black}.ttc` from [noto-cjk Sans2.004](https://github.com/notofonts/noto-cjk/tree/Sans2.004/Sans/OTC) or the `fonts-noto-cjk` package), read from `$VT_FONTS_SRC`, the repo's git-ignored `fonts-src/`, `~/.cache/vto3d/fonts/noto-cjk-2.004/` or the Debian/Ubuntu font folders. Another version would change the existing glyphs and line metrics; the script warns when it does. Inter is optional: it is cut to a fixed Latin range that new copy never changes. The script fails if any collected character the source has is missing from the result. Until you re-run it, new characters fall back to the system font (PingFang SC / Microsoft YaHei).
-- Demo state (setup flag, digital avatars with their wardrobes, 搭配集 and 穿搭瞬间, orders, favourites, profile, addresses, chat, uploads, the 首页 backdrop) is stored in `localStorage` under `vt-prototype-state-v1`. 首页's 我的上传 (garment photos for try-on) lives in `sessionStorage` under `vt-fit-uploads-v1`, so it lasts for the browser session only. Avatar photos and video frames live in IndexedDB (`vt-prototype-media`); the state keeps only their keys.
+- Demo state (setup flag, digital avatars with their wardrobes, 搭配集 and 穿搭瞬间, orders, favourites, profile, addresses, chat, uploads, the 首页 backdrop) is stored in `localStorage` under `vt-prototype-state-v1`. 首页's 我的上传 (garment photos for try-on) lives in `sessionStorage` under `vt-fit-uploads-v1`, so it lasts for the browser session only. Avatar photos and video frames, the profile photo, return evidence and the photos sent to AI 造型师 live in IndexedDB (`vt-prototype-media`); the state keeps only their keys.
 - Demo failures for the avatar flow: `?mockFail=avatar.generate` (generation fails at 55 %) and `?mockFail=avatar.check` (a simulated AI check fails until 正面全身 is replaced), or the same names in `localStorage['vto-mock-fail']`.
 
 See `docs/REPORT.md` for which features are real and which are simulated.

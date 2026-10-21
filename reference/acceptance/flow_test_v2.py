@@ -1,4 +1,4 @@
-"""Acceptance test used to verify the HTML prototype (162 checks, all passing on v2).
+"""Acceptance test used to verify the HTML prototype (167 checks, all passing on v2).
 
 Port these CHECKS (not the selectors) to the web app's Playwright suite.
 Run against the prototype:
@@ -404,7 +404,7 @@ async def main():
         await app.locator('.me-photo input').set_input_files(FIX + 'me_face.jpg')
         await pg.wait_for_timeout(700)
         src = await app.locator('.me-photo > img').get_attribute('src')
-        check('change profile picture', src.startswith('data:image/jpeg'))
+        check('change profile picture', src.startswith('blob:'), src[:40])  # an object URL: the photo itself is in IndexedDB
         # avatar management → upload new photos → generate → back to 我的形象
         await app.locator('.me-row[data-to="avatarhub"]').click()
         await pg.wait_for_timeout(450)
@@ -832,6 +832,98 @@ async def main():
         eager = await pp.locator('.screen.is-active .fit-thumb-img:not([loading="lazy"])').count()
         lazy = await pp.locator('.screen.is-active .fit-thumb-img[loading="lazy"]').count()
         check('首页 rail loads off-screen thumbnails lazily', eager == 8 and lazy == 6, f'{eager} eager · {lazy} lazy')
+        await b.close()
+
+        # ---- 头像, 售后凭证 and AI 造型师 photos: Blobs in IndexedDB like the avatar media, never data URLs in localStorage
+        b = await p.chromium.launch()
+        c = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2)
+        hp = await c.new_page()
+        hp.on('console', lambda m: errors.append(f'photos {m.type}: {m.text}') if m.type in ('error', 'warning') else None)
+        hp.on('pageerror', lambda e: errors.append('photos pageerror: ' + str(e)))
+        hp.on('requestfailed', lambda r: errors.append('photos requestfailed: ' + r.url))
+        ha = hp.locator('.screen.is-active')
+        OID, OID2 = 'VT20260715092418', 'VT20260710151207'  # 运输中 and 待收货: both can file a return
+        idb = lambda: hp.evaluate(IDB_COUNT)
+        saved = lambda: hp.evaluate("localStorage.getItem('vt-prototype-state-v1') || ''")
+        refs = f"(() => {{ const s = VT.store.get(); return [s.profile.photo, ...(s.returns['{OID}'] || {{ photos: [] }}).photos, ...s.chat.filter((m) => m.img).map((m) => m.img)].map((r) => (r && r.media ? 'media' : String(r).slice(0, 11))).join(','); }})()"
+
+        async def visit(screen, oid=None):
+            await hp.goto(BASE + f'?app={screen}' + (f'&oid={oid}' if oid else '')); await hp.wait_for_timeout(700)
+
+        async def shown(sel):
+            """the srcs of the active screen's `sel` images, once they are object URLs (they load after the first render)"""
+            try:
+                await hp.wait_for_function(f"() => {{ const i = [...document.querySelectorAll('.screen.is-active {sel}')]; return i.length && i.every((e) => e.src.startsWith('blob:')); }}", timeout=5000)
+            except Exception:
+                pass
+            return await ha.locator(sel).evaluate_all('els => els.map((e) => e.getAttribute("src"))')
+
+        await visit('profile'); await hp.evaluate('localStorage.clear(); sessionStorage.clear()')
+        await visit('profile')
+        for name in ('me_face.jpg', 'me_full.jpg'):  # the second replaces the first
+            await ha.locator('.me-photo input').set_input_files(FIX + name); await hp.wait_for_timeout(500)
+        head = await shown('.me-photo > img')
+        await visit('returns', OID)
+        await ha.locator('.or-reason').first.click()
+        for name in ('my_jacket.jpg', 'me_full.jpg'):
+            await ha.locator('input[data-change="photo"]').set_input_files(FIX + name); await hp.wait_for_timeout(500)
+        await ha.locator('.rt-del').nth(1).click(); await hp.wait_for_timeout(300)  # ✕ deletes the second
+        await ha.locator('[data-act="submit"]').click(); await hp.wait_for_timeout(600)
+        await visit('stylist')
+        await ha.locator('[data-act="plus"]').click(); await hp.wait_for_timeout(400)
+        await hp.locator('.ov .st-up input').set_input_files(FIX + 'my_jacket.jpg')
+        await hp.wait_for_selector('.screen.is-active .st-bubble--img img'); await hp.wait_for_timeout(400)
+        bubble = await shown('.st-bubble--img img')
+        n, kept, raw = await idb(), await hp.evaluate(refs), await saved()
+        check('头像, 售后凭证 and AI 造型师 photos stay on this device in IndexedDB, never in localStorage', head[0].startswith('blob:') and bubble[0].startswith('blob:') and n == 3 and kept == 'media,media,media' and 'data:image' not in raw, f'{n} blobs, refs {kept}, data URLs in localStorage: {"data:image" in raw}')
+        await visit('profile')
+        head = await shown('.me-photo > img')
+        await visit('returns', OID)
+        shot = await shown('.rt-photos img')
+        await visit('stylist')
+        bubble = await shown('.st-bubble--img img')
+        got = [x[:5] for x in head + shot + bubble]
+        check('头像, 售后凭证 and AI 造型师 photos load from IndexedDB after a reload', got == ['blob:'] * 3 and await idb() == 3, ','.join(got))
+        # the state an earlier version saved: avatar photos as { src }, the other photos as bare data URLs
+        await hp.evaluate("""(oid) => {
+          const cv = document.createElement('canvas'); cv.width = cv.height = 16;
+          const g = cv.getContext('2d'); g.fillStyle = '#b7865b'; g.fillRect(0, 0, 16, 16);
+          const d = cv.toDataURL('image/jpeg', 0.8);
+          const s = JSON.parse(localStorage.getItem(VT.store.KEY));
+          Object.assign(s.avatar, { status: 'ready', fullbody: { src: d, name: '全身照', w: 16, h: 16 }, portrait: { src: d, name: '生活照', w: 16, h: 16 } });
+          s.profile.photo = d;
+          s.returns[oid].photos = [d];
+          s.chat.forEach((m) => { if (m.img) m.img = d; });
+          localStorage.setItem(VT.store.KEY, JSON.stringify(s));
+        }""", OID)
+        await visit('profile')
+        head, thumb = await shown('.me-photo > img'), await shown('.me-ava-thumb img')
+        await hp.wait_for_timeout(300)
+        n, kept, raw = await idb(), await hp.evaluate(refs), await saved()
+        av = await hp.evaluate("[VT.store.get().avatar.fullbody, VT.store.get().avatar.portrait].map((r) => (r.media ? 'media' : 'src')).join(',')")
+        check('data URLs saved by an earlier version move to IndexedDB at start-up (avatar photos too)', n == 5 and kept == 'media,media,media' and av == 'media,media' and 'data:image' not in raw and head[0].startswith('blob:') and thumb[0].startswith('blob:'), f'{n} blobs, refs {kept} + {av}, data URLs in localStorage: {"data:image" in raw}')
+        await visit('returns', OID2)  # an unsent draft with a photo
+        await ha.locator('input[data-change="photo"]').set_input_files(FIX + 'my_jacket.jpg'); await hp.wait_for_timeout(500)
+        n0 = await idb()
+        await hp.evaluate("VT.liveApp.go('privacy')"); await hp.wait_for_timeout(500)
+        await ha.locator('[data-act="clearphotos"]').click(); await hp.wait_for_timeout(400)
+        await hp.locator('.ov [data-act="yes"]').click(); await hp.wait_for_timeout(700)
+        n1, kept = await idb(), await hp.evaluate(refs)
+        await hp.evaluate('VT.liveApp.back()'); await hp.wait_for_timeout(500)
+        draft = await ha.locator('.rt-photos--edit img').count()
+        await visit('profile')
+        head = await ha.locator('.me-photo > img').get_attribute('src')
+        check('清除已上传的照片 also deletes the 头像, 售后凭证 (sent or not) and AI 造型师 photos', n0 == 6 and n1 == 0 and kept == 'null' and draft == 0 and head.endswith('chat-user.webp'), f'{n0} → {n1} blobs, left {kept}, draft photos {draft}, 头像 {head}')
+        await visit('returns', OID2)
+        await ha.locator('.or-reason').first.click()
+        await ha.locator('input[data-change="photo"]').set_input_files(FIX + 'my_jacket.jpg'); await hp.wait_for_timeout(500)
+        await ha.locator('[data-act="submit"]').click(); await hp.wait_for_timeout(600)
+        n0 = await idb()
+        await ha.locator('.or-row[data-act="return"]').click(); await hp.wait_for_timeout(500)
+        await ha.locator('[data-act="withdraw"]').click(); await hp.wait_for_timeout(400)
+        await hp.locator('.ov [data-act="yes"]').click(); await hp.wait_for_timeout(600)
+        n1 = await idb()
+        check('撤销申请 deletes its evidence photos', n0 == 1 and n1 == 0 and await cur(hp) == 'returns', f'{n0} → {n1} blobs')
         await b.close()
     print('\n'.join(log))
     print('passed', sum(1 for l in log if l.startswith('PASS')), 'of', len(log))

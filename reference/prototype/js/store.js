@@ -125,7 +125,7 @@
     /** the uploaded 生活照, else (本人) the profile picture, else the demo portrait */
     portraitOf(s, rec) {
       const a = avatars.dataOf(s, rec).avatar;
-      return (VT.media && VT.media.src(a.portrait)) || (rec.self && s.profile.photo) || rec.portrait || 'assets/people/chat-user.webp';
+      return (VT.media && (VT.media.src(a.portrait) || (rec.self && VT.media.src(s.profile.photo)))) || rec.portrait || 'assets/people/chat-user.webp';
     },
     switchTo(id) {
       update((s) => {

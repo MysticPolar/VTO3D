@@ -23,14 +23,19 @@
 
   /* ================= 我的资料 ================= */
   let draft = null;
-  const freshDraft = (s) => JSON.parse(JSON.stringify(s.profile));
+  // a copy of the profile; its photo is only one picked here (js/media.js), null until then
+  const freshDraft = (s) => Object.assign(JSON.parse(JSON.stringify(s.profile)), { photo: null });
+  /** a photo picked here and not saved leaves the device with the draft */
+  function dropPhoto() {
+    if (draft && draft.photo) VT.media.remove([draft.photo.media]);
+  }
 
   VT.screens.editprofile = {
     title: '我的资料',
     render(app) {
       const s = app.s;
       const d = draft || (draft = freshDraft(s));
-      const photo = d.photo || VT.ui.profilePhoto(s);
+      const photo = VT.media.src(d.photo) || VT.ui.profilePhoto(s);
       return `
         ${VT.ui.subHead('我的资料')}
         <div class="scroll sub-scroll" data-keep-scroll="ep">
@@ -49,19 +54,28 @@
         </div>`;
     },
     actions: {
-      back(app) { draft = null; app.back(); },
+      back(app) { dropPhoto(); draft = null; app.back(); },
       field(app, el) { draft[el.dataset.k] = el.value; },
       gender(app, el) { draft.gender = el.dataset.v; app.refresh(); },
       async photo(app, el) {
         const f = el.files && el.files[0];
         if (!f) return;
-        try { draft.photo = await VT.profile.squarePhoto(f); app.refresh(); }
+        try {
+          const photo = await VT.profile.squarePhoto(f);
+          if (!draft) { VT.media.remove([photo.media]); return; } // the screen was left meanwhile
+          dropPhoto(); // one picked before
+          draft.photo = photo;
+          app.refresh();
+        }
         catch (e) { app.toast('无法读取这张图片，请换一张'); }
       },
       save(app) {
         const name = (draft.name || '').trim();
         if (!name) { app.toast('昵称不能为空'); return; }
-        VT.store.update((s) => { s.profile = Object.assign(s.profile, draft, { name, bio: (draft.bio || '').trim() }); });
+        const photo = draft.photo;
+        let old = null;
+        VT.store.update((s) => { old = s.profile.photo; s.profile = Object.assign(s.profile, draft, { name, bio: (draft.bio || '').trim(), photo: photo || s.profile.photo }); });
+        if (photo && old) VT.media.remove([old.media]); // the photo it replaces
         draft = null;
         app.back();
         app.toast('资料已保存', { icon: 'check' });
@@ -236,11 +250,13 @@
         const ok = await app.dialog({ title: '清除已上传的照片？', text: '将删除本机保存的全身照、生活照、头像和售后凭证照片。\n数字分身会使用示例形象。', ok: '清除' });
         if (!ok) return;
         VT.media.remove(VT.media.keysInState(VT.store.get())); // the photos and video frames on this device
+        VT.orders.clearDraftPhotos(); // and those of an unsent 申请退换货
         VT.store.update((s) => {
           s.avatar.fullbody = null; s.avatar.portrait = null; s.avatar.materials = null; s.profile.photo = null;
           // every digital avatar's photos, not only the active one's (切换角色)
           s.avatars.forEach((a) => { if (a.data) { a.data.avatar.fullbody = null; a.data.avatar.portrait = null; a.data.avatar.materials = null; } });
           Object.values(s.returns).forEach((r) => { r.photos = []; });
+          s.chat = s.chat.filter((m) => !m.img); // the photos sent to AI 造型师
         });
         app.toast('已清除本机照片', { icon: 'check' });
       },

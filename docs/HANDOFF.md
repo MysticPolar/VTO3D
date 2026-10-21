@@ -579,10 +579,12 @@ One shared pipeline in `src/features/images`: check type → check size → deco
 | Avatar video frames (4 per video) | ≤ 480 px, JPEG 0.82, Blobs in IndexedDB (§9.16) | `screens/02-avatar.js` (`analyzeVideo`) |
 | Wardrobe garment | ≤ 520 px, JPEG 0.82 | `screens/06-wardrobe.js:215` |
 | 首页 garment photo (从相册上传, the phone camera, or a 拍摄衣服 frame) | ≤ 520 px, JPEG 0.82 | `screens/03-fitting.js` (`readImage`), `camera.js` (`capture`) |
-| Stylist photo | ≤ 420 px, JPEG 0.8 | `screens/07-stylist.js:151` |
-| Return evidence (max 3) | ≤ 360 px, JPEG 0.78 | `screens/09-orders.js:281` |
-| Profile photo | centre square, 320 × 320, JPEG 0.82 | `screens/10-profile.js:12` |
+| Stylist photo | ≤ 420 px, JPEG 0.8, a Blob in IndexedDB (§9.16) | `screens/07-stylist.js` (`shrink`) |
+| Return evidence (max 3) | ≤ 360 px, JPEG 0.78, a Blob in IndexedDB (§9.16) | `screens/09-orders.js` (`shrinkPhoto`) |
+| Profile photo | centre square, 320 × 320, JPEG 0.82, a Blob in IndexedDB (§9.16) | `screens/10-profile.js` (`squarePhoto`) |
 | 拍照找同款 | preview only (≤ 520 px) | `screens/04-plaza.js` |
+
+Photos of the user and the photos they send never go into `localStorage` as data URLs. That covers the avatar photos and video frames, the profile photo, return evidence and stylist photos. They are Blobs in IndexedDB, and the state refers to them by key (`{ media: key }`, §9.16). In the prototype, garment photos are still JPEG data URLs: the wardrobe upload in the state, and 我的上传 in `sessionStorage`.
 
 Errors, the same for every picker (§13.2 #21, #30): not `image/*` → 「请选择图片文件（JPG / PNG 等）」 (avatar picker: 「请选择图片文件（JPG / PNG / HEIC 等）」); over 25 MB → 「图片超过 25MB，请换一张」; decode failure → 「无法读取这张图片，请换一张」 (avatar picker: 「无法读取这张图片，请换一张试试」). While a photo is processed its slot shows 「处理中…」 (avatar slots: 「检测中…」).
 
@@ -729,9 +731,18 @@ Added with the avatar onboarding upgrade (21 Oct 2026; `js/screens/02-avatar.js`
   The checkbox isn't pre-ticked, and 不同意 uploads nothing. With a backend, the consent is recorded on the server (`privacy.recordMediaConsent`, draft) before the first transmission (§14).
 - **Storage.**
   - Photos (≤ 900 px, JPEG 0.82) and video frames (≤ 480 px) are Blobs in IndexedDB, referenced by key from the avatar. Never data URLs in `localStorage`.
+  - The same store (`js/media.js`) has held the user's other photos since 21 Oct 2026: the profile photo, return evidence and the photos sent to AI 造型师 (§9.9).
+    - They are referenced as `{ media: key }`: `profile.photo`, `returns[oid].photos[]` and a chat message's `img`.
+    - Unlike the avatar's, they are shared by every avatar (§9.15).
+    - Every reader goes through `VT.media.src(ref)`, `VT.ui.profilePhoto` included.
   - The video file stays in memory (an object URL) during the visit and isn't kept.
-  - An unfinished visit's drafts are deleted when another visit starts, and again at the next start-up (keys nothing refers to).
-  - 清除已上传的照片 deletes them all. Deleting an avatar deletes its media.
+  - An unfinished visit's drafts are deleted when another visit starts, and again at the next start-up.
+    - Start-up deletes every key the saved state doesn't refer to: an unfinished visit's drafts, an unsent return's photos. It never deletes a key the page made since it opened.
+    - A photo the state stops referring to is deleted at once: a replaced profile photo, an evidence photo removed with ✕, the photos of a withdrawn return, and a chat photo that falls off the 60-message cap.
+  - **Migration.** Start-up moves photos that earlier versions saved as data URLs into IndexedDB: avatar photos as `{ src }`, and until 21 Oct 2026 the profile, evidence and chat photos as bare strings. Each place gets its own blob.
+    - The new references go in through a store update, after the blobs are written. The app loads its own copy of the state while the migration waits, so changes made to the copy read at the start would be lost.
+    - That is what happened to the first version of the avatar-photo migration, which never took effect.
+  - 清除已上传的照片 deletes them all, including the photos of an unsent return, and removes the chat's photo messages. Deleting an avatar deletes its media.
   - The web build keeps Blobs in IndexedDB the same way until they're uploaded, then uses the server's URLs (§5).
 - **Generation.** A job with the stages parse → body → face → refine → done. `progress` exists only when the service reports it (§9.13). One job runs at a time. A failure keeps the materials, and 重试 starts a new job on them.
 - Cases:
@@ -774,7 +785,7 @@ Added with the avatar onboarding upgrade (21 Oct 2026; `js/screens/02-avatar.js`
   The camera checks run in Chromium with `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream` and the camera permission granted.
 - Run the suite with `reducedMotion: 'reduce'` (faster timers), except the transition tests.
 - On 21 Oct 2026 the 首页 loading change added 「首页 preloads the body renders after the page loads」 and 「首页 rail loads off-screen thumbnails lazily」 (a last block in a fresh context; the robot then had 136 checks).
-- The prototype's test has 162 checks (avatar onboarding upgrade below). The 首页 update (20 Oct 2026) replaced 「首页 rail lists only garments with a render」 with 「首页 rail lists image-ready garments first」 and 「selected garment without a render shows until tapped off」 with 「garment without a render can be tapped off」; the prototype sends the garment through `VT.tryOn`, so the web test sends it from a screen instead (个人衣橱's 「试穿这件」 on striped-shirt works before 商品详情 exists). It also added nine checks that run last, in a fresh 390 × 844 context with the fake camera and empty storage: 「首页 header: 切换角色 · 切换场景 · 开启视频试衣」, 「拍照 opens 拍摄衣服 / 从相册上传」, 「upload → 我的上传, tried on, not in the wardrobe」, 「加入衣橱 saves the upload once」, 「我的上传 lasts for the browser session」, 「拍摄衣服 captures a photo (getUserMedia)」, 「切换场景 changes the backdrop」, 「新建数字分身: its own empty wardrobe, now active」, 「切换角色 back to 本人 restores her wardrobe」. Port them as one serial file, like the 购物广场 stores block.
+- The prototype's test has 167 checks (avatar onboarding upgrade and personal photos below). The 首页 update (20 Oct 2026) replaced 「首页 rail lists only garments with a render」 with 「首页 rail lists image-ready garments first」 and 「selected garment without a render shows until tapped off」 with 「garment without a render can be tapped off」; the prototype sends the garment through `VT.tryOn`, so the web test sends it from a screen instead (个人衣橱's 「试穿这件」 on striped-shirt works before 商品详情 exists). It also added nine checks that run last, in a fresh 390 × 844 context with the fake camera and empty storage: 「首页 header: 切换角色 · 切换场景 · 开启视频试衣」, 「拍照 opens 拍摄衣服 / 从相册上传」, 「upload → 我的上传, tried on, not in the wardrobe」, 「加入衣橱 saves the upload once」, 「我的上传 lasts for the browser session」, 「拍摄衣服 captures a photo (getUserMedia)」, 「切换场景 changes the backdrop」, 「新建数字分身: its own empty wardrobe, now active」, 「切换角色 back to 本人 restores her wardrobe」. Port them as one serial file, like the 购物广场 stores block.
 - The 购物广场 stores block (11 checks, 514de38) runs last in the prototype, in the mobile context, from the seed with setup done. Its checks build on each other's state (a store favourited from search and removed again in 管理, the ZARA chat read and answered), so port them as one serial file that starts from `devtools.reset()` with `setupDone`: 「plaza: store bar = 全部 + favourite stores only」, 「plaza: 全部 shows every store, with the platform banner」, 「plaza: a favourite store shows only its products」, 「plaza: category narrows the chosen store」, 「plaza: search covers every store and product」, 「plaza: favouriting a store from search adds it to the bar」, 「plaza: 管理 removes a store from the bar」, 「plaza: chat icon opens 商家消息」, 「plaza: store chat replies and clears unread」, 「plaza: back from 商家消息 → 购物广场」, 「product brand opens its store sheet」. The store reply takes 900 ms even with reduced motion (§9.11).
 - On 21 Oct 2026 the avatar onboarding upgrade made these changes (the robot then had 162 checks):
   - **First launch.** 「photo upload previews」 became 14 checks:
@@ -807,6 +818,14 @@ Added with the avatar onboarding upgrade (21 Oct 2026; `js/screens/02-avatar.js`
     - 「隐私与安全 → 清除已上传的照片 deletes the avatar media from the device」
     - 「360 px: every step of 创建数字分身 fits the width」
   - The recording check needs MediaRecorder and a fake camera (Chromium). In WebKit, run the upload path and expect the fallback.
+- Later on 21 Oct 2026 the profile photo, return evidence and stylist photos moved to IndexedDB (§9.16), and the robot then had 167 checks:
+  - 「change profile picture」 now expects an object URL (`blob:`) instead of a data URL.
+  - **A new 5-check block** runs last, in a fresh 390 × 844 context with empty storage. It opens screens by URL (`?app=profile`, `?app=returns&oid=…`, `?app=stylist`). 隐私与安全 is opened in the app, so an unsent return draft survives the trip. Each check builds on the one before, so port it as one serial file:
+    - 「头像, 售后凭证 and AI 造型师 photos stay on this device in IndexedDB, never in localStorage」: a profile photo replaced once, two evidence photos with one removed by ✕, then a stylist photo. That leaves 3 blobs and no `data:image` in `localStorage`.
+    - 「头像, 售后凭证 and AI 造型师 photos load from IndexedDB after a reload」
+    - 「data URLs saved by an earlier version move to IndexedDB at start-up (avatar photos too)」: the test writes an old state (avatar photos as `{ src }`, the rest as bare data URLs) and reloads. The web build has no such legacy data, so it can skip this one.
+    - 「清除已上传的照片 also deletes the 头像, 售后凭证 (sent or not) and AI 造型师 photos」: it includes an unsent return draft's photo.
+    - 「撤销申请 deletes its evidence photos」
 
 ### 10.2 Visual baselines
 

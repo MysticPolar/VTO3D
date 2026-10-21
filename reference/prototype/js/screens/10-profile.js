@@ -8,7 +8,7 @@
   const D = () => VT.data;
   const H = () => VT.store.h;
 
-  /** center-crop a picked photo to a small square JPEG (keeps localStorage light) */
+  /** center-crop a picked photo to a small square JPEG, kept on this device (js/media.js); resolves with its reference */
   function squarePhoto(file, size) {
     return new Promise((resolve, reject) => {
       if (!file || !file.type || !file.type.startsWith('image/')) { reject(new Error('type')); return; }
@@ -21,7 +21,7 @@
         cv.width = n; cv.height = n;
         cv.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, n, n);
         URL.revokeObjectURL(url);
-        resolve(cv.toDataURL('image/jpeg', 0.82));
+        cv.toBlob((blob) => { if (blob) VT.media.put(blob).then((media) => resolve({ media })); else reject(new Error('decode')); }, 'image/jpeg', 0.82);
       };
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
       img.src = url;
@@ -32,8 +32,10 @@
     const f = el.files && el.files[0];
     if (!f) return;
     try {
-      const src = await squarePhoto(f);
-      VT.store.update((s) => { s.profile.photo = src; });
+      const photo = await squarePhoto(f);
+      let old = null;
+      VT.store.update((s) => { old = s.profile.photo; s.profile.photo = photo; });
+      if (old) VT.media.remove([old.media]); // the photo it replaces
       app.refresh();
       app.toast('头像已更新', { icon: 'check' });
     } catch (e) {
