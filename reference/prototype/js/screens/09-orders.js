@@ -278,6 +278,7 @@
   const drafts = {};
   const REASONS = ['尺码不合适', '颜色 / 款式与预期不符', '质量问题', '不想要了（7 天无理由）'];
 
+  /** an evidence photo, kept on this device (js/media.js); resolves with its reference */
   function shrinkPhoto(file) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
@@ -288,11 +289,15 @@
         cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
         cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
         URL.revokeObjectURL(url);
-        resolve(cv.toDataURL('image/jpeg', 0.78));
+        cv.toBlob((blob) => { if (blob) VT.media.put(blob).then((media) => resolve({ media })); else reject(new Error('decode')); }, 'image/jpeg', 0.78);
       };
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
       img.src = url;
     });
+  }
+  /** 清除已上传的照片: the photos of unsent drafts go too */
+  function clearDraftPhotos() {
+    Object.values(drafts).forEach((d) => { VT.media.remove(d.photos.map((p) => p.media)); d.photos = []; });
   }
 
   VT.screens.returns = {
@@ -305,6 +310,7 @@
       const mini = `<div class="mini rt-mini">${VT.ui.img(p.img.order || p.img.card, o.title)}<span class="mini-main"><span class="mini-title">${VT.esc(o.title)}</span><span class="mini-sub">${VT.esc(o.colorLabel)} / ${VT.esc(o.size)} · 实付 ${VT.ui.yuan(o.paid)}</span></span></div>`;
       if (ex) {
         const stages = RET_STAGES(ex.type);
+        const shots = (ex.photos || []).map((p) => VT.media.src(p)).filter(Boolean); // missing until loaded at start-up
         return `
           ${VT.ui.subHead('售后进度')}
           <div class="scroll rt-scroll" data-keep-scroll="rt">
@@ -322,7 +328,7 @@
                 <dt>提交时间</dt><dd>${ex.time}</dd>
                 ${ex.type === '退货' ? `<dt>退款金额</dt><dd>${VT.ui.yuan(o.paid)}（原路退回）</dd>` : ''}
               </dl>
-              ${ex.photos && ex.photos.length ? `<div class="rt-photos">${ex.photos.map((src) => `<span>${VT.ui.img(src, '凭证照片')}</span>`).join('')}</div>` : ''}
+              ${shots.length ? `<div class="rt-photos">${shots.map((src) => `<span>${VT.ui.img(src, '凭证照片')}</span>`).join('')}</div>` : ''}
             </section>
             <div class="tr-acts">
               <button type="button" class="btn btn--ghost btn--lg" data-act="withdraw">撤销申请</button>
@@ -344,7 +350,7 @@
           <textarea class="field-area" maxlength="120" placeholder="描述一下遇到的问题" aria-label="补充说明" data-keep-value="rt-note" data-input="note">${VT.esc(d.note || '')}</textarea>
           <h4 class="co-sh-h">上传凭证（选填，最多 3 张）</h4>
           <div class="rt-photos rt-photos--edit">
-            ${d.photos.map((src, i) => `<span>${VT.ui.img(src, `凭证照片 ${i + 1}`)}<button type="button" class="rt-del" data-act="unphoto" data-i="${i}" aria-label="删除第 ${i + 1} 张">${I('close', { size: 12, stroke: 2.4 })}</button></span>`).join('')}
+            ${d.photos.map((p, i) => `<span>${VT.ui.img(VT.media.src(p), `凭证照片 ${i + 1}`)}<button type="button" class="rt-del" data-act="unphoto" data-i="${i}" aria-label="删除第 ${i + 1} 张">${I('close', { size: 12, stroke: 2.4 })}</button></span>`).join('')}
             ${d.photos.length < 3 ? `<label class="rt-add" aria-label="添加凭证照片">${I('camera', { size: 22, stroke: 1.5 })}<input class="sr-only" type="file" accept="image/*" data-change="photo"></label>` : ''}
           </div>
           <button type="button" class="btn btn--dark btn--lg btn--block rt-submit" data-act="submit">提交申请</button>
@@ -360,12 +366,16 @@
         if (!f) return;
         if (!f.type.startsWith('image/')) { app.toast('请选择图片文件'); return; }
         try {
-          const src = await shrinkPhoto(f);
-          drafts[orderOf(app.s, app.params).id].photos.push(src);
+          const photo = await shrinkPhoto(f);
+          drafts[orderOf(app.s, app.params).id].photos.push(photo);
           app.refresh();
         } catch (e) { app.toast('无法读取这张图片，请换一张'); }
       },
-      unphoto(app, el) { drafts[orderOf(app.s, app.params).id].photos.splice(+el.dataset.i, 1); app.refresh(); },
+      unphoto(app, el) {
+        const [photo] = drafts[orderOf(app.s, app.params).id].photos.splice(+el.dataset.i, 1);
+        if (photo) VT.media.remove([photo.media]);
+        app.refresh();
+      },
       submit(app) {
         const o = orderOf(app.s, app.params);
         const d = drafts[o.id];
@@ -379,7 +389,9 @@
         const o = orderOf(app.s, app.params);
         const ok = await app.dialog({ title: '撤销售后申请？', text: '撤销后可在有效期内重新申请。', ok: '撤销申请', cancel: '再想想' });
         if (!ok) return;
-        VT.store.update((st) => { delete st.returns[o.id]; });
+        let photos = [];
+        VT.store.update((st) => { photos = (st.returns[o.id] && st.returns[o.id].photos) || []; delete st.returns[o.id]; });
+        VT.media.remove(photos.map((p) => p.media)); // its evidence photos
         app.refresh();
         app.toast('售后申请已撤销');
       },
@@ -426,5 +438,5 @@
   }
 
   VT.openChat = openChat;
-  VT.orders = { progress, etaLine };
+  VT.orders = { progress, etaLine, clearDraftPhotos };
 })();

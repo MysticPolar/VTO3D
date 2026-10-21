@@ -691,12 +691,15 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
 - **更多 sheet**:
   - 「上传一张穿搭照片」: a button-styled label with a hidden `image/*` file input.
   - 「按场合推荐」 chips 「周末出游」「上班通勤」「晚餐约会」「降温保暖」 → close the sheet and ask 「<chip>穿什么好？」, which hits rules 4, 1, 2 and 5.
-  - Photo: a non-image file gives the toast 「请选择图片文件」; there is no size limit. The image is downscaled so its longest side is at most **420 px** and saved as **JPEG, quality 0.8**; if decoding fails, the original data URL is kept. The sheet closes, the photo is posted as a user message, and after the same delay the fixed reply at `07-stylist.js:141` (not in `data.js`) arrives with `look2` **[demo]**.
+  - Photo: a non-image file gives the toast 「请选择图片文件」; there is no size limit. The image is downscaled so its longest side is at most **420 px** and saved as **JPEG, quality 0.8**, a Blob in IndexedDB (`VT.media.put`); if decoding fails, the original file is kept as it is. The sheet closes, the photo is posted as a user message, and after the same delay the fixed reply in the 更多 sheet's `photo` action (not in `data.js`) arrives with `look2` **[demo]**.
 
 **Data.**
 - Reads: `s.chat`, `s.savedLooks`, `s.wardrobe` (for 衣橱已有), `s.profile.photo` / `s.avatar.portrait`, and from `data.js`: `chatSeed`, `chatSuggestions`, `chatReplies`, `chatFallback`, `looks`/`lookById`, `byId`. `chatSeed` holds 4 seed messages: user, AI, looks 1–3, AI.
 - Writes: `s.chat` and `s.savedLooks` (`{lookId: timestamp}`); try-on also writes `s.fit` and `s.avatar`. `s.chat` entries are `{role:'user', text|img}`, `{role:'ai', text}`, `{role:'looks', looks:[ids]}` and `{role:'wardrobe', pids:[]}`. The chat is capped at 60 entries: the first 4 are kept, then the newest 56.
-- Persisted: chat (including photos as data URLs) and saved looks.
+- Persisted: chat and saved looks. A photo message keeps only a reference, `img: { media: key }`. The photo itself is a Blob in IndexedDB (`js/media.js`, as for the avatar photos; HANDOFF §9.16), never a data URL in `localStorage`.
+  - It is read through `VT.media.src(img)`. A photo message is left out of the thread while its photo isn't loaded (the first render after start-up) or is no longer on the device.
+  - The photo of a message that falls off the 60-entry cap is deleted from the device. So is every chat photo when 隐私与安全 → 清除已上传的照片 runs, which also removes their messages.
+  - Photos saved as data URLs before 21 Oct 2026 move to IndexedDB at start-up.
 - UI state: the input draft is kept across tab switches but not reloads (`data-keep-value="st-in"`); scroll is kept for the thread (`st`) and the chips row (`st-sg`). On a fresh load with more than the seed messages, the thread opens scrolled to the bottom; with only the seed messages it opens at the top.
 
 **States & edge cases.**
@@ -707,7 +710,7 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
 
 **Components used.** `VT.ui.iconBtn`, `VT.ui.img`, `VT.ui.nl2br`, `VT.ui.profilePhoto`, `VT.ui.price`, `VT.ui.yuan`, `VT.ui.tabBar`, `.chip`, `.btn`, `.mini`, `.sheet-actions`, `.sheet-note`, `.sr-only`, `app.sheet` (incl. `full: true`), `app.toast`, `app.later`, `VT.tryOn`, `VT.reducedMotion`.
 
-**Acceptance checks.** `AC3: tab → stylist` · `AC2/4: stylist has one bar with the 5 tabs` · `tab switch to stylist is instant` · `stylist has no back button (primary)` · `stylist draft kept across tabs` · `AI stylist reply with looks` · `look → 首页 with outfit`
+**Acceptance checks.** `AC3: tab → stylist` · `AC2/4: stylist has one bar with the 5 tabs` · `tab switch to stylist is instant` · `stylist has no back button (primary)` · `stylist draft kept across tabs` · `AI stylist reply with looks` · `look → 首页 with outfit` · `头像, 售后凭证 and AI 造型师 photos stay on this device in IndexedDB, never in localStorage` · `头像, 售后凭证 and AI 造型师 photos load from IndexedDB after a reload` · `data URLs saved by an earlier version move to IndexedDB at start-up (avatar photos too)`
 
 
 ### 7. 我的 · `profile`
@@ -719,18 +722,18 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
 **Layout (top → bottom).**
 - Prototype status bar (`VT.ui.statusBar('dark')`): drop in the web app (safe-area inset instead).
 - One scroll container `.me-scroll` (`data-keep-scroll="me"`) holds everything above the tab bar. A decorative beige band `.me-band` sits behind the header and scrolls with it.
-- Header: round profile photo with a small dark camera badge (`VT.ui.profilePhoto(s)`: `profile.photo` → `avatar.portrait.src` → `assets/people/chat-user.webp`), wrapped in a `<label title="更换头像">` with a hidden `<input type="file" accept="image/*">` (aria 「更换头像」). Next to it one button holding the name `<h1>` and the bio line (empty bio → placeholder 「编辑个性签名」); both are single-line with ellipsis. Gear icon button (aria 「设置」) top right.
+- Header: round profile photo with a small dark camera badge (`VT.ui.profilePhoto(s)`: `profile.photo` → 本人's `avatar.portrait` → `assets/people/chat-user.webp`, the first two read through `VT.media.src`), wrapped in a `<label title="更换头像">` with a hidden `<input type="file" accept="image/*">` (aria 「更换头像」). Next to it one button holding the name `<h1>` and the bio line (empty bio → placeholder 「编辑个性签名」); both are single-line with ellipsis. Gear icon button (aria 「设置」) top right.
 - Stats card (aria 「我的数据」), three columns, number over label:
   - 「我的衣橱」 = `s.wardrobe.length` (every wardrobe entry: owned seeds, collected, purchased, uploaded).
   - 「我的收藏」 = `VT.store.h.favCount(s)` = products with `favorites[pid] === true` + saved AI-stylist looks (keys of `savedLooks`). Wardrobe hearts (`w.fav`, 「标记喜欢」) are not counted.
   - 「浏览记录」 = `s.history.length` (product-page views, one per product, newest first, max 30).
   - Values at reset: 15 / 8 / 6. The mockup's 12 / 28 / 6 are placeholders (REPORT deviation 6).
 - 我的订单 card: 「我的订单」 + 「查看全部 ›」; five icon shortcuts = `data.orderFilters` without 全部, in order 「待付款」 wallet · 「待发货」 box · 「运输中」 truck · 「待收货」 box-check · 「售后」 aftersale. The count per filter (`VT.store.h.inFilter`) is only in the aria-label (「待付款，1 个订单」; zero → just the label). No visible badge, same as the mockup.
-- Account list card (aria 「账户与设置」): seven `VT.ui.row` rows (icon, label, chevron): 「我的资料」 person · 「我的形象」 figure, with a round thumbnail on the right (`avatar.portrait.src`, else `chat-user.webp`) · 「收货地址」 pin · 「支付方式」 card · 「消息通知」 bell · 「帮助与客服」 question · 「设置」 settings. There is no separate 数字形象 card: this row is the avatar entry.
+- Account list card (aria 「账户与设置」): seven `VT.ui.row` rows (icon, label, chevron): 「我的资料」 person · 「我的形象」 figure, with a round thumbnail on the right (`VT.media.src(avatar.portrait)`, else `chat-user.webp`) · 「收货地址」 pin · 「支付方式」 card · 「消息通知」 bell · 「帮助与客服」 question · 「设置」 settings. There is no separate 数字形象 card: this row is the avatar entry.
 - Tab bar `VT.ui.tabBar('profile')`, fixed at the bottom.
 
 **Interactions.**
-- Photo → native file picker → `squarePhoto(file)`: centre-crops the largest square, scales it to 320×320, JPEG quality 0.82, data URL → saved straight to `profile.photo` (no draft, no confirm) → re-render → toast 「头像已更新」 (check icon). Non-image → toast 「请选择图片文件（JPG / PNG 等）」; decode failure → 「无法读取这张图片，请换一张」. No file-size limit.
+- Photo → native file picker → `squarePhoto(file)`: centre-crops the largest square, scales it to 320×320, JPEG quality 0.82, stores it as a Blob in IndexedDB (`VT.media.put`) → its reference saved straight to `profile.photo` (no draft, no confirm); the photo it replaces is deleted from the device → re-render → toast 「头像已更新」 (check icon). Non-image → toast 「请选择图片文件（JPG / PNG 等）」; decode failure → 「无法读取这张图片，请换一张」. No file-size limit.
 - Name/bio button (aria 「编辑个人资料：{name}」) → push `editprofile` (`/me/profile`). There is no separate edit icon.
 - Gear and the 「设置」 row (duplicates) → push `settings` (`/me/settings`).
 - 「我的衣橱」 → switch to the `wardrobe` tab exactly like the tab bar (instant; that tab keeps its own stack). 「我的收藏」 → push `favorites`. 「浏览记录」 → push `history`.
@@ -740,13 +743,13 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
 
 **Overlays.** None (the photo uses the native file picker).
 
-**Data.** Reads `profile.{name,bio,photo}`, `avatar.portrait` and `wardrobe` (both the active avatar's: 我的衣橱 counts the active avatar's wardrobe, and the 我的形象 row shows its portrait), `favorites`, `savedLooks`, `history`, `orders`, `returns`, `data.orderFilters`. Writes `profile.photo`. All counts are recomputed on every render, so they are live when coming back from any screen or tab. Keep scroll `me`. The 我的 tab keeps its own stack: leaving from 我的订单 and returning by the tab bar lands on 我的订单 again.
+**Data.** Reads `profile.{name,bio,photo}`, `avatar.portrait` and `wardrobe` (both the active avatar's: 我的衣橱 counts the active avatar's wardrobe, and the 我的形象 row shows its portrait), `favorites`, `savedLooks`, `history`, `orders`, `returns`, `data.orderFilters`. Writes `profile.photo`: a reference `{ media: key }` to a Blob in IndexedDB (`js/media.js`, HANDOFF §9.16), read through `VT.media.src`, never a data URL in `localStorage`. A photo saved as a data URL before 21 Oct 2026 moves to IndexedDB at start-up. Until start-up has loaded the photo (the first render), the header shows the next fallback. All counts are recomputed on every render, so they are live when coming back from any screen or tab. Keep scroll `me`. The 我的 tab keeps its own stack: leaving from 我的订单 and returning by the tab bar lands on 我的订单 again.
 
 **States & edge cases.** No logged-in / logged-out difference: 我的 always shows the local profile (defaults 「小橙子」 / 「开启更美的每一天」); `loggedIn` only switches the bottom button of 设置 (「登录 / 注册」 ↔ 「退出登录」). Until a photo is uploaded, the header photo and the 我的形象 thumbnail show the demo portrait `chat-user.webp` **[demo]**. The header prefers `profile.photo`; the 我的形象 thumbnail never uses it (always the avatar 生活照). 设置 → 隐私与安全 → 清除已上传的照片 resets both to the sample. Only reachable after first-launch setup.
 
 **Components used.** `VT.ui.profilePhoto`, `VT.ui.img`, `VT.ui.iconBtn`, `VT.ui.row` (`.set-row.me-row`), `VT.ui.tabBar`, global actions `nav` and `tab`, `.sr-only` file input, `VT.profile.squarePhoto` (also used by 编辑资料).
 
-**Acceptance checks.** `AC3: tab → profile` · `AC2/4: profile has one bar with the 5 tabs` · `tab switch to profile is instant` · `profile has no back button (primary)` · `我的订单 → back → 我的` · `我的 → 待收货 filter` · `我的 tab remembers its own history` · `我的 → 我的形象` · `我的形象 → back → 我的` · `我的 → 设置` · `设置 → back → 我的` · `我的 → 我的资料` · `我的资料 → back → 我的` · `我的 → 收货地址` · `收货地址 → back → 我的` · `我的 → 支付方式` · `支付方式 → back → 我的` · `我的 → 消息通知` · `消息通知 → back → 我的` · `我的 → 帮助与客服` · `帮助与客服 → back → 我的` · `edit profile saved` · `change profile picture` · `我的收藏 lists favourites` · `浏览记录 includes viewed products` · `mobile: tabs work` · `mobile: no horizontal overflow`
+**Acceptance checks.** `AC3: tab → profile` · `AC2/4: profile has one bar with the 5 tabs` · `tab switch to profile is instant` · `profile has no back button (primary)` · `我的订单 → back → 我的` · `我的 → 待收货 filter` · `我的 tab remembers its own history` · `我的 → 我的形象` · `我的形象 → back → 我的` · `我的 → 设置` · `设置 → back → 我的` · `我的 → 我的资料` · `我的资料 → back → 我的` · `我的 → 收货地址` · `收货地址 → back → 我的` · `我的 → 支付方式` · `支付方式 → back → 我的` · `我的 → 消息通知` · `消息通知 → back → 我的` · `我的 → 帮助与客服` · `帮助与客服 → back → 我的` · `edit profile saved` · `change profile picture` (an object URL, `blob:`) · `我的收藏 lists favourites` · `浏览记录 includes viewed products` · `mobile: tabs work` · `mobile: no horizontal overflow` · `头像, 售后凭证 and AI 造型师 photos stay on this device in IndexedDB, never in localStorage` · `头像, 售后凭证 and AI 造型师 photos load from IndexedDB after a reload`
 
 
 ## Shopping flow
@@ -1162,20 +1165,24 @@ Seed (`data.storeChatSeed`); the list shows ZARA, Mono Atelier, Forma and the �
 
 **Interactions.**
 - Type or reason → update the draft, re-render. Note → saved to the draft on every input.
-- Add tile → native picker (`accept="image/*"`). Non-image → toast 「请选择图片文件」; decode failure → 「无法读取这张图片，请换一张」; otherwise `shrinkPhoto`: scaled so the longest side is at most 360 px (never upscaled), JPEG quality 0.78, data URL appended. Max 3 (the tile disappears at 3); no file-size limit. ✕ removes that photo.
+- Add tile → native picker (`accept="image/*"`). Non-image → toast 「请选择图片文件」; decode failure → 「无法读取这张图片，请换一张」; otherwise `shrinkPhoto`: scaled so the longest side is at most 360 px (never upscaled), JPEG quality 0.78, stored as a Blob in IndexedDB (`VT.media.put`), its reference appended to the draft. Max 3 (the tile disappears at 3); no file-size limit. ✕ removes that photo and deletes it from the device.
 - 「提交申请」: no reason → toast 「请选择申请原因」 (the only validation). Otherwise saves `returns[oid] = { type, reason, note (trimmed), photos, time: 'M月D日 HH:mm', stage: 1 }`, discards the draft, goes back one screen, toast 「{退货|换货}申请已提交（演示）」 (check icon). 订单详情 then shows 「已提交{type} · 等待商家处理」; the list shows 「 · 售后中」 and 「售后进度」.
-- 「撤销申请」 → dialog → deletes the return, re-renders as an empty form (title back to 申请退换货), toast 「售后申请已撤销」.
+- 「撤销申请」 → dialog → deletes the return and its evidence photos (from the device too), re-renders as an empty form (title back to 申请退换货), toast 「售后申请已撤销」.
 - 「联系商家」 → merchant chat sheet (see 订单详情).
 
 **Overlays.** Withdraw dialog: 「撤销售后申请？」 / 「撤销后可在有效期内重新申请。」 / 「再想想」 · 「撤销申请」. Merchant chat sheet (see 订单详情).
 
-**Data.** Reads the order (same fallback), `data.byId[o.p]`, `returns[oid]`. Writes `returns[oid]` on submit; deletes it on withdraw. The draft per order id `{ type, reason, note, photos }` lives in memory (module `drafts`): it survives leaving and re-opening the form and tab switches, is lost on reload and is never persisted; the textarea also has `data-keep-value="rt-note"`. Evidence photos are persisted with the return (cleared by 隐私与安全 → 清除已上传的照片). Keep scroll `rt`.
+**Data.** Reads the order (same fallback), `data.byId[o.p]`, `returns[oid]`. Writes `returns[oid]` on submit; deletes it on withdraw. The draft per order id `{ type, reason, note, photos }` lives in memory (module `drafts`): it survives leaving and re-opening the form and tab switches, is lost on reload and is never persisted; the textarea also has `data-keep-value="rt-note"`. Keep scroll `rt`.
+- Evidence photos are Blobs in IndexedDB from the moment they're picked (`js/media.js`, HANDOFF §9.16). The draft and the saved return hold references only, `photos: [{ media: key }]`, read through `VT.media.src`. They're never data URLs in `localStorage`.
+  - A draft's photos stay on the device until the draft is sent. If it's never sent, they're deleted at the next start-up (keys nothing refers to).
+  - 隐私与安全 → 清除已上传的照片 deletes the photos of the saved returns and of unsent drafts (`VT.orders.clearDraftPhotos`).
+  - Photos saved as data URLs before 21 Oct 2026 move to IndexedDB at start-up. 售后进度 leaves out a photo that isn't loaded yet (the first render after start-up).
 
 **States & edge cases.** The stage is set to 1 and never advances, so only 「提交申请」 is ever done and the stage ≥ 2 copy is unreachable **[demo]**. Seed: the 已完成 skirt order already has an exchange, so it opens in progress mode. 订单详情 offers this form for any paid order (also 待发货 and 运输中); the list only offers it for 已完成.
 
 **Components used.** `VT.ui.subHead`, `.mini` (`.rt-mini`), `.co-sh-h` headings (from `08-checkout.css`), `.or-seg`, `.opt-list` / `.opt` / `.radio`, `textarea.field-area`, `.rt-photos` / `.rt-add` / `.rt-del`, `.rt-steps`, `.kv`, `.tr-acts`, `.sheet-note`, `app.dialog`, `VT.openChat`.
 
-**Acceptance checks.** `订单详情 → 申请退换货` · `return evidence photo added` · `return submitted → back on details`
+**Acceptance checks.** `订单详情 → 申请退换货` · `return evidence photo added` · `return submitted → back on details` · `头像, 售后凭证 and AI 造型师 photos stay on this device in IndexedDB, never in localStorage` · `头像, 售后凭证 and AI 造型师 photos load from IndexedDB after a reload` · `撤销申请 deletes its evidence photos`
 
 
 ### Order data reference (`js/data.js`, `js/store.js`)
@@ -1313,7 +1320,7 @@ The avatar keeps its current photos until a generation finishes. Leaving midway 
 **Layout (top → bottom).**
 - Header 「我的资料」 (fixed). The same screen has other names elsewhere: the 我的 row says 「我的资料」, the 设置 row says 「个人资料」, the 我的 header button's aria-label is 「编辑个人资料：{昵称}」, and the simulator list says 「编辑资料」.
 - Scroll (`data-keep-scroll="ep"`):
-  - Round profile picture with a dark camera badge. The whole circle is a `<label>` (title 「更换头像」) around a hidden `input[type=file][accept="image/*"]` (aria 「更换头像」). Hint below: 「点击更换头像」. The picture is chosen in this order: draft photo → `profile.photo` → `avatar.portrait.src` → `assets/people/chat-user.webp`.
+  - Round profile picture with a dark camera badge. The whole circle is a `<label>` (title 「更换头像」) around a hidden `input[type=file][accept="image/*"]` (aria 「更换头像」). Hint below: 「点击更换头像」. The picture is chosen in this order: draft photo → `profile.photo` → 本人's `avatar.portrait` → `assets/people/chat-user.webp` (the first three read through `VT.media.src`).
   - Card of right-aligned field rows:
     - 「昵称」: text, maxlength 12.
     - 「个性签名」: text, maxlength 20, placeholder 「写一句介绍自己」.
@@ -1325,7 +1332,7 @@ The avatar keeps its current photos until a generation finishes. Leaving midway 
 **Interactions.**
 - Typing in 昵称 / 个性签名 / 生日 updates the draft on every `input` event. The store is not touched.
 - Gender segment → sets `draft.gender` and re-renders (typed text is kept).
-- Picture → the picked file is centre-cropped to a **320×320 JPEG (quality 0.82)** and the preview updates. It is stored only on 保存. Any failure, including a non-image file, shows the toast 「无法读取这张图片，请换一张」. There is no file-size limit.
+- Picture → the picked file is centre-cropped to a **320×320 JPEG (quality 0.82)** and the preview updates. The JPEG goes to IndexedDB at once (`VT.media.put`), but `profile.photo` points at it only on 保存. Any failure, including a non-image file, shows the toast 「无法读取这张图片，请换一张」. There is no file-size limit.
 - 「保存」 → the name is trimmed. If it is empty: toast 「昵称不能为空」 and stay. Otherwise `profile` gets the draft (name and bio trimmed, gender, birthday, photo), the draft is dropped, the screen goes **back** to its opener (我的 or 设置), and the toast 「资料已保存」 (✓) shows.
 - Back button → discards the draft without asking.
 
@@ -1334,7 +1341,10 @@ The avatar keeps its current photos until a generation finishes. Leaving midway 
 **Data.**
 - Reads `profile.{name,bio,gender,birthday,phone,photo}` and `avatar.portrait` (photo fallback).
 - 保存 writes `profile.name|bio|gender|birthday|photo`. `profile.phone` can never be edited.
-- The draft is one module-level copy of `profile`. It is created at first render and cleared on back or save. If the screen is left any other way (e.g. a tab switch) the draft survives and is shown again on return. `data-keep-value`: `ep-name`, `ep-bio`.
+- `photo` is a reference `{ media: key }` to a Blob in IndexedDB (`js/media.js`, HANDOFF §9.16), never a data URL in `localStorage`.
+  - A photo picked here and then replaced by another pick, or left behind by the back button, is deleted from the device.
+  - 保存 deletes the photo it replaces.
+- The draft is one module-level copy of `profile`, except that its `photo` is `null` until a photo is picked here. 保存 writes `photo` only when one was picked. It is created at first render and cleared on back or save. If the screen is left any other way (e.g. a tab switch) the draft survives and is shown again on return. `data-keep-value`: `ep-name`, `ep-bio`.
 - 我的 shows the new name, signature and photo after saving. An empty signature shows as 「编辑个性签名」 there.
 
 **States & edge cases.**
@@ -1560,9 +1570,11 @@ The avatar keeps its current photos until a generation finishes. Leaving midway 
 - 「登录密码」 → toast 「演示版暂不支持修改密码」 **[demo]**.
 - The two switches flip `privacy.*`.
 - 「清除已上传的照片」 → dialog. On confirm:
-  - It deletes the avatar photos and video frames from the device (IndexedDB, `VT.media`).
+  - It deletes from the device (IndexedDB, `VT.media`) every photo the state refers to (`VT.media.keysInState`): the avatar photos and video frames, the profile photo, the evidence photos and the photos sent to AI 造型师. It also deletes the evidence photos of unsent 申请退换货 drafts (`VT.orders.clearDraftPhotos`).
   - It sets `avatar.fullbody`, `avatar.portrait` and `avatar.materials` (of every digital avatar) and `profile.photo` to `null`.
-  - It empties every `returns[oid].photos`. Toast 「已清除本机照片」 (✓). `avatar.status` does not change. Wardrobe garment uploads are not touched. This screen does not re-render (nothing on it changes).
+  - It empties every `returns[oid].photos` and removes the photo messages from the AI 造型师 chat (`s.chat` entries with `img`). Toast 「已清除本机照片」 (✓).
+  - `avatar.status` does not change. Wardrobe garment uploads are not touched. This screen does not re-render (nothing on it changes).
+  - The dialog text and the row's sub line don't name the AI 造型师 photos yet. That copy is for the prototype owners to decide.
 - 「导出我的数据」 → toast 「演示版暂不支持导出数据」 **[demo]**.
 - 「注销账号」 → info dialog only; nothing changes **[demo]**.
 
@@ -1572,14 +1584,14 @@ The avatar keeps its current photos until a generation finishes. Leaving midway 
 
 **Data.**
 - Reads `profile.phone`, `privacy.personalized` and `privacy.wardrobeAI`.
-- Writes those switches and the cleared photo fields. Nothing else reads `privacy.*`.
+- Writes those switches, the cleared photo fields and `s.chat` (without its photo messages). Nothing else reads `privacy.*`.
 
 **States & edge cases.**
-- After clearing photos: 我的形象 tiles show 「示例」, and 我的 / 我的资料 fall back to the demo portrait.
+- After clearing photos: 我的形象 tiles show 「示例」, and 我的 / 我的资料 fall back to the demo portrait. 售后进度 shows no evidence photos, an unsent return draft has none left, and the AI 造型师 thread no longer has the photos the user sent.
 
 **Components used.** `VT.ui.row` (including `act: 'toast'` + `data-msg`), `VT.ui.toggleRow`, `group()`, `app.dialog`.
 
-**Acceptance checks.** None.
+**Acceptance checks.** `隐私与安全 → 清除已上传的照片 deletes the avatar media from the device` · `清除已上传的照片 also deletes the 头像, 售后凭证 (sent or not) and AI 造型师 photos`
 
 
 ### 22. 帮助与客服 · `help`
