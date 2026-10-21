@@ -51,6 +51,7 @@ css/screens/*.css       one file per screen family (01–13)
 css/showcase.css        board, simulator frame, mobile mode
 js/icons.js             SVG icon set (also exported to assets/icons/*.svg)
 js/data.js              catalog, tabs, looks, orders, chat scripts: all demo data
+js/garments.js          the one garment model (VT.garments): each person's garments, their source and ownership (✓), this session's temporary ones
 js/store.js             state + localStorage persistence
 js/ui.js                shared render helpers (tab bar, sub-page header, list rows, switches…)
 js/app.js               navigation (per-tab stacks, launch flow), transitions, events, overlays
@@ -70,13 +71,14 @@ tools/                  font subsetting + the asset pipeline used to prepare ima
 - **Copy and prices** live in `js/data.js` (catalog, tabs, orders, chat) and in each `js/screens/*.js`.
 - **The tab bar** is defined once in `VT.data.tabs` (`js/data.js`) and drawn by `VT.ui.tabBar()`.
 - **Colours and type** live in `css/tokens.css`.
+- **Garments and ownership** go through `VT.garments` (`js/garments.js`) on every screen: how a garment came in (`source`) and whether the person owns it (`isOwned`, the ✓) are kept apart, and only 标记为已拥有 or 确认收货 set ownership. Change the rules there, not in a screen.
 - **Fonts are subset** to the characters the prototype uses (Noto Sans SC + Inter, about 1.1 MB in total). After you add new Chinese text, re-run:
   ```bash
   pip install fonttools brotli
   python3 tools/subset_fonts.py
   ```
   This needs Noto Sans CJK **2.004** (`NotoSansCJK-{Regular,Medium,Bold,Black}.ttc` from [noto-cjk Sans2.004](https://github.com/notofonts/noto-cjk/tree/Sans2.004/Sans/OTC) or the `fonts-noto-cjk` package), read from `$VT_FONTS_SRC`, the repo's git-ignored `fonts-src/`, `~/.cache/vto3d/fonts/noto-cjk-2.004/` or the Debian/Ubuntu font folders. Another version would change the existing glyphs and line metrics; the script warns when it does. Inter is optional: it is cut to a fixed Latin range that new copy never changes. The script fails if any collected character the source has is missing from the result. Until you re-run it, new characters fall back to the system font (PingFang SC / Microsoft YaHei).
-- Demo state (setup flag, digital avatars with their wardrobes, 搭配集 and 穿搭瞬间, orders, favourites, profile, addresses, chat, uploads, the 首页 backdrop) is stored in `localStorage` under `vt-prototype-state-v1`. 首页's 我的上传 (garment photos for try-on) lives in `sessionStorage` under `vt-fit-uploads-v1`, so it lasts for the browser session only. Avatar photos and video frames, the profile photo, return evidence and the photos sent to AI 造型师 live in IndexedDB (`vt-prototype-media`); the state keeps only their keys.
+- Demo state (setup flag, digital avatars with their wardrobes, 搭配集 and 穿搭瞬间, orders, favourites, profile, addresses, chat, uploads, the 首页 backdrop) is stored in `localStorage` under `vt-prototype-state-v1`. Temporary garments (photos taken on 首页 and products tried on but not saved, each person's own) live in `sessionStorage` under `vt-garments-temp-v1`, so they last for the browser session only; the old 我的上传 list (`vt-fit-uploads-v1`) moves there once. Avatar photos and video frames, the profile photo, return evidence and the photos sent to AI 造型师 live in IndexedDB (`vt-prototype-media`); the state keeps only their keys.
 - Demo failures for the avatar flow: `?mockFail=avatar.generate` (generation fails at 55 %) and `?mockFail=avatar.check` (a simulated AI check fails until 正面全身 is replaced), or the same names in `localStorage['vto-mock-fail']`.
 
 See `docs/REPORT.md` for which features are real and which are simulated.
