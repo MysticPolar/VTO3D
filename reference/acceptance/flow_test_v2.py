@@ -1,4 +1,4 @@
-"""Acceptance test used to verify the HTML prototype (134 checks, all passing on v2).
+"""Acceptance test used to verify the HTML prototype (136 checks, all passing on v2).
 
 Port these CHECKS (not the selectors) to the web app's Playwright suite.
 Run against the prototype:
@@ -626,6 +626,25 @@ async def main():
         await sp.wait_for_timeout(2500)
         r2, n2 = await avatar_render(sp, scope=''), await sp.locator('.screen.is-active .fit-avatar-img').count()
         check('slow network: quick picks end on the newest outfit, one image', r1 == 'look3' and n1 == 1 and r2 == 'base' and n2 == 1, f'{r1}×{n1} · {r2}×{n2}')
+        await b.close()
+
+        # ---- 首页 loading: the body renders are fetched after the page has loaded; rail tiles below the fold load lazily
+        b = await p.chromium.launch()
+        c = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2)  # empty image cache
+        pp = await c.new_page()
+        pp.on('pageerror', lambda e: errors.append('preload pageerror: ' + str(e)))
+        await pp.goto(BASE + '?app=fitting'); await pp.evaluate('localStorage.clear(); sessionStorage.clear()')
+        await pp.goto(BASE + '?app=fitting', wait_until='load')
+        looks = "performance.getEntriesByType('resource').filter(e => /\\/avatar-look[123]\\.webp$/.test(e.name))"
+        try:
+            await pp.wait_for_function(f'{looks}.length === 3', timeout=10000)
+        except Exception:
+            pass
+        got = await pp.evaluate(f"(() => {{ const nav = performance.getEntriesByType('navigation')[0]; const l = {looks}; return {{ n: l.length, afterLoad: l.every(e => e.startTime >= nav.loadEventEnd) }}; }})()")
+        check('首页 preloads the body renders after the page loads', got['n'] == 3 and got['afterLoad'], f"{got['n']} of 3, after load: {got['afterLoad']}")
+        eager = await pp.locator('.screen.is-active .fit-thumb-img:not([loading="lazy"])').count()
+        lazy = await pp.locator('.screen.is-active .fit-thumb-img[loading="lazy"]').count()
+        check('首页 rail loads off-screen thumbnails lazily', eager == 8 and lazy == 6, f'{eager} eager · {lazy} lazy')
         await b.close()
     print('\n'.join(log))
     print('passed', sum(1 for l in log if l.startswith('PASS')), 'of', len(log))
