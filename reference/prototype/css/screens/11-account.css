@@ -70,6 +70,7 @@
 .fv-img img { width: 100%; height: 100%; object-fit: cover; }
 .fv-img.is-small img { object-fit: contain; padding: 12px; }
 .fv-heart { position: absolute; right: 2px; top: 2px; z-index: 2; }
+.fv-card .own-mark { --own-size: 18px; --own-inset: 9px; }
 .fv-meta { padding: 8px 10px 10px; }
 .fv-meta h3 { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fv-price { margin-top: 2px; font-size: 15px; }

@@ -5,11 +5,14 @@
   const D = () => VT.data;
   let favTab = 'items';
 
+  /** a favourite product; ✓ (top left) when the active person owns it. A heart (收藏) never means owned */
   function productCard(p, s) {
+    const own = VT.garments.ownsProduct(s, p.id);
     return `<li class="fv-card">
-      <button type="button" class="fv-open" data-act="nav" data-to="product" data-pid="${p.id}" aria-label="查看 ${p.name}，¥${p.price}"></button>
+      <button type="button" class="fv-open" data-act="nav" data-to="product" data-pid="${p.id}" aria-label="查看 ${p.name}，¥${p.price}${own ? '，已拥有' : ''}"></button>
       <div class="fv-img ${p.small ? 'is-small' : ''}">${VT.ui.img(p.img.card, p.name, '', 'loading="lazy"')}</div>
       ${VT.ui.heart(p.id, VT.store.h.isFav(s, p.id), { cls: 'fv-heart', size: 21, stroke: 1.6 })}
+      ${VT.ui.ownMark(own, 'own-mark--l')}
       <div class="fv-meta"><h3>${p.cardName}</h3>${VT.ui.price(p.price, 'fv-price')}</div>
     </li>`;
   }

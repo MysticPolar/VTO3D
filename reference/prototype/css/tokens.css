@@ -19,6 +19,7 @@
   --chip: #EEE8E1;           /* unselected chips / pills */
   --chip-2: #E7E0D8;
   --tile: #E9E0D7;           /* garment tiles */
+  --own-mark: rgba(60, 50, 43, .84); /* ✓ 已拥有 on a garment thumbnail */
   --beige: #E6DDD4;          /* secondary button */
   --stone: #DCD3CA;          /* inactive stepper */
   --divider: #E7E0D8;

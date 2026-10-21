@@ -244,13 +244,13 @@
       logistics: [{ t: `${md(now)} ${hm(now)}`, s: '订单已提交并完成支付（演示），等待商家发货' }],
       created: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${hm(now)}:${pad(now.getSeconds())}`,
       carrier: '待分配', isNew: true,
+      avatarId: s.activeAvatar, // whose wardrobe it goes to: they own it once it's received (确认收货)
     };
     VT.store.update((st) => {
       st.orders.unshift(order);
       st.currentOrder = id;
       st.cart = null;
-      if (!st.wardrobe.some((w) => w.p === p.id)) st.wardrobe.unshift({ uid: VT.store.uid('w'), p: p.id, fav: false, source: 'purchased', color: color.id, size: c.size, addedAt: Date.now() });
-      else st.wardrobe.forEach((w) => { if (w.p === p.id && w.source !== 'owned') w.source = 'purchased'; });
+      VT.garments.purchase(st, p.id, color.id, c.size); // in the wardrobe, not owned until 确认收货
     });
     return id;
   }

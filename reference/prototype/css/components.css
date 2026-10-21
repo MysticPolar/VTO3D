@@ -135,6 +135,19 @@
 .dots em { font-style: normal; font-size: 9.5px; color: var(--text-3); margin-left: 3px; font-family: "VT Inter", var(--font); }
 .heart-btn { display: grid; place-items: center; width: 40px; height: 40px; color: var(--ink); border-radius: 50%; }
 .heart-btn.pop svg { animation: vt-pop .32s var(--ease-out); }
+
+/* ✓ 已拥有 (VT.ui.ownMark): the person owns this garment. A thumbnail corner mark; the parent is positioned.
+   Size and inset per place: --own-size, --own-inset */
+.own-mark {
+  position: absolute; top: var(--own-inset, 5px); right: var(--own-inset, 5px); z-index: 2;
+  display: grid; place-items: center; width: var(--own-size, 16px); height: var(--own-size, 16px);
+  border-radius: 50%; background: var(--own-mark); color: #FFFAF4; pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(255, 250, 244, .5), 0 1px 3px rgba(40, 30, 22, .16);
+}
+.own-mark svg { width: 64%; height: 64%; }
+.own-mark--l { right: auto; left: var(--own-inset, 5px); }
+/* in a line of text: 已拥有 on 商品详情 and the garment sheet */
+.own-mark--inline { position: relative; top: 0; left: 0; right: auto; display: inline-grid; vertical-align: -2px; margin-right: 4px; box-shadow: none; }
 @keyframes vt-pop { 0% { transform: scale(.7); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
 
 /* ---------- bottom navigation: one bar shared by the five primary screens ---------- */

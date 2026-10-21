@@ -290,13 +290,16 @@
   ];
   const lookById = Object.fromEntries(looks.map((l) => [l.id, l]));
 
-  /* the wardrobe the demo user already owns / collected (reference screen 6 order) */
+  /* 本人's wardrobe (reference screen 6 order, then the stylist looks' garments). `own`: garments she owns (✓);
+     the others she added from 购物广场 (the striped shirt is still on its way, order VT20260715092418) */
   const seedWardrobe = [
-    { p: 'knit-cardigan', fav: true, source: 'owned' }, { p: 'striped-shirt', fav: false, source: 'owned' }, { p: 'black-blazer', fav: false, source: 'owned' },
-    { p: 'straight-jeans', fav: false, source: 'owned' }, { p: 'pleated-skirt', fav: true, source: 'owned' }, { p: 'white-tee', fav: false, source: 'owned' },
-    { p: 'taupe-coat', fav: false, source: 'owned' }, { p: 'white-sneakers', fav: false, source: 'owned' }, { p: 'brown-tote', fav: true, source: 'owned' },
-    { p: 'black-cardigan', fav: false, source: 'owned' }, { p: 'white-shirt', fav: true, source: 'owned' }, { p: 'brown-sweater', fav: false, source: 'owned' },
-    { p: 'ribbed-tank', fav: false, source: 'owned' }, { p: 'beige-trousers', fav: false, source: 'owned' }, { p: 'denim-jacket', fav: false, source: 'owned' },
+    { p: 'knit-cardigan', fav: true, own: true }, { p: 'striped-shirt', fav: false }, { p: 'black-blazer', fav: false, own: true },
+    { p: 'straight-jeans', fav: false }, { p: 'pleated-skirt', fav: true, own: true }, { p: 'white-tee', fav: false },
+    { p: 'taupe-coat', fav: false }, { p: 'white-sneakers', fav: false, own: true }, { p: 'brown-tote', fav: true },
+    { p: 'black-cardigan', fav: false, own: true }, { p: 'white-shirt', fav: true }, { p: 'brown-sweater', fav: false },
+    { p: 'ribbed-tank', fav: false, own: true }, { p: 'beige-trousers', fav: false, own: true }, { p: 'denim-jacket', fav: false },
+    { p: 'basic-cami', fav: false, own: true }, { p: 'satin-slip-dress', fav: false }, { p: 'black-handbag', fav: false },
+    { p: 'black-pumps', fav: false }, { p: 'strappy-heels', fav: false }, { p: 'gold-hoops', fav: false },
   ];
 
   /* ---------- 个人衣橱 V2 (asset kit "Wardrobe Instagram Assets V2") ---------- */
@@ -319,18 +322,22 @@
     { id: 'evening', src: W + 'moments/evening.webp', at: new Date(2026, 9, 6, 20, 30).getTime(), items: ['satin-slip-dress', 'black-handbag'], fav: false },
   ];
   /* 切换角色: 本人 plus three demo people, each with their own wardrobe, 搭配集 and body data.
-     Portraits are demo images, not real relatives. */
+     They own their garments except `saved` (added from 购物广场): 本人 owns the white sneakers,
+     伴侣 only saved them, 妈妈 doesn't have them. Portraits are demo images, not real relatives. */
   const mePortrait = W + 'avatars/me.webp';
   const seedRoles = [
     { id: 'partner', name: '伴侣', portrait: W + 'avatars/partner.webp', body: { height: 178, weight: 68, size: 'L', shoe: '42' },
       wardrobe: ['grey-hoodie', 'white-tee', 'denim-jacket', 'utility-jacket', 'black-sweater', 'straight-jeans', 'white-sneakers'], favs: ['denim-jacket', 'white-sneakers'],
+      saved: ['utility-jacket', 'white-sneakers'],
       collections: [{ id: 'partner-weekend', name: '周末最爱', items: ['grey-hoodie', 'straight-jeans', 'white-sneakers'] },
         { id: 'partner-travel', name: '旅行穿搭', items: ['white-tee', 'denim-jacket', 'straight-jeans', 'white-sneakers'] }] },
     { id: 'father', name: '爸爸', portrait: W + 'avatars/father.webp', body: { height: 172, weight: 72, size: 'XL', shoe: '42' },
       wardrobe: ['brown-blazer', 'oxford-shirt', 'brown-sweater', 'beige-trousers', 'taupe-coat', 'white-shirt'], favs: ['brown-sweater'],
+      saved: ['brown-blazer'],
       collections: [{ id: 'father-office', name: '通勤搭配', items: ['brown-blazer', 'oxford-shirt', 'beige-trousers'] }] },
     { id: 'mother', name: '妈妈', portrait: W + 'avatars/mother.webp', body: { height: 160, weight: 54, size: 'M', shoe: '37' },
       wardrobe: ['bow-blouse', 'beige-blazer', 'maxi-skirt', 'knit-cardigan', 'satin-slip-dress', 'black-handbag', 'black-pumps', 'gold-hoops'], favs: ['bow-blouse', 'gold-hoops'],
+      saved: ['satin-slip-dress', 'black-handbag'],
       collections: [{ id: 'mother-date', name: '约会穿搭', items: ['satin-slip-dress', 'black-pumps', 'black-handbag', 'gold-hoops'] },
         { id: 'mother-office', name: '通勤搭配', items: ['bow-blouse', 'beige-blazer', 'maxi-skirt', 'black-handbag'] }] },
   ];
@@ -452,11 +459,15 @@
     { role: 'ai', text: '这 3 套造型分别呈现了不同的风格：\n第一套清新自然，第二套摩登精致，第三套优雅\n迷人。你更喜欢哪一种风格？或者想让我根据\n具体场景再做调整？' },
   ];
   const chatSuggestions = ['我想要更正式一些', '换成裙装搭配', '根据我已有的衣服来搭配'];
-  /* keyword → scripted reply (no LLM; predetermined local responses) */
+  /* keyword → scripted reply (no LLM; predetermined local responses). The first match wins.
+     `plan` replies are put together from the active person's garments (07-stylist.js):
+     upload = style a garment photo they took · focal = style a 购物广场 product · owned = only what they own */
   const chatReplies = [
+    { k: ['拍了', '刚拍', '拍的', '上传了', '刚上传', '上传的'], plan: 'upload' },
+    { k: ['购物广场', '这件'], plan: 'focal' },
+    { k: ['已有', '衣橱', '我的衣服', '现有'], plan: 'owned' },
     { k: ['正式', '通勤', '上班', '会议', '面试'], text: '明白，想要更正式一些的话，推荐以西装外套为主角：\nLook 2 的黑色西装外套搭配基础吊带背心与直筒牛仔裤，\n利落又不会过于严肃。鞋子换成尖头细跟单鞋，气场更足。', looks: ['look2'] },
     { k: ['裙', '连衣裙', '约会', '优雅', '女人味'], text: '换成裙装的话，这套缎面吊带连衣裙很适合晚间聚会：\n垂坠缎面在灯光下有细腻光泽，搭配黑色手提包、\n一字带细跟凉鞋和金色圆环耳饰，优雅又有氛围感。', looks: ['look3'] },
-    { k: ['已有', '衣橱', '我的衣服', '现有'], text: '好的，我从你的衣橱里挑了一套：\n奶油白针织开衫 + 白色廓形衬衫 + 百褶半身裙，\n再背上棕色托特包，温柔知性又很适合朋友聚会。\n这几件都已在你的衣橱里，可以直接去试衣间试穿。', wardrobeLook: ['knit-cardigan', 'white-shirt', 'pleated-skirt', 'brown-tote'] },
     { k: ['休闲', '舒适', '轻松', '日常', '周末'], text: '轻松一点的话推荐 Look 1：基础吊带背心 + 高腰直筒牛仔裤，\n配棕色托特包和小白板鞋，舒适好走又很有型。', looks: ['look1'] },
     { k: ['冷', '降温', '保暖', '秋', '冬'], text: '天气转凉的话，可以在任一造型外加一件双排扣羊毛大衣\n或焦糖色圆领毛衣，大地色系叠穿会更有层次感。', wardrobeLook: ['taupe-coat', 'brown-sweater', 'straight-jeans', 'white-sneakers'] },
   ];

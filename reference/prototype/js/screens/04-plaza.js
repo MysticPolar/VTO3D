@@ -56,12 +56,15 @@
     return src.includes('/models/') ? 'is-model' : p.small ? 'is-small' : p.cardFocus === 'top' ? 'is-top' : '';
   }
 
+  /** a product card; ✓ (top left: the heart has the right) when the active person owns it (VT.garments) */
   function card(p, s, i) {
     const fav = VT.store.h.isFav(s, p.id);
+    const own = VT.garments.ownsProduct(s, p.id);
     return `<li class="pz-card" data-pid="${p.id}">
-      <button type="button" class="pz-open" data-act="nav" data-to="product" data-pid="${p.id}" aria-label="查看 ${p.name}，¥${p.price}"></button>
+      <button type="button" class="pz-open" data-act="nav" data-to="product" data-pid="${p.id}" aria-label="查看 ${p.name}，¥${p.price}${own ? '，已拥有' : ''}"></button>
       <div class="pz-img ${imgCls(p)}">${VT.ui.img(p.img.plaza || p.img.card, p.name, '', i < 6 ? '' : 'loading="lazy"')}</div>
       ${VT.ui.heart(p.id, fav, { cls: 'pz-heart', size: 23, stroke: 1.55 })}
+      ${VT.ui.ownMark(own, 'own-mark--l')}
       <div class="pz-meta">
         <h3>${p.cardName}</h3>
         <p class="pz-tags">${p.tags}</p>

@@ -1,4 +1,4 @@
-"""Acceptance test used to verify the HTML prototype (175 checks, all passing on v2).
+"""Acceptance test used to verify the HTML prototype (195 checks, all passing on v2).
 
 Port these CHECKS (not the selectors) to the web app's Playwright suite.
 Run against the prototype:
@@ -6,7 +6,7 @@ Run against the prototype:
   pip install playwright && playwright install chromium
   python3 flow_test_v2.py            # or PROTOTYPE_URL=http://127.0.0.1:8765/index.html
 Runs Chromium with a fake camera so the getUserMedia path is exercised."""
-import asyncio, os
+import asyncio, json, os
 from playwright.async_api import async_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -17,6 +17,8 @@ OUT = os.path.join(HERE, 'out') + '/'
 log, errors = [], []
 TABS = ['fitting', 'plaza', 'wardrobe', 'stylist', 'profile']
 LABELS = ['首页', '购物广场', '个人衣橱', 'AI造型师', '我的']
+# 首页 rail tiles as product id (or up:<uid> for a photo), + when it shows ✓ 已拥有
+RAIL = "els => els.map(e => (e.dataset.pid || 'up:' + e.dataset.up) + (e.querySelector('.own-mark') ? '+' : ''))"
 
 
 def check(name, cond, info=''):
@@ -220,27 +222,36 @@ async def main():
         await app.locator('.fit-thumb[data-pid="satin-slip-dress"]').click()
         r = await avatar_render(pg, 'look3')
         check('outfit change: dress → look3 render', r == 'look3', r)
+        dress_on = await app.locator('.fit-thumb.is-on').evaluate_all(RAIL)
+        await app.locator('.fit-cat[data-cat="outer"]').click()
+        outer_on = await app.locator('.fit-thumb.is-on').evaluate_all(RAIL)
+        check('the selection border and ✓ are separate (worn dress: border only; worn owned blazer: both)', dress_on == ['satin-slip-dress'] and outer_on == ['black-blazer+'], f'{dress_on} {outer_on}')
+        # one list of the person's own garments, whatever their source, per category; ✓ exactly on the owned ones
+        tabs = await app.locator('.fit-src-tab, [aria-label="单品来源"]').count()
         await app.locator('.fit-cat[data-cat="upper"]').click()
-        # 推荐 lists every try-on garment of the category, the ones some render wears first
-        in_order, shown = True, set()
-        for c in await pg.evaluate('VT.data.fitCatsAll.map(c => ({ id: c.id, all: c.items, ready: VT.data.fitCats.find(f => f.id === c.id).items }))'):
-            await app.locator(f'.fit-cat[data-cat="{c["id"]}"]').click()
-            got = await app.locator('.fit-thumb[data-pid]').evaluate_all('els => els.map(e => e.dataset.pid)')
-            in_order = in_order and got == c['ready'] + [x for x in c['all'] if x not in c['ready']]
-            shown |= set(got)
-        check('首页 rail lists image-ready garments first', in_order and len(shown) == 28, f'{len(shown)} shown')
+        upper = await app.locator('.fit-thumb').evaluate_all(RAIL)
+        check("首页 rail: no 推荐 / 我的上传; 本人's 上装 in one list, ✓ on the owned ones", tabs == 0 and upper == ['knit-cardigan+', 'striped-shirt', 'black-blazer+', 'white-tee', 'white-shirt', 'brown-sweater', 'ribbed-tank+', 'basic-cami+'], ' '.join(upper))
+        same = True
+        for cid in await pg.evaluate('VT.data.fitCats.map(c => c.id)'):
+            await app.locator(f'.fit-cat[data-cat="{cid}"]').click()
+            got = await app.locator('.fit-thumb').evaluate_all(RAIL)
+            want = await pg.evaluate(f"(() => {{ const s = VT.store.get(), G = VT.garments; return G.all(s).filter(g => G.inFitCat(g, '{cid}')).map(g => G.ref(g) + (g.isOwned ? '+' : '')); }})()")
+            same = same and got == want and len(got) > 0
+        check("each category lists the person's garments of that kind from every source (VT.garments)", same)
         await app.locator('.fit-cat[data-cat="upper"]').click()
         # garments without imagery can still arrive from elsewhere (商品详情 试穿), with the honest toast
         await pg.evaluate("VT.tryOn(VT.liveApp, ['grey-hoodie'])")
         await pg.wait_for_timeout(700)
         t = await app.locator('.toast').inner_text()
         check('honest toast for garments without imagery', '暂无' in t, t)
+        temp = await pg.evaluate("(() => { const s = VT.store.get(), g = VT.garments.ofProduct(s, 'grey-hoodie'); return g ? [g.source, g.isOwned, g.isTemporary, s.wardrobe.some(w => w.p === 'grey-hoodie')].join(',') : 'none'; })()")
+        check('a product tried on from elsewhere joins the rail: temporary, from 购物广场, not owned, not in the wardrobe', temp == 'shopping_plaza,false,true,false' and await app.locator('.fit-thumb[data-pid="grey-hoodie"] .own-mark').count() == 0, temp)
         on = await app.locator('.fit-thumb.is-on[data-pid="grey-hoodie"]').count()
         await app.locator('.fit-thumb[data-pid="grey-hoodie"]').click()
         await pg.wait_for_timeout(300)
         off = await app.locator('.fit-thumb.is-on[data-pid="grey-hoodie"]').count()
         top = await pg.evaluate('VT.store.get().fit.outfit.top || null')
-        check('garment without a render can be tapped off', on == 1 and off == 0 and top is None, f'on={on} after={off}')
+        check('garment without a render can be tapped off (it stays in the rail this session)', on == 1 and off == 0 and top is None and await app.locator('.fit-thumb[data-pid="grey-hoodie"]').count() == 1, f'on={on} after={off}')
         await app.locator('.fit-cam').click()
         await pg.wait_for_timeout(400)
         await app.locator('.cam [data-act="start"]').first.click()
@@ -284,8 +295,9 @@ async def main():
         await app.locator('.sheet [data-act="to-wardrobe"]').click()
         await pg.wait_for_timeout(600)
         check('加入衣橱 → 个人衣橱 tab', await cur(pg) == 'wardrobe')
-        src = await app.locator('.wr-tile .wr-src').first.inner_text()
-        check('collected item at top of wardrobe', src == '已收藏', src)
+        top = await app.locator('.wr-open').first.get_attribute('data-uid')
+        rec = await pg.evaluate(f"(() => {{ const g = VT.store.get().wardrobe.find(w => w.uid === '{top}'); return [g.p, g.source, g.isOwned, g.merchantId].join(','); }})()")
+        check('加入衣橱: top of the wardrobe, from 购物广场 with its store, not owned: no ✓, no source label', rec == 'brown-blazer,shopping_plaza,false,zara' and await app.locator('.wr-tile').first.locator('.own-mark, .wr-src').count() == 0, rec)
         await app.locator('.tabbar .tab[data-to="plaza"]').click()
         await pg.wait_for_timeout(300)
         check('plaza tab returns to its own history (product page)', await cur(pg) == 'product')
@@ -309,6 +321,8 @@ async def main():
         check('pay → 订单详情 (in 我的 → 我的订单)', await cur(pg) == 'orders')
         st = await app.locator('.or-status h2').inner_text()
         check('new order 待发货', st == '待发货', st)
+        rec = await pg.evaluate("(() => { const s = VT.store.get(), g = s.wardrobe.filter(w => w.p === 'brown-blazer'); return [g.length, g[0].isOwned, s.orders[0].avatarId].join(','); })()")
+        check('加入衣橱 twice, then bought: one record, still not owned (until 确认收货)', rec == '1,false,me', rec)
         await app.locator('.screen.is-active .back-btn').click()
         await pg.wait_for_timeout(500)
         check('order details → back → 我的订单', await cur(pg) == 'orderlist')
@@ -459,7 +473,8 @@ async def main():
         await pg.wait_for_timeout(300)
         await app.locator('.sheet [data-act="queue"]').click()
         await pg.wait_for_timeout(400)
-        check('wardrobe queue bar', await app.locator('.wr-queue').count() == 1)
+        pick = app.locator('.wr-tile.is-picked .wr-pick')
+        check('wardrobe queue bar; a queued tile is numbered, not ✓', await app.locator('.wr-queue').count() == 1 and (await pick.inner_text()).strip() == '1' and await pick.locator('svg').count() == 0)
         await app.locator('[data-act="add-open"]').first.click()
         await pg.wait_for_timeout(300)
         await app.locator('.sheet input[type=file]').set_input_files(FIX + 'my_jacket.jpg')
@@ -467,7 +482,8 @@ async def main():
         await app.locator('.sheet .js-name').fill('我的牛仔夹克')
         await app.locator('.sheet [data-act="save"]').click()
         await pg.wait_for_timeout(500)
-        check('uploaded garment saved', await app.locator('.wr-tile .wr-src').first.inner_text() == '我上传的')
+        rec = await pg.evaluate("(() => { const g = VT.store.get().wardrobe[0]; return [!!g.custom, g.source, g.isOwned, g.isSavedToWardrobe].join(','); })()")
+        check('添加衣物: saved as a photo garment, not owned (no ✓)', rec == 'true,photo_upload,false,true' and await app.locator('.wr-tile').first.locator('.own-mark').count() == 0, rec)
         await app.locator('.tabbar .tab[data-to="stylist"]').click()
         await pg.wait_for_timeout(300)
         await app.locator('.st-field').fill('还没发送的草稿')
@@ -622,8 +638,8 @@ async def main():
         fa = fp.locator('.screen.is-active')
         S = lambda js: fp.evaluate(f'(() => {{ const s = VT.store.get(); return {js}; }})()')
         heads = [(await fa.locator(sel).inner_text()).strip() for sel in ('[data-act="role"]', '[data-act="scene"]', '.fit-cam')]
-        tabs = await fa.locator('.fit-src-tab').all_inner_texts()
-        check('首页 header: 切换角色 · 切换场景 · 开启视频试衣', heads == ['切换角色', '切换场景', '开启视频试衣'] and tabs == ['推荐', '我的上传'], ' | '.join(heads + tabs))
+        tabs = await fa.locator('.fit-src-tab, [aria-label="单品来源"]').count()
+        check('首页 header: 切换角色 · 切换场景 · 开启视频试衣; no 推荐 / 我的上传 tabs', heads == ['切换角色', '切换场景', '开启视频试衣'] and tabs == 0, ' | '.join(heads) + f' tabs={tabs}')
         await fa.locator('.fit-shoot').click(); await fp.wait_for_timeout(400)
         items = [i.strip() for i in await fp.locator('.fit-pop [role="menuitem"]').all_inner_texts()]
         check('拍照 opens 拍摄衣服 / 从相册上传', items == ['拍摄衣服', '从相册上传'], ','.join(items))
@@ -634,16 +650,19 @@ async def main():
         await fp.wait_for_selector('.ov--fitup .fu-img'); await fp.wait_for_timeout(300)
         await fp.locator('.fu-cats .chip[data-cat="outer"]').click()
         await fp.locator('.ov--fitup [data-act="fu-ok"]').click(); await fp.wait_for_timeout(600)
-        src = await fa.locator('.fit-src-tab.is-on').get_attribute('data-src')
         worn = await S("Object.values(s.fit.outfit).filter(v => String(v).startsWith('up:')).length")
-        check('upload → 我的上传, tried on, not in the wardrobe', src == 'mine' and worn == 1 and await fa.locator('.fit-thumb.is-on[data-up]').count() == 1 and await S('s.fit.cat') == 'outer' and await S('s.wardrobe.length') == n0 and await fa.locator('.fit-temp').count() == 1, f'src={src} worn={worn}')
+        up = await S("(() => { const g = VT.garments.temp(s)[0]; return g ? [g.source, g.isOwned, g.isTemporary, g.avatarId].join(',') : 'none'; })()")
+        tile = fa.locator('.fit-thumb.is-on[data-up]')
+        check('upload → the one rail, tried on: temporary, not owned (no ✓), not in the wardrobe', worn == 1 and await tile.count() == 1 and await tile.locator('.own-mark').count() == 0 and up == 'photo_upload,false,true,me' and await S('s.fit.cat') == 'outer' and await S('s.wardrobe.length') == n0 and await fa.locator('.fit-temp').count() == 1, f'worn={worn} {up}')
+        mixed = await fa.locator('.fit-thumb').evaluate_all(RAIL)
+        check("外套 lists the photo with the wardrobe's own garments (owned ✓ and not), no source headings", mixed[0].startswith('up:') and any(m.endswith('+') for m in mixed) and any(not m.endswith('+') and not m.startswith('up:') for m in mixed) and await fa.locator('.fit-rail h2, .fit-rail h3, .fit-rail .fit-rail-note').count() == 0, ' '.join(mixed))
+        await fp.reload(); await fp.wait_for_timeout(900)
+        kept = await fa.locator('.fit-thumb[data-up]').count()
+        check('the photo lasts for the browser session (still temporary)', kept == 1 and await fa.locator('.fit-temp-btn[data-act="keep"]').count() == 1, str(kept))
         await fa.locator('.fit-temp-btn[data-act="keep"]').click(); await fp.wait_for_timeout(300)
         n1 = await S('s.wardrobe.length')
-        check('加入衣橱 saves the upload once', n1 == n0 + 1 and await S('s.wardrobe[0].source') == 'uploaded' and await fa.locator('.fit-temp-btn[data-act="keep"]').count() == 0 and await fa.locator('.fit-temp-btn').is_disabled(), f'{n0}->{n1}')
-        await fp.reload(); await fp.wait_for_timeout(900)
-        await fa.locator('.fit-src-tab[data-src="mine"]').click(); await fp.wait_for_timeout(200)
-        kept = await fa.locator('.fit-thumb[data-up]').count()
-        check('我的上传 lasts for the browser session', kept == 1, str(kept))
+        rec = await S("[s.wardrobe[0].source, s.wardrobe[0].isOwned, s.wardrobe[0].isSavedToWardrobe, VT.garments.temp(s).length].join(',')")
+        check('加入衣橱 saves the upload once, still not owned', n1 == n0 + 1 and rec == 'photo_upload,false,true,0' and await fa.locator('.fit-thumb[data-up]').count() == 1 and await fa.locator('.fit-temp-btn[data-act="keep"]').count() == 0 and await fa.locator('.fit-temp-btn').is_disabled(), f'{n0}->{n1} {rec}')
         await fa.locator('.fit-shoot').click(); await fp.wait_for_timeout(400)
         await fp.locator('.fit-pop [data-act="pop-camera"]').click()
         await fp.wait_for_function("document.querySelector('.cam--shot .cam-view') && document.querySelector('.cam--shot .cam-view').dataset.state === 'live'", timeout=8000)
@@ -668,6 +687,17 @@ async def main():
         check('the new avatar is listed in 切换角色', opts == 5 and await fp.locator('.as-opt.is-on').inner_text() != '' and '朋友' in await fp.locator('.as-opt.is-on').inner_text(), str(opts))
         await fp.locator('.as-opt[data-id="me"]').click(); await fp.wait_for_timeout(500)
         check('切换角色 back to 本人 restores her wardrobe', await S('s.activeAvatar') == 'me' and await S('s.wardrobe.length') == n1, str(await S('s.wardrobe.length')))
+
+        async def shoes_of(who):
+            await fa.locator('[data-act="role"]').click(); await fp.wait_for_timeout(400)
+            await fp.locator(f'.as-opt[data-id="{who}"]').click(); await fp.wait_for_timeout(500)
+            await fa.locator('.fit-cat[data-cat="shoes"]').click(); await fp.wait_for_timeout(200)
+            t = fa.locator('.fit-thumb[data-pid="white-sneakers"]')
+            state = 'none' if not await t.count() else ('owned' if await t.locator('.own-mark').count() else 'saved')
+            await fa.locator('.fit-cat[data-cat="outer"]').click(); await fp.wait_for_timeout(200)
+            return f"{state}:{await fa.locator('.fit-thumb[data-up]').count()}"
+        got = [await shoes_of(w) for w in ('partner', 'mother', 'me')]
+        check("per person: 本人 owns the white sneakers (✓), 伴侣 only saved them, 妈妈 has none; the photo stays 本人's", got == ['saved:0', 'none:0', 'owned:1'], ','.join(got))
         await b.close()
 
         # ---- 创建数字分身: 视频上传 and in-app recording, a failed check, a failed generation, deleting the media, 360 px
@@ -776,7 +806,7 @@ async def main():
         check('portrait row: 4 people + 新建数字分身, no names, 本人 ringed', faces == 4 and await wa.locator('.wr-face--add').count() == 1 and row_text == '' and ringed == 'me', f'{faces} faces, text="{row_text}", on={ringed}')
         segs = [t.strip() for t in await wa.locator('.wr-seg').all_inner_texts()]
         cols = await wp.evaluate("getComputedStyle(document.querySelector('.screen.is-active .wr-grid')).gridTemplateColumns.split(' ').length")
-        check('衣服 | 搭配集 | 穿搭瞬间 over a 3-column grid', segs == ['衣服', '搭配集', '穿搭瞬间'] and cols == 3 and await wa.locator('.wr-tile').count() == 15, ','.join(segs) + f' cols={cols}')
+        check('衣服 | 搭配集 | 穿搭瞬间 over a 3-column grid', segs == ['衣服', '搭配集', '穿搭瞬间'] and cols == 3 and await wa.locator('.wr-tile').count() == 21, ','.join(segs) + f' cols={cols}')
         await wa.locator('.wr-face[data-id="partner"]').click(); await wp.wait_for_timeout(400)
         pids = await W("s.wardrobe.map(w => w.p).join(',')")
         check("tapping a portrait shows that person's wardrobe", await W('s.activeAvatar') == 'partner' and await wa.locator('.wr-tile').count() == 7 and 'grey-hoodie' in pids and 'knit-cardigan' not in pids, pids)
@@ -791,12 +821,26 @@ async def main():
         dresses = await wa.locator('.wr-tile').count()
         await wa.locator('.wr-tab[data-cat="all"]').click()
         await wa.locator('.wr-face[data-id="me"]').click(); await wp.wait_for_timeout(400)
-        check('category filters follow the person (妈妈 连衣裙 1, 本人 全部 15)', dresses == 1 and await wa.locator('.wr-tile').count() == 15, str(dresses))
+        check('category filters follow the person (妈妈 连衣裙 1, 本人 全部 21)', dresses == 1 and await wa.locator('.wr-tile').count() == 21, str(dresses))
+        tiles = await wa.locator('.wr-tile').evaluate_all("els => els.map(e => e.querySelector('.wr-open').dataset.uid + (e.querySelector('.own-mark') ? '+' : '') + (e.querySelector('.wr-heart.is-on') ? '♥' : ''))")
+        model = await W("s.wardrobe.map(w => w.uid + (w.isOwned ? '+' : '') + (w.fav ? '♥' : ''))")
+        check('个人衣橱: ✓ exactly on the owned garments; hearts apart (♥ without ✓ and ✓ without ♥); no source labels', tiles == model and any('+' in x and '♥' not in x for x in tiles) and any('♥' in x and '+' not in x for x in tiles) and await wa.locator('.wr-src').count() == 0, f"{sum('+' in x for x in tiles)} ✓ of {len(tiles)}")
+        await wa.locator('.wr-open[data-uid="w2"]').click(); await wp.wait_for_timeout(400)
+        await wp.locator('.ov--wr-item [data-act="own"]').click(); await wp.wait_for_timeout(400)
+        rec = await W("(() => { const g = s.wardrobe.find(w => w.uid === 'w2'); return [g.isOwned, g.source, s.wardrobe.length].join(','); })()")
+        mark = await wa.locator('.wr-open[data-uid="w2"] ~ .own-mark').count()
+        await wa.locator('.wr-heart[data-uid="w2"]').click(); await wp.wait_for_timeout(200)
+        heart = await W("(() => { const g = s.wardrobe.find(w => w.uid === 'w2'); return [g.fav, g.isOwned].join(','); })()")
+        check('标记为已拥有: ✓ on the tile, source kept, no new record; the heart still toggles on its own', rec == 'true,shopping_plaza,21' and mark == 1 and heart == 'true,true', f'{rec} mark={mark} heart={heart}')
+        await wa.locator('.wr-open[data-uid="w2"]').click(); await wp.wait_for_timeout(400)
+        row = (await wp.locator('.ov--wr-item [data-act="own"]').inner_text()).strip()
+        await wp.locator('.ov--wr-item [data-act="own"]').click(); await wp.wait_for_timeout(400)
+        check('取消已拥有标记 takes the ✓ away again', row == '取消已拥有标记' and await W("s.wardrobe.find(w => w.uid === 'w2').isOwned") is False and await wa.locator('.wr-open[data-uid="w2"] ~ .own-mark').count() == 0, row)
         box = await wa.locator('.wr-open').first.bounding_box()
         await wp.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
         await wp.mouse.down(); await wp.wait_for_timeout(700); await wp.mouse.up(); await wp.wait_for_timeout(400)
         menu = [t.strip() for t in await wp.locator('.ov--wr-ctx [role="menuitem"]').all_inner_texts()]
-        check('long-press: 立即试穿 · 加入搭配集 · 分享 · 删除 (not the item sheet)', menu == ['立即试穿', '加入搭配集', '分享', '删除'] and await wp.locator('.ov--wr-item').count() == 0, ','.join(menu))
+        check('long-press: 立即试穿 · 加入搭配集 · 取消已拥有标记 · 分享 · 删除 (not the item sheet)', menu == ['立即试穿', '加入搭配集', '取消已拥有标记', '分享', '删除'] and await wp.locator('.ov--wr-item').count() == 0, ','.join(menu))
         await wp.locator('.ov--wr-ctx [data-act="ctx-set"]').click(); await wp.wait_for_timeout(400)
         await wp.locator('.ov--wr-sets [data-act="new"]').click(); await wp.wait_for_timeout(400)
         await wp.locator('.ov .js-set-name').fill('春日出游')
@@ -821,6 +865,77 @@ async def main():
         await wa.locator('.wr-moment-open').nth(1).click(); await wp.wait_for_timeout(600)
         related = await wa.locator('.wr-mo-item').count()
         check('穿搭瞬间 detail: photo, date, 仅自己可见, related garments, 再次试穿', await cur(wp) == 'moment' and related >= 1 and await wa.locator('.wr-private').count() == 1 and await wa.locator('[data-act="mo-again"]').count() == 1, str(related))
+        await b.close()
+
+        # ---- 衣物归属 everywhere: one garment model; ✓ only where the active person owns it (AI 造型师, 订单, 购物广场, 我的)
+        b = await p.chromium.launch()
+        c = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2)
+        op = await c.new_page()
+        op.on('console', lambda m: errors.append(f'ownership {m.type}: {m.text}') if m.type in ('error', 'warning') else None)
+        op.on('pageerror', lambda e: errors.append('ownership pageerror: ' + str(e)))
+        await op.goto(BASE + '?app=stylist'); await op.evaluate('localStorage.clear(); sessionStorage.clear()')
+        await op.goto(BASE + '?app=stylist'); await op.wait_for_timeout(900)
+        oa = op.locator('.screen.is-active')
+        O = lambda js: op.evaluate(f'(() => {{ const s = VT.store.get(); return {js}; }})()')
+        owns = lambda refs: O(f"{json.dumps(refs)}.map(r => r.startsWith('up:') ? !!(VT.garments.fromRef(s, r) || {{}}).isOwned : VT.garments.ownsProduct(s, r))")
+
+        async def ask(text):
+            await oa.locator('.st-field').fill(text)
+            await oa.locator('.st-send').click()
+            await op.wait_for_timeout(1700)
+            return [x.strip() for x in await oa.locator('.st-msg--ai .st-bubble').all_inner_texts()]
+
+        async def outfit():
+            wl = oa.locator('.st-wl').last
+            refs = (await wl.locator('[data-act="try-set"]').get_attribute('data-pids')).split(',')
+            marks = await wl.locator('.st-wl-grid > *').evaluate_all("els => els.map(e => !!e.querySelector('.own-mark'))")
+            return wl, refs, marks
+
+        cards = await oa.locator('.look-items button').evaluate_all("els => els.map(e => e.dataset.pid + (e.querySelector('.own-mark') ? '+' : ''))")
+        want = await owns([x.rstrip('+') for x in cards])
+        check('AI 造型师 look cards: ✓ on the items 本人 owns, nothing on the others', [x.endswith('+') for x in cards] == want and any(want) and not all(want), ' '.join(cards))
+        texts = await ask('用我现有的衣服搭一套通勤装')
+        wl, refs, marks = await outfit()
+        check('用我现有的衣服…: owned garments only, each with ✓', len(refs) >= 4 and all(await owns(refs)) and all(marks) and '已拥有' in texts[-1], ','.join(refs))
+        texts = await ask('帮我搭配这件在购物广场看到的蓝衬衫')
+        wl, refs, marks = await outfit()
+        got = await owns(refs)
+        check('a 购物广场 product as the focus: the blue shirt without ✓, owned pieces with ✓, the ones to buy named', 'striped-shirt' in refs and marks == got and not got[refs.index('striped-shirt')] and any(got) and '需要另外购买' in texts[-1], ','.join(refs))
+        await op.evaluate("VT.liveApp.go('orders', { oid: 'VT20260715092418' })"); await op.wait_for_timeout(600)
+        await oa.locator('[data-act="receive"]').first.click(); await op.wait_for_timeout(400)
+        await op.locator('.ov--dialog [data-act="yes"]').click(); await op.wait_for_timeout(500)
+        toast = await op.locator('.toast').last.inner_text()
+        rec = await O("(() => { const g = s.wardrobe.filter(w => w.p === 'striped-shirt'); return [g.length, g[0].isOwned, g[0].source].join(','); })()")
+        check('确认收货 confirms ownership: the striped shirt is owned now (one record, source kept)', rec == '1,true,shopping_plaza' and '已拥有' in toast, f'{rec} {toast}')
+        await op.evaluate("VT.liveApp.go('stylist')"); await op.wait_for_timeout(600)
+        wl, refs, marks = await outfit()
+        check("…and AI 造型师's card for it shows ✓ at once", marks[refs.index('striped-shirt')], ','.join(refs))
+        await op.evaluate("VT.store.avatars.switchTo('father')")
+        texts = await ask('根据我已有的衣服来搭配')
+        wl, refs, marks = await outfit()
+        buy = oa.locator('.st-buy').last
+        check('爸爸 owns no shoes: his owned outfit (✓), the gap said, shoes to buy apart (no ✓)', all(await owns(refs)) and all(marks) and '「爸爸」已拥有的衣服里还没有鞋子' in texts[-1] and await buy.locator('button').count() >= 1 and await buy.locator('.own-mark').count() == 0, texts[-1][:24])
+        await op.evaluate("VT.store.avatars.switchTo('me')")
+        uid = await op.evaluate("VT.garments.addPhoto(VT.store.get(), { src: 'assets/clothing/tiles/denim-jacket.webp', name: '我的牛仔外套', cat: 'outer' }).uid")
+        texts = await ask('我刚拍了一件外套，帮我搭配')
+        wl, refs, marks = await outfit()
+        ref = 'up:' + uid
+        check('a photo they took as the focus: in the outfit, not taken as owned (no ✓), said so', ref in refs and not marks[refs.index(ref)] and '还没有标记为已拥有' in texts[-1], ','.join(refs))
+        await wl.locator('[data-act="try-set"]').click(); await op.wait_for_timeout(900)
+        worn = await O("Object.values(s.fit.outfit).join(',')")
+        check('去试衣间试穿 wears the photo with the rest on 首页', await cur(op) == 'fitting' and ref in worn and await oa.locator(f'.fit-thumb.is-on[data-up="{uid}"]').count() == 1, worn)
+        await op.evaluate("VT.liveApp.go('plaza')"); await op.wait_for_timeout(600)
+        cards = await oa.locator('.pz-card').evaluate_all("els => els.map(e => e.dataset.pid + (e.querySelector('.own-mark') ? '+' : ''))")
+        want = await owns([x.rstrip('+') for x in cards])
+        hearts = await oa.locator('.pz-card .pz-heart.is-on').count()
+        check('购物广场: ✓ on exactly the products 本人 owns (a heart is not ownership)', [x.endswith('+') for x in cards] == want and any(want) and hearts >= 1, ' '.join(x for x in cards if x.endswith('+')))
+        await op.evaluate("VT.liveApp.go('product', { pid: 'knit-cardigan' })"); await op.wait_for_timeout(500)
+        own_pd = await oa.locator('.pd-own').count()
+        await op.evaluate("VT.liveApp.go('product', { pid: 'oxford-shirt' })"); await op.wait_for_timeout(500)
+        check('商品详情 says 已拥有 only for a product 本人 owns', own_pd == 1 and await oa.locator('.pd-own').count() == 0)
+        await op.evaluate("VT.liveApp.go('profile')"); await op.wait_for_timeout(500)
+        n = (await oa.locator('.me-stats [data-to="wardrobe"] b').inner_text()).strip()
+        check('我的 counts the saved wardrobe only (temporary garments are not in it)', n == str(await O('s.wardrobe.length')) and await O('VT.garments.temp(s).length') >= 1, n)
         await b.close()
 
         # ---- 首页 on a slow network: body images arrive 1.2 s late; quick picks must end on the newest outfit
@@ -871,9 +986,10 @@ async def main():
             pass
         got = await pp.evaluate(f"(() => {{ const nav = performance.getEntriesByType('navigation')[0]; const l = {looks}; return {{ n: l.length, afterLoad: l.every(e => e.startTime >= nav.loadEventEnd) }}; }})()")
         check('首页 preloads the body renders after the page loads', got['n'] == 3 and got['afterLoad'], f"{got['n']} of 3, after load: {got['afterLoad']}")
+        await pp.evaluate("VT.garments.adopt(VT.store.get(), ['grey-hoodie', 'oxford-shirt', 'bow-blouse']); VT.liveApp.refresh()")  # 11 上装, 3 below the fold
         eager = await pp.locator('.screen.is-active .fit-thumb-img:not([loading="lazy"])').count()
         lazy = await pp.locator('.screen.is-active .fit-thumb-img[loading="lazy"]').count()
-        check('首页 rail loads off-screen thumbnails lazily', eager == 8 and lazy == 6, f'{eager} eager · {lazy} lazy')
+        check('首页 rail loads off-screen thumbnails lazily', eager == 8 and lazy == 3, f'{eager} eager · {lazy} lazy')
         await b.close()
 
         # ---- 头像, 售后凭证 and AI 造型师 photos: Blobs in IndexedDB like the avatar media, never data URLs in localStorage

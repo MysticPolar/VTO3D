@@ -38,6 +38,7 @@
 .pz-img.is-top img { object-position: 50% 0; }
 .pz-img.is-small img { object-fit: contain; object-position: 50% 50%; padding: 12px; background: #F2EEE9; }
 .pz-heart { position: absolute; top: -1.9px; right: -3px; z-index: 2; color: #221F1D; }
+.pz-card .own-mark { --own-size: 18px; --own-inset: 8px; }
 .pz-heart svg { width: 21.6px; height: 21.6px; }
 .pz-meta { padding: 5.2px 8.2px 4.6px; }
 .pz-meta h3 { font-size: 11.5px; line-height: 15px; font-weight: 700; letter-spacing: .03em; color: #1E1C1A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
