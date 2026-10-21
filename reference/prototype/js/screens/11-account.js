@@ -235,10 +235,11 @@
       async clearphotos(app) {
         const ok = await app.dialog({ title: '清除已上传的照片？', text: '将删除本机保存的全身照、生活照、头像和售后凭证照片。\n数字分身会使用示例形象。', ok: '清除' });
         if (!ok) return;
+        VT.media.remove(VT.media.keysInState(VT.store.get())); // the photos and video frames on this device
         VT.store.update((s) => {
-          s.avatar.fullbody = null; s.avatar.portrait = null; s.profile.photo = null;
+          s.avatar.fullbody = null; s.avatar.portrait = null; s.avatar.materials = null; s.profile.photo = null;
           // every digital avatar's photos, not only the active one's (切换角色)
-          s.avatars.forEach((a) => { if (a.data) { a.data.avatar.fullbody = null; a.data.avatar.portrait = null; } });
+          s.avatars.forEach((a) => { if (a.data) { a.data.avatar.fullbody = null; a.data.avatar.portrait = null; a.data.avatar.materials = null; } });
           Object.values(s.returns).forEach((r) => { r.photos = []; });
         });
         app.toast('已清除本机照片', { icon: 'check' });

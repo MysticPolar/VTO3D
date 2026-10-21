@@ -69,8 +69,9 @@
       const ready = a.status === 'ready';
       const b = s.body;
       const shot = (slot, label, sample) => {
-        const up = a[slot];
-        return `<figure class="ah-shot">${VT.ui.img(up ? up.src : sample, up ? `我上传的${label}` : `示例${label}`)}<figcaption>${label}<em>${up ? '已上传' : '示例'}</em></figcaption></figure>`;
+        const up = a[slot] && !a[slot].sample ? a[slot] : null; // a photo of the user, kept on this device (js/media.js)
+        const src = (up && VT.media.src(up)) || sample;
+        return `<figure class="ah-shot">${VT.ui.img(src, up ? `我上传的${label}` : `示例${label}`)}<figcaption>${label}<em>${up ? '已上传' : '示例'}</em></figcaption></figure>`;
       };
       return `
         ${VT.ui.subHead('我的形象')}
