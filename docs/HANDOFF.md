@@ -37,7 +37,7 @@ This is the full spec for Claude Code. `CLAUDE.md` holds the short rules; this f
 
 ## 1. The product
 
-A Chinese-market (zh-CN) shopping app built around a digital avatar (数字分身). On first launch the user uploads a full-body photo and a portrait, and the app "generates" their avatar. They then:
+A Chinese-market (zh-CN) shopping app built around a digital avatar (数字分身). On first launch the user uploads five photos (four full-body angles and a face photo) or a 10-second turn-around video, and the app "generates" their avatar. They then:
 
 | Tab | Route | What it is |
 |---|---|---|
@@ -292,7 +292,7 @@ Generate `src/components/Icon/icons.ts` from `reference/prototype/js/icons.js` w
 
 ### 5.6 Images
 
-- Copy `reference/prototype/assets/{people,clothing,plaza,ui,backgrounds}` to `public/assets/` keeping the sub-paths, so the seed data's paths port unchanged (as `/assets/...`). `plaza/` (banners, model photos and cleaned-up card shots for 购物广场) arrived with the stores redesign (514de38), after Phase 0 copied the others.
+- Copy `reference/prototype/assets/{people,clothing,plaza,ui,backgrounds,avatar-onboarding}` to `public/assets/` keeping the sub-paths, so the seed data's paths port unchanged (as `/assets/...`). `plaza/` (banners, model photos and cleaned-up card shots for 购物广场) arrived with the stores redesign (514de38), after Phase 0 copied the others. `avatar-onboarding/` arrived with the avatar onboarding upgrade (21 Oct 2026). It holds the method previews, the five reference photos plus a three-quarter one, the 错误示范 examples, the four turn frames and the result face, about 145 KB in all. The images are from the onboarding asset kit (synthetic illustrative references), except `wrong/heavy_filter.webp`, which was made from the kit's face portrait.
 - Every `<img>` gets `width`/`height` or an aspect-ratio box (no layout shift), Chinese `alt` text (the product name) or `alt=""` when decorative, `decoding="async"`. Below-the-fold images `loading="lazy"`; the 首页 avatar, onboarding photo and product hero `fetchpriority="high"`.
 - 首页 (prototype, 21 Oct 2026): once the page has loaded, it fetches the four body renders at low priority (`fetchPriority = 'low'`; never before `load`, which would keep the browser's loading indicator spinning), so an outfit change swaps from the cache instead of waiting on the network (about 2.4 s → 0.06 s at 60 KB/s). The rail's first 8 tiles load at once, the rest with `loading="lazy"`.
 
@@ -305,8 +305,8 @@ Port these from `reference/prototype/css/components.css` and `js/ui.js` into `sr
 - **Lists and settings:** `ListGroup`, `ListRow` (icon, label, value, sub-label, chevron), `ToggleRow` + `Switch` (`role="switch"`, `aria-checked`), `KeyValue` (price breakdown, order info).
 - **Commerce:** `Price` (one ¥ formatter with thousands separators, §9.4), `ColorDots` (incl. the stripe swatch and the 「+N」 overflow), `ProductCard`, `WardrobeTile`, `LookCard`, `OrderCard`, `MiniItem`, `StatusTracker` (4-step order tracker), `Timeline` (logistics).
 - **Overlays:** `OverlayHost`, `Sheet` (grab bar, title, close; `full` variant), `Dialog` (returns a promise like `app.dialog`), `Layer` (full-screen), `Menu` (a small menu anchored above its trigger, with a tail: 首页's 拍照), `Toast` (`role="status"`, optional action).
-- **Forms:** `Field`, `TextArea`, `ImagePicker` (wraps `<input type="file" accept="image/*">` + the §9.9 pipeline).
-- **Feedback:** `Spinner`, `ProgressBar`, `EmptyState`, `Skeleton`, `ErrorState` (§5.8), `DemoNote` (renders only when `isDemo()`).
+- **Forms:** `Field`, `TextArea`, `ImagePicker` (wraps `<input type="file" accept="image/*">` + the §9.9 pipeline), `VideoPicker` (`accept="video/*"` + the §9.16 checks), `VideoRecorder` (the MediaRecorder layer, §9.16).
+- **Feedback:** `Spinner`, `ProgressBar`, `ProgressRing` (indeterminate unless real progress is known, §9.13), `CheckRow` (检测中 / 通过 / 需要重新上传 / 无法检测), `EmptyState`, `Skeleton`, `ErrorState` (§5.8), `DemoNote` (renders only when `isDemo()`).
 
 ### 5.8 Loading, error and empty states
 
@@ -367,7 +367,8 @@ Porting method per screen:
 |---|---|
 | `setupDone` | Zustand `session.setupDone` (persisted) |
 | `loggedIn` | `auth.session` / `login` / `logout` |
-| `avatar` | `avatar.get` / `uploadPhoto` / `useDemo` / `generate` / `job` / `cancel` |
+| `avatar` | `avatar.get` / `uploadPhoto` / `uploadVideo` / `removeMaterial` / `discardDraft` / `check` / `useDemo` / `generate` / `job` / `cancel` (the materials calls are draft, §13.1 #14) |
+| `mediaConsent` | `privacy.mediaConsent` / `recordMediaConsent(version)` (draft, §9.16) |
 | `body` | `avatar.body` / `updateBody` |
 | `favorites` | `favorites.list` / `set` |
 | `savedLooks` | `savedLooks.list` / `set` |
@@ -424,7 +425,7 @@ Prototype screen id ↔ web route ↔ component. Use the prototype id in `data-s
 | `stylist` | AI 造型师 | `/stylist` | `routes/Stylist` | `stylist` |
 | `profile` | 我的 | `/me` | `routes/Me` | `profile` |
 | `onboarding` | 启动页 | `/welcome` | `routes/Welcome` | `onboarding` |
-| `avatar` | 上传照片，创建数字分身 | `/welcome/avatar` (first launch) | `routes/AvatarUpload` | `avatar` |
+| `avatar` | 上传照片 / 视频，创建数字分身 | `/welcome/avatar` (first launch) | `routes/AvatarUpload` | `avatar` |
 | `avatar` | (same screen, 我的形象 context) | `/me/avatar/upload` | `routes/AvatarUpload` | `avatar&from=profile` |
 | `avatar` | (same screen, new-avatar context) | `/home/avatars/new?name=…` (proposed) | `routes/AvatarUpload` | — (same layout as `avatar`; covered by its acceptance checks) |
 | `product` | 商品详情 | `<parent>/p/:pid`, canonical `/plaza/p/:pid` | `routes/Product` | `product&pid=striped-shirt` |
@@ -574,7 +575,8 @@ One shared pipeline in `src/features/images`: check type → check size → deco
 
 | Use | Output | Prototype |
 |---|---|---|
-| Avatar photos (全身照, 生活照) | longest side ≤ 900 px, JPEG 0.8 | `screens/02-avatar.js:47` |
+| Avatar photos (正面 / 背面 / 左侧 / 右侧全身, 面部生活照) | longest side ≤ 900 px, JPEG 0.82, a Blob in IndexedDB, measured first (§9.16) | `screens/02-avatar.js` (`takePhoto`) |
+| Avatar video frames (4 per video) | ≤ 480 px, JPEG 0.82, Blobs in IndexedDB (§9.16) | `screens/02-avatar.js` (`analyzeVideo`) |
 | Wardrobe garment | ≤ 520 px, JPEG 0.82 | `screens/06-wardrobe.js:215` |
 | 首页 garment photo (从相册上传, the phone camera, or a 拍摄衣服 frame) | ≤ 520 px, JPEG 0.82 | `screens/03-fitting.js` (`readImage`), `camera.js` (`capture`) |
 | Stylist photo | ≤ 420 px, JPEG 0.8 | `screens/07-stylist.js:151` |
@@ -582,7 +584,7 @@ One shared pipeline in `src/features/images`: check type → check size → deco
 | Profile photo | centre square, 320 × 320, JPEG 0.82 | `screens/10-profile.js:12` |
 | 拍照找同款 | preview only (≤ 520 px) | `screens/04-plaza.js` |
 
-Errors, the same for every picker (§13.2 #21, #30): not `image/*` → 「请选择图片文件（JPG / PNG 等）」 (avatar picker: 「请选择图片文件（JPG / PNG / HEIC 等）」); over 25 MB → 「图片超过 25MB，请换一张」; decode failure → 「无法读取这张图片，请换一张」 (avatar picker: 「无法读取这张图片，请换一张试试」). While a photo is processed its slot shows 「处理中…」.
+Errors, the same for every picker (§13.2 #21, #30): not `image/*` → 「请选择图片文件（JPG / PNG 等）」 (avatar picker: 「请选择图片文件（JPG / PNG / HEIC 等）」); over 25 MB → 「图片超过 25MB，请换一张」; decode failure → 「无法读取这张图片，请换一张」 (avatar picker: 「无法读取这张图片，请换一张试试」). While a photo is processed its slot shows 「处理中…」 (avatar slots: 「检测中…」).
 
 ### 9.10 Camera (video try-on preview)
 
@@ -608,7 +610,9 @@ Waits that stand for server work live in the mock; waits that are purely visual 
 
 | What | Duration | Where it lives |
 |---|---|---|
-| Avatar generation progress | 4200 ms (900); result 350 ms after 100 % | UI animation; mock job finishes within it |
+| Avatar generation (simulated stages) | 6400 ms (1200); stage = ⌊t / total × 4⌋; result 450 ms after the last stage | mock `avatar.generate` / `job` (stage only, `progress: null`) |
+| 智能检测 rows | first after 300 ms, then every 260 ms (all at once) | UI |
+| Video recording | 3-2-1 countdown (1), then 10 s; the turn step moves every 2.5 s | UI (MediaRecorder) |
 | Stylist reply | 1100 ms (200) | mock `stylist.send` |
 | Merchant / service chat reply (订单详情, 帮助与客服) | 800 ms | mock `support.send` |
 | Store chat reply (商家消息) | 900 ms; no reduced-motion variant | mock `storeChats.send` (§9.14) |
@@ -634,9 +638,22 @@ Waits that stand for server work live in the mock; waits that are purely visual 
 
 ### 9.13 Avatar, setup and session
 
-- **Status:** `none` → `ready` after generation or `useDemo()`; `ready` → `stale` when a photo is replaced; regenerating makes it `ready` with a new `generatedAt`.
-- **Generation** (`runGeneration` and `finish`, `screens/02-avatar.js:121-200`): the layer animates 0 → 100 % over 4200 ms with `1 − (1 − t)^1.6`; checklist item *i* is current from i × 24 % and ticked from (i + 1) × 24 %. Call `avatar.generate()` at the start and show the result when the animation has finished and the job is `done` (poll every 500 ms). Missing photos → samples, the note 「未上传全部照片，演示将使用示例照片」 and, at the end, the toast 「已使用示例照片生成演示分身」. 取消, Esc and browser back all cancel the job and toast 「已取消生成」 (§13.2 #4).
-- **Finish buttons by context:** first launch → 「进入虚拟试衣间」 (`resetTo('/home')`, sets `setupDone`) and 「重新上传照片」 (closes the layer); from the upload screen in 我的形象 → 「完成」 (back to `/me/avatar`, toast 「数字分身已更新」) and 「去首页试穿」 (drops the upload screen, then `jumpToTab('home')`; §13.2 #5); 重新生成 on 我的形象 → 「完成」 (stay, toast 「数字分身已更新」) and 「去首页试穿」.
+- **Status:** `none` → `ready` after generation or `useDemo()`; regenerating makes it `ready` with a new `generatedAt`. New photos or a video stay a draft until a generation finishes, so the upload flow no longer makes an avatar `stale` (only data saved before 21 Oct 2026 can still be `stale`).
+- **Generation** (`startGeneration`, `simulate`, `finish` in `screens/02-avatar.js`):
+  - Call `avatar.generate()` on the draft materials and poll `avatar.job()` every 500 ms.
+  - Show the job's `stage` (素材解析中 → 身体模型生成中 → 面部特征生成中 → 细节优化中 → 创建完成) in an indeterminate ring with 「{n}/5」. Show a percentage only when `progress` isn't null, and never a time estimate (§9.16).
+  - The demo mock runs the stages over 6400 ms (§9.11), and the UI says 「模拟进度 · 演示版未接入建模服务」.
+  - Back while it runs → dialog 「停止生成？」 → `avatar.cancel()` and the toast 「已取消生成」. Every way of cancelling toasts it, the 我的形象 layer included.
+  - Failure → 「生成没有完成」, the stages done so far with ✓ and the failed one with ✕, then 「重试」 (a new job on the same materials) or 「返回检查」.
+  - One job at a time: repeated taps start nothing.
+  - Demo samples → the toast 「已使用示例素材生成演示分身」.
+- **Finish buttons by context:**
+  - First launch → 「进入虚拟试衣间」 (`resetTo('/home')`, sets `setupDone`).
+  - 新建数字分身 → the same label. It drops the flow, opens 首页 and toasts 「已切换到「{name}」」.
+  - From the upload screen in 我的形象 → 「完成」 (back to `/me/avatar`, toast 「数字分身已更新」) and 「去首页试穿」 (drops the upload screen, then `jumpToTab('home')`; §13.2 #5).
+  - 重新生成 on 我的形象 → 「完成」 (stay, toast 「数字分身已更新」) and 「去首页试穿」.
+
+  创建完成 also offers 「修改名称」, 「重新生成」 and 「更换素材」, and labels the preview 「2D 形象预览 · 演示版」.
 - **启动页:** 「开始体验」 → `resetTo('/home')` if the avatar is `ready`, otherwise push `/welcome/avatar`. 「登录」 → login sheet; on success the avatar becomes ready via `useDemo()` if needed, then `resetTo('/home')`. 「跳过」 on the upload screen → `useDemo()`, `resetTo('/home')`, then 300 ms later 「已使用示例数字分身，可在「我的 → 我的形象」中更换」.
 - **Login sheet** **[demo]**: phone prefilled 「13800138888」; 「获取验证码」 fills the code from `auth.requestCode` (246810) with toast 「演示验证码已自动填入」 and a 59 s countdown 「{n}s 后重发」 → 「重新获取」; 「登录」 has no validation in the demo, toasts 「登录成功（演示账号）」 and continues 500 ms later. From 设置 it only refreshes 设置.
 - **Logged out by default.** Only 设置 reads it (「登录 / 注册」 ↔ 「退出登录」).
@@ -667,16 +684,65 @@ Added with the 购物广场 stores redesign (prototype commit 514de38). Screens:
 
 ### 9.15 Digital avatars (切换角色)
 
-Added with the 首页 update (20 Oct 2026; `js/store.js` `VT.store.avatars`). Screens: SCREENS.md 首页, 上传照片 (`new` context), 个人衣橱, 我的形象.
+Added with the 首页 update (20 Oct 2026; `js/store.js` `VT.store.avatars`). Screens: SCREENS.md 首页, 上传照片 / 视频 (`new` context), 个人衣橱, 我的形象.
 
 - **An avatar owns** its photos, status and generation time (`avatar`), body data (`body`), its wardrobe, its 首页 outfit and its try-on queue. **Shared by all avatars:** the avatar preferences (`avatarPrefs`, in `Settings`), the profile, favourites and saved looks, browsing history, orders and returns, addresses, the checkout draft, the stylist chat, favourite stores and store chats, settings, the 首页 category, the backdrop (`fitScene`) and 我的上传.
 - **Seed:** one avatar, 本人 (`id: 'me'`, `self: true`), named after the profile nickname. 本人 can't be renamed here (the nickname is edited in 我的资料) or deleted.
-- **Create** (切换角色 → 新建数字分身: a name, required, at most 8 characters, else 「请填写名称」 → the upload screen in the `new` context → generate): the avatar is created only when generation finishes, with the uploaded photos (or none), status `ready`, an empty wardrobe, outfit and queue and the default body data (165 cm · 48 kg · M · 37); it becomes the active avatar. Cancelling or leaving before that creates nothing.
+- **Create** (切换角色 → 新建数字分身: a name, required, at most 8 characters, else 「请填写名称」 → the upload screen in the `new` context → generate): the avatar is created only when generation finishes, with its photos or video frames (or the demo samples), status `ready`, an empty wardrobe, outfit and queue and the default body data (165 cm · 48 kg · M · 37); it becomes the active avatar. Cancelling or leaving before that creates nothing.
 - **Switch:** the chosen avatar becomes active, and every screen reads its data: the 首页 outfit and render, 个人衣橱, the counts on 我的, 我的形象, the stylist's wardrobe sets, the wardrobe side effect of buying (§9.4) and 加入衣橱. Toast 「已切换到「{name}」」.
 - **Rename / delete** (我的形象, for an avatar other than 本人): rename → 「名称已保存」; delete, after its dialog, removes the avatar and all its data, switches back to 本人 and toasts 「已删除「{name}」，已切换回本人」.
 - 「重新体验首次启动」 switches back to 本人 first; 「清除已上传的照片」 clears every avatar's photos; 「重置演示数据」 leaves only 本人.
 - **[demo]** Every avatar renders as the preset model, because avatar generation is simulated (§9.13): a second avatar looks the same on 首页 and in 我的形象, and the 切换角色 sheet says so (「演示版的数字分身均使用示例模特形象」).
 - Cases: seed → [本人], active 本人, wardrobe 15; create 「家人」 → [本人, 家人], active 家人, wardrobe 0, outfit `{}`; switch to 本人 → wardrobe 15 and the outfit she had; 加入衣橱 while 家人 is active → only 家人's wardrobe grows; delete 家人 while active → [本人], active 本人.
+
+
+### 9.16 Avatar materials: checks, consent and storage
+
+Added with the avatar onboarding upgrade (21 Oct 2026; `js/screens/02-avatar.js`, `js/media.js`). Screen: SCREENS.md 2.
+
+- **Inputs.** Either five photos, 正面全身 `front`, 背面全身 `back`, 左侧全身 `left`, 右侧全身 `right` and 面部生活照 `face`, or one video of about 10 s (6–20 s accepted). The two are alternatives: generation needs one complete set.
+- **Photo checks**, in the browser and in this order. The slot shows the first failure.
+  1. Type `image/*`, at most 25 MB, decodable (§9.9 errors). HEIC works only where the browser decodes it.
+  2. Resolution: short side ≥ 300 px, else 「分辨率太低，请上传更清晰的原图」.
+  3. Orientation, full-body slots only: width ≤ 1.05 × height, else 「全身照请竖拍，让头到脚都在画面中」.
+  4. Light, at ≤ 256 px. Mean luminance (0.299 R + 0.587 G + 0.114 B) must be ≥ 0.28, else 「光线过暗，请在明亮、均匀的光线下拍摄」. It must also be ≤ 0.94, with at most 30 % of pixels above 248, else 「画面过曝，请避开强光直射」.
+  5. Sharpness: the variance of the 4-neighbour Laplacian at ≤ 256 px must be ≥ 30, else 「画面模糊，请对焦后重新拍摄」.
+  6. Duplicates: a 64 × 64 luminance print, zero-mean and unit-length. A dot product ≥ 0.96 means the same picture, and the later slot gets 「与「{label}」是同一张照片，请换一张」.
+     - An 8 × 8 average hash isn't enough: it flagged a back view and a side view against the same wall.
+     - With the prints, different angles score ≤ 0.85, and re-saved, resized or brightened copies ≥ 0.987.
+  - The thresholds were calibrated on the onboarding kit. Its reference photos measure sharpness 118–251 and brightness 0.83–0.88; its blurry example measures 1.1 and its dark one 0.20.
+- **Video checks:**
+  - Type `video/*`, at most 200 MB, decodable.
+  - Length read from the file. WebM recordings report `Infinity`, so seek to the end; the recorder's own clock is the fallback. 6–20 s.
+  - Short side ≥ 360.
+  - Four frames at 10 / 36 / 62 / 88 %: average brightness ≥ 0.28 and sharpness ≥ 12.
+  - The error copy is in SCREENS.md 2.
+- **What is never claimed.** Body completeness, the face, the background, the real angles and video stability need an AI service. Their rows show 无法检测 with the reason.
+  - Demo samples are never checked: every row shows 无法检测.
+  - The AI results will come from `avatar.check` (draft). The demo can only simulate one, labelled 演示: `?mockFail=avatar.check`.
+- **Gates.** 下一步 needs all five photos, or the video, to pass. 开始生成建模 needs no failed check. 「演示：使用示例照片」 / 「演示：使用示例素材」 is the labelled demo bypass **[demo]**.
+- **Consent.** Before the first photo or video, once per version (`mediaConsent = { v: 1, at }`). The sheet states:
+  - the purpose;
+  - on-device storage, and how to delete;
+  - that a third-party AI service will process the media (its name comes with the formal agreement), and that the app will ask again before sending anything.
+
+  The checkbox isn't pre-ticked, and 不同意 uploads nothing. With a backend, the consent is recorded on the server (`privacy.recordMediaConsent`, draft) before the first transmission (§14).
+- **Storage.**
+  - Photos (≤ 900 px, JPEG 0.82) and video frames (≤ 480 px) are Blobs in IndexedDB, referenced by key from the avatar. Never data URLs in `localStorage`.
+  - The video file stays in memory (an object URL) during the visit and isn't kept.
+  - An unfinished visit's drafts are deleted when another visit starts, and again at the next start-up (keys nothing refers to).
+  - 清除已上传的照片 deletes them all. Deleting an avatar deletes its media.
+  - The web build keeps Blobs in IndexedDB the same way until they're uploaded, then uses the server's URLs (§5).
+- **Generation.** A job with the stages parse → body → face → refine → done. `progress` exists only when the service reports it (§9.13). One job runs at a time. A failure keeps the materials, and 重试 starts a new job on them.
+- Cases:
+
+| Input | Result |
+|---|---|
+| The kit's dark example (640 × 640) | 光线过暗 (0.20 < 0.28) |
+| The kit's blurry example | 画面模糊 (1.1 < 30) |
+| The back photo uploaded again as 右侧全身 | 同一张照片 |
+| A 3.0 s WebM | 「视频只有 3.0 秒，请拍摄约 10 秒」 |
+| A 10.4 s WebM | 通过 (10.3 s read from the file) |
 
 ---
 
@@ -699,11 +765,48 @@ Added with the 首页 update (20 Oct 2026; `js/store.js` `VT.store.avatars`). Sc
 - Read the current screen from the visible screen root's `data-screen`, not from `VT.liveApp`.
 - Skip the checks that test the showcase board and simulator: 「showcase has 5 primary phones in order」, 「captions numbered 1–5」, 「subtitle per spec」, 「board phone opens simulator on 首页」, 「启动页 reachable as a flow screen」. The 「mobile: …」 checks become the default (the web app is always full-screen).
 - The flows that start from the simulator's side list start from a URL instead.
-- Use the fixtures in `reference/acceptance/fixtures/` (`me_full.jpg`, `me_face.jpg`, `my_jacket.jpg`, `not_image.txt`). The camera checks run in Chromium with `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream` and the camera permission granted.
+- Use the fixtures in `reference/acceptance/fixtures/`:
+  - `me_full.jpg`, `me_face.jpg`, `my_jacket.jpg`, `not_image.txt`;
+  - `body_back.webp`, `body_left.webp`, `body_right.webp`: the onboarding kit's angle photos;
+  - `too_dark.webp`, `too_blurry.webp`: its bad examples;
+  - `turn_10s.webm`, `turn_3s.webm`: 10.4 s and 3 s canvas recordings made with Chromium's MediaRecorder.
+
+  The camera checks run in Chromium with `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream` and the camera permission granted.
 - Run the suite with `reducedMotion: 'reduce'` (faster timers), except the transition tests.
 - On 21 Oct 2026 the 首页 loading change added 「首页 preloads the body renders after the page loads」 and 「首页 rail loads off-screen thumbnails lazily」 (a last block in a fresh context; the robot then had 136 checks).
-- The prototype's test has 136 checks. The 首页 update (20 Oct 2026) replaced 「首页 rail lists only garments with a render」 with 「首页 rail lists image-ready garments first」 and 「selected garment without a render shows until tapped off」 with 「garment without a render can be tapped off」; the prototype sends the garment through `VT.tryOn`, so the web test sends it from a screen instead (个人衣橱's 「试穿这件」 on striped-shirt works before 商品详情 exists). It also added nine checks that run last, in a fresh 390 × 844 context with the fake camera and empty storage: 「首页 header: 切换角色 · 切换场景 · 开启视频试衣」, 「拍照 opens 拍摄衣服 / 从相册上传」, 「upload → 我的上传, tried on, not in the wardrobe」, 「加入衣橱 saves the upload once」, 「我的上传 lasts for the browser session」, 「拍摄衣服 captures a photo (getUserMedia)」, 「切换场景 changes the backdrop」, 「新建数字分身: its own empty wardrobe, now active」, 「切换角色 back to 本人 restores her wardrobe」. Port them as one serial file, like the 购物广场 stores block.
+- The prototype's test has 162 checks (avatar onboarding upgrade below). The 首页 update (20 Oct 2026) replaced 「首页 rail lists only garments with a render」 with 「首页 rail lists image-ready garments first」 and 「selected garment without a render shows until tapped off」 with 「garment without a render can be tapped off」; the prototype sends the garment through `VT.tryOn`, so the web test sends it from a screen instead (个人衣橱's 「试穿这件」 on striped-shirt works before 商品详情 exists). It also added nine checks that run last, in a fresh 390 × 844 context with the fake camera and empty storage: 「首页 header: 切换角色 · 切换场景 · 开启视频试衣」, 「拍照 opens 拍摄衣服 / 从相册上传」, 「upload → 我的上传, tried on, not in the wardrobe」, 「加入衣橱 saves the upload once」, 「我的上传 lasts for the browser session」, 「拍摄衣服 captures a photo (getUserMedia)」, 「切换场景 changes the backdrop」, 「新建数字分身: its own empty wardrobe, now active」, 「切换角色 back to 本人 restores her wardrobe」. Port them as one serial file, like the 购物广场 stores block.
 - The 购物广场 stores block (11 checks, 514de38) runs last in the prototype, in the mobile context, from the seed with setup done. Its checks build on each other's state (a store favourited from search and removed again in 管理, the ZARA chat read and answered), so port them as one serial file that starts from `devtools.reset()` with `setupDone`: 「plaza: store bar = 全部 + favourite stores only」, 「plaza: 全部 shows every store, with the platform banner」, 「plaza: a favourite store shows only its products」, 「plaza: category narrows the chosen store」, 「plaza: search covers every store and product」, 「plaza: favouriting a store from search adds it to the bar」, 「plaza: 管理 removes a store from the bar」, 「plaza: chat icon opens 商家消息」, 「plaza: store chat replies and clears unread」, 「plaza: back from 商家消息 → 购物广场」, 「product brand opens its store sheet」. The store reply takes 900 ms even with reduced motion (§9.11).
+- On 21 Oct 2026 the avatar onboarding upgrade made these changes (the robot then had 162 checks):
+  - **First launch.** 「photo upload previews」 became 14 checks:
+    - 「选择上传方式: 照片上传 or 视频上传, 跳过 kept, 4-step progress」
+    - 「consent before any upload (purpose, on-device, deletion, third-party AI); 不同意 uploads nothing」
+    - 「consent stored」
+    - 「照片上传: 4 full-body angles + 面部生活照, each with an example; tips; 正确 / 错误示范」
+    - 「下一步 disabled until the photos pass」
+    - 「real checks: too dark, blurry and the same photo twice → 需重拍 with the fix」
+    - 「delete a photo → its slot shows the example again」
+    - 「replacing them: 5 × 通过, 下一步 enabled」
+    - 「photos stay on this device in IndexedDB, never in localStorage」
+    - 「智能检测: what the browser measured 通过, AI-only checks 无法检测」
+    - 「the materials are previewed before generating, each replaceable」
+    - 「生成建模: 5 stages, labelled as simulated, no percentage or time estimate」
+    - 「创建完成: a 2D preview (not called 3D), name, 修改名称 / 重新生成 / 更换素材」
+    - 「the avatar keeps its 5 photos as IndexedDB references」
+  - **我的形象.** 「demo samples: no check is claimed as passed」 follows 「我的形象 → 上传照片」.
+  - **新建数字分身.** 「新建数字分身: its own empty wardrobe, now active」 became 「新建数字分身: one new avatar, its own empty wardrobe, now active」, done with a double tap. 「the new avatar is listed in 切换角色」 follows it.
+  - **A new 11-check block, 创建数字分身,** in a fresh 390 × 844 context with the fake camera, then a 360 × 740 one:
+    - 「视频上传: the turn shown in 4 steps, 8 capture conditions, 上传视频 + 开始拍摄」
+    - 「a 3-second video fails its length check; 下一步 stays disabled」
+    - 「a 10-second video passes (length read from the file)」
+    - 「the video plays back before it is submitted」
+    - 「开始拍摄 (MediaRecorder): 3-2-1, a 10 s timer with the turn steps, then checked like an upload」
+    - 「智能检测 (video): 4 frames + play; format/length and light measured, the rest 无法检测」
+    - 「failed generation shows where it stopped; 重试 (same materials) → 创建完成」
+    - 「a video avatar keeps 4 frames on the device, not the video」
+    - 「a failed check (simulated AI result, labelled 演示) names the fix; replacing the photo clears it」
+    - 「隐私与安全 → 清除已上传的照片 deletes the avatar media from the device」
+    - 「360 px: every step of 创建数字分身 fits the width」
+  - The recording check needs MediaRecorder and a fake camera (Chromium). In WebKit, run the upload path and expect the fallback.
 
 ### 10.2 Visual baselines
 
@@ -783,7 +886,7 @@ Done when:
 
 Done when:
 - [ ] Visual diff ≤ 2% for `onboarding`, `avatar`, `product`, `checkout`.
-- [ ] Acceptance: 「开始体验 → avatar creation」, 「photo upload previews」, 「non-image rejected」, 「AC1: setup complete → 首页 (virtual fitting room)」, 「setupDone stored」, 「plaza → product details」, 「AC6: back from product → plaza」, 「加入衣橱 → 个人衣橱 tab」, 「collected item at top of wardrobe」, 「plaza tab returns to its own history (product page)」, 「立即购买 → checkout」, 「checkout address sheet lists address book」, 「pay → 订单详情 (in 我的 → 我的订单)」, 「finished checkout removed from plaza history」, 「product brand opens its store sheet」, 「新建数字分身: its own empty wardrobe, now active」, 「切换角色 back to 本人 restores her wardrobe」. 商品详情 「试穿上身」 on a garment without a render (e.g. grey-hoodie) gives the 「演示版暂无…」 toast and selects it on the 首页 rail until tapped off. An unknown `pid` shows 「没有找到这个商品」 and records nothing in 浏览记录.
+- [ ] Acceptance: 「开始体验 → avatar creation」, the 14 first-launch avatar checks and 「non-image rejected」 (§10.1), 「AC1: setup complete → 首页 (virtual fitting room)」, 「setupDone stored」, the 创建数字分身 block (§10.1), 「plaza → product details」, 「AC6: back from product → plaza」, 「加入衣橱 → 个人衣橱 tab」, 「collected item at top of wardrobe」, 「plaza tab returns to its own history (product page)」, 「立即购买 → checkout」, 「checkout address sheet lists address book」, 「pay → 订单详情 (in 我的 → 我的订单)」, 「finished checkout removed from plaza history」, 「product brand opens its store sheet」, 「新建数字分身: one new avatar, its own empty wardrobe, now active」, 「the new avatar is listed in 切换角色」, 「切换角色 back to 本人 restores her wardrobe」. 商品详情 「试穿上身」 on a garment without a render (e.g. grey-hoodie) gives the 「演示版暂无…」 toast and selects it on the 首页 rail until tapped off. An unknown `pid` shows 「没有找到这个商品」 and records nothing in 浏览记录.
 
 ### Phase 5 · 我的 flows
 
@@ -791,7 +894,7 @@ Done when:
 
 Done when:
 - [ ] Visual diff ≤ 2% for every remaining §8 row.
-- [ ] Acceptance: 「new order 待发货」 (it reads 订单详情, built in this phase), 「我的 → …」 and 「… → back → 我的」 for every row on 我的, 「order details → back → 我的订单」, 「我的订单 → back → 我的」, 「我的 → 待收货 filter」, 「待收货 shows the delivered order」, 「全部 shows all orders」, 「order details 运输中」, 「订单详情 → 物流跟踪」, 「tracking timeline」, 「物流跟踪 → back → 订单详情」, 「订单详情 → 申请退换货」, 「return evidence photo added」, 「return submitted → back on details」, 「merchant chat replies」, 「order info sheet」, 「去支付 moves order out of 待付款」, 「我的 tab remembers its own history」, 「edit profile saved」, 「change profile picture」, 「我的形象 → 上传照片」, 「generate → back to 我的形象」, 「重新生成 stays on 我的形象」, 「avatar preference toggle」, 「address added」, 「我的收藏 lists favourites」, 「浏览记录 includes viewed products」. An unknown `oid` shows 「没有找到这个订单」.
+- [ ] Acceptance: 「new order 待发货」 (it reads 订单详情, built in this phase), 「我的 → …」 and 「… → back → 我的」 for every row on 我的, 「order details → back → 我的订单」, 「我的订单 → back → 我的」, 「我的 → 待收货 filter」, 「待收货 shows the delivered order」, 「全部 shows all orders」, 「order details 运输中」, 「订单详情 → 物流跟踪」, 「tracking timeline」, 「物流跟踪 → back → 订单详情」, 「订单详情 → 申请退换货」, 「return evidence photo added」, 「return submitted → back on details」, 「merchant chat replies」, 「order info sheet」, 「去支付 moves order out of 待付款」, 「我的 tab remembers its own history」, 「edit profile saved」, 「change profile picture」, 「我的形象 → 上传照片」, 「demo samples: no check is claimed as passed」, 「generate → back to 我的形象」, 「重新生成 stays on 我的形象」, 「avatar preference toggle」, 「address added」, 「我的收藏 lists favourites」, 「浏览记录 includes viewed products」. An unknown `oid` shows 「没有找到这个订单」.
 
 ### Phase 6 · Device features and polish
 
@@ -842,15 +945,16 @@ For Walker to confirm. Until then, build the default; nothing here blocks a phas
 | 5 | Simulated waits keep the prototype's timings (§9.11) | Yes |
 | 6 | The deviations from the mockups listed in `reference/prototype/docs/REPORT.md` (no back arrows on the 个人衣橱 and AI造型师 tabs, one tab icon set, live counts on 我的, 隐私与安全 inside 设置, order filter names, the 跳过 button, …) | Keep as the prototype |
 | 7 | Two camera error texts mention 「原型」 and 「README」 (未检测到可用的摄像头, 当前环境不支持摄像头) | Keep verbatim; reword before launch |
-| 8 | Consent screen before uploading face and body photos (PIPL, §14). Not in the prototype | Backend phase |
+| 8 | Consent before the first face or body photo or video (PIPL, §14). The prototype has had the sheet 「上传前请确认」 since 21 Oct 2026 (§9.16) | Port it. The text of 《敏感个人信息处理规则》, the provider's name and recording the consent on the server (`privacy.recordMediaConsent`, draft) come with the backend |
 | 9 | Where to show the ICP 备案 number (e.g. 设置 → 关于) | Backend phase |
 | 10 | Demo-only UI (重置演示数据, 重新体验首次启动, 演示 notes, the demo verification code, the 「原型演示」 group and 「原型 v2.0」 in 设置) | Keep, behind `isDemo()` |
 | 11 | Route for 商家消息, the screen the 购物广场 stores redesign added (prototype commit 514de38, 19 Oct 2026): `/plaza/messages`, a `messages` segment after `/plaza` (§4.3, §8) | Use it |
 | 12 | ZARA is a real trademark (Inditex). The demo uses it as one of its seven stores: the store name 「ZARA 官方旗舰店」, a ZARA wordmark as its logo, a banner image with a ZARA wordmark (`assets/plaza/banners/zara.webp`), four products, a seed order and chat copy (「2024 秋冬系列」). The public GitHub Pages copy of the prototype already shows it | Keep it in the demo seed as the prototype has it (acceptance checks and baselines depend on it); replace it with a fictional or licensed store before any public launch |
 | 13 | Route for creating another digital avatar (切换角色 → 新建数字分身, 20 Oct 2026): `/home/avatars/new?name=…`, a segment group `avatars/new` allowed after `/home` and `/wardrobe` (where the 切换角色 sheet opens), the name in `?name=` (§4.3, §8) | Use it |
-| 14 | Multiple digital avatars change the API contract: the avatar-scoped `avatar.*`, `wardrobe.*` calls and an `avatars` area (list, create, rename, remove). Drafted in `docs/contract/` (marked draft) | Review the draft before Phase 2 copies the contract |
+| 14 | Multiple digital avatars change the API contract: the avatar-scoped `avatar.*`, `wardrobe.*` calls and an `avatars` area (list, create, rename, remove). Drafted in `docs/contract/` (marked draft). The avatar onboarding upgrade (21 Oct 2026) extends the draft with five photo kinds, video upload, draft materials, `avatar.check`, job stages with an optional `progress`, and the media consent | Review the draft before Phase 2 copies the contract |
 | 15 | 我的上传 lasts for the browser session (sessionStorage), is shared by all avatars, and reaches the backend only through 加入衣橱 | Yes |
 | 16 | New copy from the 首页 update: 切换角色, 切换场景 and the backdrop names 暖灰 · 奶白 · 燕麦 · 深咖, 推荐 / 我的上传, 拍照, 拍摄衣服, 从相册上传, 确认衣物照片, 临时试穿, 演示版暂无上身图, 加入衣橱 / 已在衣橱, 新建数字分身 and its sheets (SCREENS.md 首页) | Use it |
+| 17 | New copy from the avatar onboarding upgrade (SCREENS.md 2), and its deliberate differences from the mockup: no percentage or time estimate while generating, no 3D claim, 「素材检测结果」 instead of 「AI 智能检测结果」, 背景简洁度 for the brief's 背景清晰度, and 10 s instead of 10–15 s | Use it |
 
 ### 13.2 Known prototype issues
 
@@ -859,10 +963,10 @@ Found while writing `docs/SCREENS.md` (file:line in `reference/prototype/js/` un
 | # | Issue | Default |
 |---|---|---|
 | 1 | The payment sheet can be closed during 「支付处理中…」 and the order still completes (`screens/08-checkout.js:202`) | **Fix:** it can't be closed while processing |
-| 2 | Close races: a camera stream that arrives during the 280 ms close animation is never stopped (`camera.js:103`); Esc in the last ~280 ms of progress, or 取消/Esc during the 350 ms result delay, still completes the generation (`screens/02-avatar.js:150`, `:159`) | **Fix:** a `closed` flag; cancel timers and jobs on close |
+| 2 | Close races: a camera stream that arrives during the 280 ms close animation is never stopped (`camera.js:103`); Esc in the last ~280 ms of progress, or 取消/Esc during the 350 ms result delay, still completes the generation. The generation part is fixed in the prototype (21 Oct 2026): a cancelled job never finishes | **Fix:** a `closed` flag; cancel timers and jobs on close |
 | 3 | Camera: when the preview goes live, focus falls to the page and Esc stops working (`camera.js:109`); 切换 can reopen the same camera and toasts before the new stream starts (`camera.js:129-135`) | **Fix:** as §9.10 |
-| 4 | Closing the generation layer with Esc or browser back shows no 「已取消生成」 | **Fix:** the same toast for every way of cancelling |
-| 5 | 「去首页试穿」 after generating from the upload screen leaves `/me/avatar/upload` on 我的's stack (`screens/02-avatar.js:188`) | **Fix:** drop the upload screen first, so 我的 returns to 我的形象 |
+| 4 | Closing the generation layer with Esc or browser back shows no 「已取消生成」 (fixed in the prototype, 21 Oct 2026) | **Fix:** the same toast for every way of cancelling |
+| 5 | 「去首页试穿」 after generating from the upload screen leaves `/me/avatar/upload` on 我的's stack (fixed in the prototype, 21 Oct 2026) | **Fix:** drop the upload screen first, so 我的 returns to 我的形象 |
 | 6 | `pickRender` can report a garment that has imagery as missing when it is combined with an item from another render (`{shoes: white-sneakers, dress: satin-slip-dress}` → base, missing the dress) | **Keep:** the acceptance checks depend on the scoring; real try-on replaces it |
 | 7 | 确认收货: 我的订单 shows it for statuses 1–3, 订单详情 and 物流跟踪 only for 2–3 (`screens/09-orders.js:101` vs `:190`, `:265`) | **Fix:** statuses 1–3 everywhere |
 | 8 | 订单详情 offers 申请退换货 for every paid order; 我的订单 only for 已完成 | **Keep** |
@@ -931,7 +1035,7 @@ Not part of this build. Listed so the front end doesn't paint itself into a corn
 - **Supabase** (the team's default backend) has no hosted region in mainland China, as far as we know (check the current region list). For a China launch, plan a self-hosted deployment on a mainland cloud or a different mainland backend.
 - **Payments.** Alipay mobile web payment (redirect); WeChat Pay JSAPI inside WeChat (needs the user's OpenID from an official account) and WeChat Pay H5 in other mobile browsers; UnionPay. These map to `PaymentAction` kinds `redirect` and `wechat-jsapi`. After any return from a payment page, re-fetch the order: never trust the redirect alone.
 - **Login.** SMS code everywhere; WeChat web authorization inside the WeChat browser.
-- **Personal information (PIPL).** Face photos, and likely full-body photos and body measurements, count as sensitive personal information: a separate, explicit consent before upload (not pre-ticked), a stated purpose and retention period, a way to delete the avatar and photos, storage in China. Front-end work this will add: a consent sheet before the first upload, links to the user agreement and privacy policy, working 导出 / 删除 entries in 隐私与安全.
+- **Personal information (PIPL).** Face photos, and likely full-body photos and body measurements, count as sensitive personal information: a separate, explicit consent before upload (not pre-ticked), a stated purpose and retention period, a way to delete the avatar and photos, storage in China. The prototype already has the consent sheet before the first upload (§9.16). Front-end work still to come: links to the user agreement and privacy policy, and working 导出 / 删除 entries in 隐私与安全.
 - **AI-generated images and chat.** Generating a person's avatar and try-on images from their photos falls under China's deep-synthesis and AI-content labelling rules: expect visible "AI生成" labels on generated images, consent for face editing, and algorithm/service filings for the generation models and the LLM stylist.
 - **Uploads.** Uploaded images need content moderation on the server; the UI will need a rejected-upload message (`ApiError.code === 'CONTENT_REJECTED'`).
 - **Retire demo code.** Everything behind `isDemo()`, the mock, error injection and `?frame=iphone` must be off in production builds.
