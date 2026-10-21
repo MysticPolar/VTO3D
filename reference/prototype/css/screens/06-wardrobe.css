@@ -91,9 +91,10 @@
 .wr-open img.is-custom { object-fit: cover; }
 .wr-heart { position: absolute; right: 0; top: 0; width: 36px; height: 36px; padding: 0; color: #2A2522; }
 .wr-heart svg { width: 17px; height: 17px; position: relative; left: 4.3px; top: -4px; }
-.wr-src { position: absolute; left: 6px; bottom: 6px; padding: 2px 7px; border-radius: 999px; background: rgba(33, 31, 29, .7); color: #fff; font-size: 10px; font-weight: 600; pointer-events: none; }
+/* ✓ 已拥有 top left (the heart has the right); the try-on queue is the dark frame, numbered in its order */
+.wr-tile .own-mark { --own-size: 18px; --own-inset: 7px; }
 .wr-tile.is-picked { box-shadow: inset 0 0 0 2px #1B1917; }
-.wr-pick { position: absolute; left: 6px; top: 6px; width: 18px; height: 18px; border-radius: 50%; background: #1B1917; color: #fff; display: grid; place-items: center; pointer-events: none; }
+.wr-pick { position: absolute; left: 6px; bottom: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #1B1917; color: #fff; display: grid; place-items: center; font: 700 11px/1 "VT Inter", var(--font); pointer-events: none; }
 .wr-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 70px 30px; color: var(--text-3); font-size: 13.5px; text-align: center; }
 .wr-empty .wr-empty-sub { margin-top: -6px; font-size: 12.5px; color: var(--text-4); line-height: 1.6; }
 .wr-queue {
@@ -148,10 +149,12 @@
 .wr-menu { display: flex; flex-direction: column; }
 .wr-menu-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 48px; padding: 0 4px; font-size: 15px; color: var(--ink); text-align: left; }
 .wr-menu-row + .wr-menu-row { box-shadow: inset 0 1px 0 #ECE4DB; }
-.wr-menu-row > svg, .wr-menu-row > .wr-ring-plus { flex: none; color: #3A332E; }
+.wr-menu-row > svg, .wr-menu-row > .wr-ring-plus, .wr-menu-row > .wr-ring-own { flex: none; color: #3A332E; }
 .wr-menu-row.is-danger, .wr-menu-row.is-danger > svg { color: var(--wr-danger); }
 .wr-menu-row:active { background: rgba(120, 90, 70, .06); }
 .wr-ring-plus { display: grid; place-items: center; width: 19px; height: 19px; margin: 0 .5px; border-radius: 50%; box-shadow: inset 0 0 0 1.6px currentColor; }
+/* 标记为已拥有: a circled ✓, drawn like the circled ＋ */
+.wr-ring-own { display: grid; place-items: center; width: 19px; height: 19px; margin: 0 .5px; border-radius: 50%; box-shadow: inset 0 0 0 1.6px currentColor; }
 .wr-menu--sheet { margin-top: 6px; }
 
 /* long-press: the garment lifts, the menu sits just under it */
@@ -161,6 +164,7 @@
 .ov--wr-ctx.is-open .wr-ctx { transform: none; opacity: 1; }
 .wr-ctx-card { position: relative; height: 236px; border-radius: 20px; overflow: hidden; background: #E9E0D7; box-shadow: 0 16px 40px rgba(30, 20, 14, .26); }
 .wr-ctx-card img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.wr-ctx-card .own-mark { --own-size: 22px; --own-inset: 12px; }
 .wr-ctx-heart { position: absolute; right: 4px; top: 4px; color: #2A2522; }
 .wr-ctx-menu { position: relative; margin-top: -16px; padding: 2px 16px; border-radius: 16px; background: #FCF7F1; box-shadow: 0 12px 34px rgba(30, 20, 14, .24); }
 .wr-ctx-menu .wr-menu-row { min-height: 46px; font-size: 14.5px; }
@@ -169,6 +173,7 @@
 .wr-sheet-img { height: 200px; border-radius: 18px; overflow: hidden; background: var(--tile); }
 .wr-sheet-img img { width: 100%; height: 100%; object-fit: contain; }
 .wr-sheet-meta { margin: 12px 0 2px; text-align: center; font-size: 12.5px; color: var(--text-3); }
+.wr-own-tag { color: var(--text-2); font-weight: 600; --own-size: 14px; }
 
 /* 加入搭配集 sheet */
 .wr-set-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
@@ -195,7 +200,7 @@
 .wr-od { padding: 4px 16px 24px; }
 .wr-od-cover { aspect-ratio: 4 / 3; border-radius: 16px; }
 .wr-od-items { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; }
-.wr-od-item { display: block; width: 100%; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: #E9E0D7; transition: transform .15s ease; }
+.wr-od-item { position: relative; display: block; width: 100%; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: #E9E0D7; transition: transform .15s ease; }
 .wr-od-item:active { transform: scale(.96); }
 .wr-od-item img { width: 100%; height: 100%; object-fit: cover; }
 .wr-od-add { display: grid; place-items: center; color: #6B615A; background: transparent; box-shadow: inset 0 0 0 1.2px #D8C8BC; }
@@ -213,7 +218,7 @@
 .wr-mo-h { margin: 18px 2px 10px; font-size: 14px; font-weight: 700; color: var(--ink); }
 .wr-mo-items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .wr-mo-item { display: block; width: 100%; text-align: left; }
-.wr-mo-thumb { display: block; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: #E9E0D7; }
+.wr-mo-thumb { position: relative; display: block; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: #E9E0D7; }
 .wr-mo-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .wr-mo-name { display: block; margin-top: 6px; font-size: 12px; line-height: 1.35; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wr-mo-tag { display: inline-block; margin-top: 3px; padding: 1px 6px; border-radius: 6px; background: var(--chip); color: var(--text-3); font-size: 10.5px; font-style: normal; }

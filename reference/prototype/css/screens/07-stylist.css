@@ -38,7 +38,8 @@
 .look-open { display: block; width: 100%; height: 100%; }
 .look-open img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; }
 .look-items li { position: absolute; right: 4.6px; width: 29.8px; }
-.look-items button { display: block; width: 100%; height: 100%; border-radius: 5px; overflow: hidden; background: #F6F2ED; box-shadow: 0 1px 3px rgba(60, 45, 30, .08); }
+.look-items button { position: relative; display: block; width: 100%; height: 100%; border-radius: 5px; overflow: hidden; background: #F6F2ED; box-shadow: 0 1px 3px rgba(60, 45, 30, .08); }
+.look-items .own-mark { --own-size: 11px; --own-inset: 1.5px; }
 .look-items img { width: 100%; height: 100%; object-fit: cover; }
 .look-meta { padding: 8.4px 8.3px 8.9px 8.6px; }
 .look-h { display: flex; align-items: center; justify-content: space-between; height: 15px; }
@@ -52,8 +53,14 @@
 
 .st-wl { margin: 0 18px 14px 61.6px; border-radius: 16px; background: #FDFBF7; padding: 8px; box-shadow: 0 2px 10px rgba(80, 60, 40, .05); }
 .st-wl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.st-wl-grid button { height: 104px; border-radius: 10px; overflow: hidden; background: var(--tile); }
+.st-wl-grid > * { position: relative; display: block; height: 104px; border-radius: 10px; overflow: hidden; background: var(--tile); }
 .st-wl-grid img { width: 100%; height: 100%; object-fit: cover; }
+.st-wl-grid .own-mark { --own-size: 17px; --own-inset: 6px; }
+/* 可以单独购买的单品: products to buy, apart from the outfit above */
+.st-buy { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0 18px 14px 61.6px; padding: 8px; border-radius: 16px; background: #FDFBF7; box-shadow: 0 2px 10px rgba(80, 60, 40, .05); }
+.st-buy button { position: relative; display: block; width: 100%; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--tile); }
+.st-buy img { width: 100%; height: 100%; object-fit: cover; }
+.st-buy .own-mark { --own-size: 14px; --own-inset: 4px; }
 .st-wl-foot { display: flex; align-items: center; gap: 8px; padding: 10px 4px 4px; }
 .st-wl-foot span { flex: 1; font-size: 11.5px; color: var(--text-2); line-height: 1.45; }
 
@@ -89,5 +96,7 @@
 .lk-hero { height: 330px; border-radius: 18px; overflow: hidden; background: var(--tile); }
 .lk-hero img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; }
 .lk-items { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.lk-thumb { position: relative; display: block; flex: none; }
+.lk-thumb .own-mark { --own-size: 15px; --own-inset: 4px; }
 .lk-total { margin-top: 12px; text-align: right; font-size: 13px; color: var(--text-2); }
 .lk-total b { font-family: "VT Inter", var(--font); font-size: 17px; color: var(--ink); }

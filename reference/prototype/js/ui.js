@@ -54,6 +54,12 @@
       return `<button class="heart-btn ${on ? 'is-on' : ''} ${o.cls || ''}" type="button" data-act="${o.act || 'fav'}" data-pid="${pid}" aria-pressed="${on ? 'true' : 'false'}" aria-label="${on ? '取消收藏' : '收藏'}">${I(on ? 'heart-filled' : 'heart', { size: o.size || 24, stroke: o.stroke || 1.6 })}</button>`;
     },
 
+    /** ✓ 已拥有: the active person owns this garment (VT.garments). Only ownership, never a selection.
+        It sits in a thumbnail's top-right corner (`own-mark--l`: top-left, where a heart has that corner). */
+    ownMark(on, cls) {
+      return on ? `<span class="own-mark ${cls || ''}" aria-hidden="true">${I('check', { size: 10, stroke: 2.4 })}</span>` : '';
+    },
+
     img(src, alt, cls, extra) {
       return `<img class="${cls || ''}" src="${esc(src)}" alt="${esc(alt || '')}" decoding="async" draggable="false"${extra ? ' ' + extra : ''}>`;
     },

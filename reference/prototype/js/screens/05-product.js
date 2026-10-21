@@ -42,7 +42,7 @@
               <button type="button" class="pd-rating" data-act="reviews" aria-label="评分 ${p.rating}，${p.reviews} 条评价">${I('star', { size: 17 })}<b>${p.rating.toFixed(1)}</b><span>(${p.reviews})</span></button>
             </div>
             <button type="button" class="pd-brand" data-act="brand" aria-label="${p.brand}，进入店铺">${VT.plaza.logo(D().storeOf(p), 'st-logo--pd')}<span>${p.brand}</span><span class="pd-brand-go">进入店铺${I('chevron-right', { size: 15, stroke: 1.8 })}</span></button>
-            <p class="pd-price">${VT.ui.price(p.price)}</p>
+            <p class="pd-price">${VT.ui.price(p.price)}${VT.garments.ownsProduct(s, p.id) ? `<span class="pd-own">${VT.ui.ownMark(true, 'own-mark--inline')}已拥有</span>` : ''}</p>
             <p class="pd-desc">${VT.ui.nl2br(p.desc)}</p>
             <div class="pd-sec">
               <h2>颜色</h2>
@@ -148,16 +148,12 @@
         const p = D().byId[pidOf(app)];
         tryOn(app, [p.id]);
       },
+      /** 加入衣橱: a 购物广场 garment of the active person (one per product), not owned unless it already was */
       add(app) {
         const p = D().byId[pidOf(app)];
         const sel = VT.store.h.selection(app.s, p.id);
         const color = p.colors.find((c) => c.id === sel.color) || p.colors[0];
-        let isNew = false;
-        VT.store.update((s) => {
-          const ex = s.wardrobe.find((w) => w.p === p.id);
-          if (ex) { ex.color = sel.color; ex.size = sel.size; }
-          else { isNew = true; s.wardrobe.unshift({ uid: VT.store.uid('w'), p: p.id, fav: false, source: 'collected', color: sel.color, size: sel.size, addedAt: Date.now() }); }
-        });
+        const { isNew } = VT.garments.addProduct(p.id, sel);
         const ov = app.sheet({
           title: isNew ? '已加入衣橱' : '已在你的衣橱中',
           html: `<div class="mini">${VT.ui.img(p.img.card, p.name)}<span class="mini-main"><span class="mini-title">${p.name}</span><span class="mini-sub">${color.name} / ${sel.size}</span></span>${VT.ui.price(p.price)}</div>
@@ -193,34 +189,35 @@
     root.querySelectorAll('.pd-thumb').forEach((b, k) => { b.classList.toggle('is-on', k === i); b.setAttribute('aria-selected', k === i); });
   }
 
-  /** send garments to the fitting room, select them and jump there */
-  function tryOn(app, pids) {
-    const cats = D().fitCatsAll; // a garment without a render still opens its own category
+  /** send garments to the fitting room, select them and jump there. `refs` are product ids, or up:<uid> for a
+      garment photo (VT.garments.ref). Products the active person hasn't got become temporary garments, so
+      首页's rail lists them (not saved, not owned). */
+  function tryOn(app, refs) {
+    const G = VT.garments;
+    const s0 = VT.store.get();
+    const list = refs.filter((r) => typeof r === 'string' && (r.startsWith('up:') ? G.fromRef(s0, r) : D().byId[r]));
+    G.adopt(s0, list.filter((r) => !r.startsWith('up:')));
     let first = null;
     VT.store.update((s) => {
-      pids.forEach((pid) => {
-        const p = D().byId[pid];
-        if (!p) return;
-        const slot = D().slotOf(p);
-        s.fit.outfit[slot] = pid;
+      list.forEach((r) => {
+        const g = G.fromRef(s, r) || { p: r }; // a product not kept as a garment (session storage off)
+        const slot = g.custom ? g.custom.cat : D().slotOf(D().byId[r]);
+        s.fit.outfit[slot] = r;
         if (slot === 'dress') { delete s.fit.outfit.top; delete s.fit.outfit.bottom; }
         if (slot === 'top' || slot === 'bottom') delete s.fit.outfit.dress;
-        if (!first) first = p;
+        if (!first) first = g;
       });
-      if (first) {
-        const cat = cats.find((c) => c.items.includes(first.id) && (c.id !== 'upper' || ['top', 'outer'].includes(first.cat)));
-        if (cat) s.fit.cat = cat.id;
-      }
+      if (first) s.fit.cat = G.fitCatOf(first); // a garment without a render still opens its own category
     });
     if (VT.store.get().avatar.status !== 'ready') {
       VT.store.update((s) => { s.avatar.status = 'ready'; s.avatar.demo = true; });
     }
-    VT.fitting.showRecommended();
     app.go('fitting');
-    const { missing } = VT.fitting.pickRender(VT.store.get().fit.outfit);
-    const miss = pids.filter((x) => missing.includes(x));
+    const s = VT.store.get();
+    const { missing } = VT.fitting.pickRender(s.fit.outfit);
+    const miss = list.filter((x) => missing.includes(x));
     app.later(() => {
-      if (miss.length) app.toast(`演示版暂无「${D().byId[miss[0]].name}」的上身图，已加入当前搭配`, { ms: 3000 });
+      if (miss.length) app.toast(`演示版暂无「${G.nameOf(G.fromRef(s, miss[0]) || { p: miss[0] })}」的上身图，已加入当前搭配`, { ms: 3000 });
       else app.toast('已为你的数字分身换上所选单品');
     }, 420);
   }
