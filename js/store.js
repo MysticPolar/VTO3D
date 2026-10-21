@@ -3,7 +3,8 @@
    Persisted: first-launch flag, avatar, favorites, favourite stores, store
    chats, wardrobe, 搭配集, 穿搭瞬间, digital avatars (切换角色), outfit, cart,
    orders + returns, saved looks, chat, filters, profile, addresses, history
-   and settings. Use VT.store.reset() to restore.
+   and settings. Use VT.store.reset() to restore. Garment records and their
+   ownership follow one model, VT.garments (js/garments.js).
    ========================================================================== */
 (function () {
   const VT = (window.VT = window.VT || {});
@@ -18,7 +19,7 @@
 
   function defaults() {
     const d = D();
-    const wardrobe = d.seedWardrobe.map((w, i) => ({ uid: 'w' + (i + 1), p: w.p, fav: w.fav, source: w.source, addedAt: 0 }));
+    const wardrobe = VT.garments.seed('me', d.seedWardrobe, (i) => 'w' + (i + 1));
     return {
       v: 2,
       setupDone: false, // onboarding + avatar creation finished (first launch only)
@@ -77,7 +78,8 @@
   }
   /** a demo person (伴侣 / 爸爸 / 妈妈) with their own wardrobe, 搭配集 and body data, stashed until switched to */
   function roleRecord(r) {
-    const wardrobe = r.wardrobe.map((p, i) => ({ uid: `${r.id}-w${i + 1}`, p, fav: r.favs.includes(p), source: 'owned', addedAt: 0 }));
+    const list = r.wardrobe.map((p) => ({ p, fav: r.favs.includes(p), own: !(r.saved || []).includes(p) }));
+    const wardrobe = VT.garments.seed(r.id, list, (i) => `${r.id}-w${i + 1}`);
     return {
       id: r.id, name: r.name, self: false, demo: true, createdAt: 0, portrait: r.portrait,
       data: {
@@ -160,6 +162,7 @@
         }
         s.avatars = s.avatars.filter((a) => a.id !== id);
       });
+      VT.garments.forget(id);
     },
   };
 
@@ -182,6 +185,7 @@
         state[k] = Object.assign(fresh[k], saved[k] || {});
       });
       if (!('collections' in saved)) addWardrobeV2(state, fresh);
+      VT.garments.migrate(state); // garments saved before source / isOwned were separate
     } else {
       state = base;
     }
@@ -215,6 +219,7 @@
 
   function reset() {
     state = defaults();
+    VT.garments.clearTemp();
     try { window.localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
     persist();
     listeners.forEach((l) => l(state, { reset: true }));
@@ -229,6 +234,7 @@
       const sel = s.selections[pid] || {};
       return { color: sel.color || p.colors[0].id, size: sel.size || p.defaultSize };
     },
+    /** saved in the active person's wardrobe (owned or not: VT.garments.ownsProduct) */
     inWardrobe(s, pid) { return s.wardrobe.some((w) => w.p === pid); },
     order(s, id) { return s.orders.find((o) => o.id === (id || s.currentOrder)) || s.orders[0]; },
     addresses(s) { return s.addresses && s.addresses.length ? s.addresses : D().addresses; },

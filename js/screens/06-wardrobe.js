@@ -1,8 +1,11 @@
 /* 个人衣橱 — My Wardrobe (primary tab 3)
    A row of portraits switches whose wardrobe this is (切换角色, shared with 首页: every
    person has their own garments, 搭配集 and 穿搭瞬间). Under it, 衣服 | 搭配集 | 穿搭瞬间:
-   - 衣服: the 3-column grid with category filters, search, hearts, the try-on queue,
-     a tap opens the item sheet, a long-press the action menu.
+   - 衣服: the 3-column grid of every saved garment, whatever its source, with category
+     filters, search, hearts, the try-on queue (numbered), a tap opens the item sheet, a
+     long-press the action menu. ✓ (top left: the heart has the other corner) marks the
+     owned ones (VT.garments); both menus set 标记为已拥有 / 取消已拥有标记. A heart is
+     喜欢, nothing to do with owning.
    - 搭配集: outfit collections (cover, name, count) → 搭配集详情 (screen `outfit`).
    - 穿搭瞬间: a private 2-column gallery of saved looks → screen `moment`. 首页's
      保存造型 adds the current try-on (VT.wardrobe.saveLook). */
@@ -16,7 +19,6 @@
   let query = '';
   const viewScroll = {}; // each view's scroll position while the tab stays open
 
-  const SRC_LABEL = { collected: '已收藏', purchased: '已购买', uploaded: '我上传的' };
   const VIEWS = [['clothes', '衣服'], ['sets', '搭配集'], ['moments', '穿搭瞬间']];
   /* 首页 切换场景 backdrops (mid-plate tones), behind a saved try-on */
   const SCENE_BG = { taupe: '#D0C0B0', cream: '#E8DED4', oat: '#E5D4C1', cocoa: '#5A4C3D' };
@@ -97,10 +99,10 @@
       const fav = !!w.fav;
       const pending = s.tryQueue.includes(w.uid);
       return `<li class="wr-tile ${pending ? 'is-picked' : ''}">
-        <button type="button" class="wr-open" data-act="item" data-uid="${w.uid}" aria-haspopup="dialog" aria-label="${esc(p.name)}${SRC_LABEL[w.source] ? '，' + SRC_LABEL[w.source] : ''}">${VT.ui.img(tileSrc(w, p), '', w.custom ? 'is-custom' : '', 'loading="lazy"')}</button>
+        <button type="button" class="wr-open" data-act="item" data-uid="${w.uid}" aria-haspopup="dialog" aria-label="${esc(p.name)}${w.isOwned ? '，已拥有' : ''}">${VT.ui.img(tileSrc(w, p), '', w.custom ? 'is-custom' : '', 'loading="lazy"')}</button>
         <button type="button" class="heart-btn wr-heart ${fav ? 'is-on' : ''}" data-act="fav-item" data-uid="${w.uid}" aria-pressed="${fav}" aria-label="${fav ? '取消喜欢' : '标记喜欢'}：${esc(p.name)}">${I(fav ? 'heart-filled' : 'heart', { size: 21, stroke: 1.6 })}</button>
-        ${SRC_LABEL[w.source] ? `<span class="wr-src">${SRC_LABEL[w.source]}</span>` : ''}
-        ${pending ? `<span class="wr-pick" aria-hidden="true">${I('check', { size: 12, stroke: 3 })}</span>` : ''}
+        ${VT.ui.ownMark(w.isOwned, 'own-mark--l')}
+        ${pending ? `<span class="wr-pick" aria-hidden="true">${s.tryQueue.indexOf(w.uid) + 1}</span>` : ''}
       </li>`;
     }).join('')}</ul>`;
   }
@@ -164,10 +166,16 @@
       : `<span class="wr-photo ${cls || ''}">${VT.ui.img(m.src, '', '', 'loading="lazy"')}</span>`;
   }
 
-  /** a row in the action menus; icon 'plus-ring' is the circled ＋ of the header */
+  /** a row in the action menus; icon 'plus-ring' is the circled ＋ of the header, 'own-ring' the ✓ 已拥有 mark */
   function menuRow(icon, label, act, cls, role) {
-    const ic = icon === 'plus-ring' ? `<span class="wr-ring-plus">${I('plus', { size: 12, stroke: 2.2 })}</span>` : I(icon, { size: 20, stroke: 1.6 });
+    const ic = icon === 'plus-ring' ? `<span class="wr-ring-plus">${I('plus', { size: 12, stroke: 2.2 })}</span>`
+      : icon === 'own-ring' ? `<span class="wr-ring-own">${I('check', { size: 12, stroke: 2.4 })}</span>`
+      : I(icon, { size: 20, stroke: 1.6 });
     return `<button type="button" class="wr-menu-row ${cls || ''}" ${role ? `role="${role}"` : ''} data-act="${act}">${ic}<span>${label}</span></button>`;
+  }
+  /** 标记为已拥有 / 取消已拥有标记 */
+  function ownRow(w, act, role) {
+    return w.isOwned ? menuRow('close', '取消已拥有标记', act, '', role) : menuRow('own-ring', '标记为已拥有', act, '', role);
   }
 
   /* ---------- in-place updates (keep the header and the portrait row) ---------- */
@@ -201,21 +209,32 @@
   }
 
   /* ---------- shared operations ---------- */
-  /** 立即试穿 / 去试衣间 / 一键试穿这套: catalog garments go on the active avatar on 首页; uploads can't be worn yet */
+  /** 立即试穿 / 去试衣间 / 一键试穿这套: the garments go on the active avatar on 首页 (a photo joins the outfit
+      without an on-body image, as on 首页) */
   function tryItems(app, list, emptyMsg) {
-    const pids = list.filter((w) => w && !w.custom).map((w) => w.p);
-    if (!pids.length) { app.toast(emptyMsg || '演示版暂不支持上传衣物的上身效果'); return false; }
-    VT.tryOn(app, pids);
+    const refs = list.filter(Boolean).map((w) => VT.garments.ref(w));
+    if (!refs.length) { app.toast(emptyMsg || '所选衣物暂不支持试穿'); return false; }
+    VT.tryOn(app, refs);
     return true;
+  }
+
+  /** 标记为已拥有 / 取消已拥有标记: the person's own confirmation, the only way a garment becomes owned */
+  function setOwned(app, w) {
+    const on = !w.isOwned;
+    VT.garments.setOwned(w.uid, on);
+    app.refresh();
+    app.toast(on ? '已标记为已拥有' : '已取消已拥有标记', on ? { icon: 'check' } : undefined);
   }
 
   async function removeItem(app, w, ov) {
     const ok = await app.dialog({ title: '删除这件单品？', text: `「${itemOf(w).name}」将从衣橱和搭配集中移除。`, ok: '删除' });
     if (!ok) return;
+    const worn = VT.garments.ref(w);
     VT.store.update((st) => {
       st.wardrobe = st.wardrobe.filter((x) => x.uid !== w.uid);
       st.tryQueue = st.tryQueue.filter((u) => u !== w.uid);
       sets(st).forEach((c) => { c.items = c.items.filter((u) => u !== w.uid); });
+      Object.keys(st.fit.outfit).forEach((k) => { if (st.fit.outfit[k] === worn) delete st.fit.outfit[k]; }); // off the avatar on 首页 too
     });
     if (ov) app.closeOverlay(ov);
     app.refresh();
@@ -247,23 +266,25 @@
     const color = !w.custom && w.color ? (p.colors.find((c) => c.id === w.color) || {}).name : null;
     const queued = s.tryQueue.includes(w.uid);
     const inSet = o && o.set ? setById(s, o.set) : null;
+    const meta = [w.custom ? null : p.brand, color, w.size].filter(Boolean).join(' · ');
+    const own = w.isOwned ? `<span class="wr-own-tag">${VT.ui.ownMark(true, 'own-mark--inline')}已拥有</span>` : '';
     const ov = app.sheet({
       title: p.name, cls: 'ov--wr-item',
       html: `<div class="wr-sheet-img">${VT.ui.img(w.custom ? p.img.tile : (p.img.hd || p.img.tile), p.name)}</div>
-        <p class="wr-sheet-meta">${[SRC_LABEL[w.source] || '我的衣物', color, w.size].filter(Boolean).join(' · ')}</p>
+        ${own || meta ? `<p class="wr-sheet-meta">${own}${own && meta ? ' · ' : ''}${meta}</p>` : ''}
         <div class="wr-menu wr-menu--sheet">
           ${menuRow('hanger', '立即试穿', 'try')}
           ${menuRow('plus-ring', '加入搭配集', 'sets')}
           ${inSet ? menuRow('minus', `从「${esc(inSet.name)}」移出`, 'unset') : ''}
-          ${menuRow(queued ? 'check' : 'tshirt', queued ? '移出试衣搭配' : '加入试衣搭配', 'queue')}
+          ${menuRow(queued ? 'minus' : 'tshirt', queued ? '移出试衣搭配' : '加入试衣搭配', 'queue')}
+          ${ownRow(w, 'own')}
           ${w.custom ? '' : menuRow('bag', '查看商品详情', 'detail')}
           ${menuRow('share', '分享', 'share')}
           ${menuRow('trash', '删除', 'remove', 'is-danger')}
         </div>
-        ${w.custom ? '<p class="sheet-note">自己上传的衣物暂不支持上身试穿（演示版）</p>' : ''}`,
+        ${w.custom ? '<p class="sheet-note">演示版暂无这件衣物的上身图，试穿时会加入当前搭配</p>' : ''}`,
       actions: {
         try: () => {
-          if (w.custom) { app.toast('演示版暂不支持上传衣物的上身效果'); return; }
           app.closeOverlay(ov, true);
           tryItems(app, [w]);
         },
@@ -283,6 +304,7 @@
           app.refresh();
           app.toast(queued ? '已移出试衣搭配' : '已加入试衣搭配');
         },
+        own: () => { app.closeOverlay(ov); setOwned(app, w); },
         detail: () => app.go('product', { pid: p.id }),
         share: () => shareText(app, p.name, `「${p.name}」— 来自我的个人衣橱`),
         remove: () => removeItem(app, w, ov),
@@ -302,10 +324,12 @@
         <div class="wr-ctx">
           <div class="wr-ctx-card">${VT.ui.img(tileSrc(w, p), p.name)}
             <button type="button" class="heart-btn wr-ctx-heart ${w.fav ? 'is-on' : ''}" data-act="ctx-fav" aria-pressed="${!!w.fav}" aria-label="${w.fav ? '取消喜欢' : '标记喜欢'}：${esc(p.name)}">${I(w.fav ? 'heart-filled' : 'heart', { size: 22, stroke: 1.6 })}</button>
+            ${VT.ui.ownMark(w.isOwned, 'own-mark--l')}
           </div>
           <div class="wr-menu wr-ctx-menu" role="menu" aria-label="${esc(p.name)}">
             ${menuRow('hanger', '立即试穿', 'ctx-try', '', 'menuitem')}
             ${menuRow('plus-ring', '加入搭配集', 'ctx-set', '', 'menuitem')}
+            ${ownRow(w, 'ctx-own', 'menuitem')}
             ${menuRow('share', '分享', 'ctx-share', '', 'menuitem')}
             ${menuRow('trash', '删除', 'ctx-del', 'is-danger', 'menuitem')}
           </div>
@@ -319,6 +343,7 @@
           if (tile) popHeart(tile, on, 21);
         },
         'ctx-try': () => { app.closeOverlay(ov, true); tryItems(app, [w]); },
+        'ctx-own': () => { app.closeOverlay(ov); setOwned(app, entry(app.s, uid) || w); },
         'ctx-set': () => { app.closeOverlay(ov, true); addToSetSheet(app, uid); },
         'ctx-share': () => { app.closeOverlay(ov); shareText(app, p.name, `「${p.name}」— 来自我的个人衣橱`); },
         'ctx-del': () => { app.closeOverlay(ov, true); removeItem(app, w); },
@@ -554,7 +579,7 @@
           if (!picked) return;
           const name = (ov.querySelector('.js-name').value || '我的衣物').trim();
           VT.store.update((s) => {
-            s.wardrobe.unshift({ uid: VT.store.uid('w'), custom: { src: picked.src, name, cat }, fav: false, source: 'uploaded', addedAt: Date.now() });
+            VT.garments.addPhoto(s, { src: picked.src, name, cat }, { save: true }); // not owned until the user says so
             s.wardrobeCat = 'all';
             s.wardrobeView = 'clothes';
           });
@@ -770,13 +795,13 @@
           ${cover(s, c, 'wr-od-cover')}
           <ul class="wr-od-items" aria-label="搭配集里的单品">${items.map((w) => {
             const p = itemOf(w);
-            return `<li><button type="button" class="wr-od-item" data-act="od-item" data-uid="${w.uid}" data-set="${c.id}" aria-haspopup="dialog" aria-label="${esc(p.name)}">${VT.ui.img(tileSrc(w, p), '', '', 'loading="lazy"')}</button></li>`;
+            return `<li><button type="button" class="wr-od-item" data-act="od-item" data-uid="${w.uid}" data-set="${c.id}" aria-haspopup="dialog" aria-label="${esc(p.name)}${w.isOwned ? '，已拥有' : ''}">${VT.ui.img(tileSrc(w, p), '', '', 'loading="lazy"')}${VT.ui.ownMark(w.isOwned)}</button></li>`;
           }).join('')}
             <li><button type="button" class="wr-od-item wr-od-add" data-act="od-edit" data-id="${c.id}" aria-label="编辑单品">${I('plus', { size: 22, stroke: 1.6 })}</button></li>
           </ul>
           ${items.length ? '' : '<p class="wr-od-hint">还没有单品，点「＋」从衣橱里挑选</p>'}
         </div>
-        <div class="sub-foot wr-foot"><button type="button" class="btn btn--xl btn--block wr-cta" data-act="od-try" data-id="${c.id}" ${items.some((w) => !w.custom) ? '' : 'disabled'}>一键试穿这套</button></div>`;
+        <div class="sub-foot wr-foot"><button type="button" class="btn btn--xl btn--block wr-cta" data-act="od-try" data-id="${c.id}" ${items.length ? '' : 'disabled'}>一键试穿这套</button></div>`;
     },
     mount(app, el, params, info) {
       // a collection just created from 新建搭配集 opens with 编辑单品
@@ -806,8 +831,8 @@
           <div class="wr-mo-photo">${photo(m, 'wr-photo--lg')}${momentHeart(m)}</div>
           <div class="wr-mo-meta"><span class="wr-mo-date">${md(m.at)} 保存</span><span class="wr-private">${I('lock', { size: 13, stroke: 1.8 })}仅自己可见</span></div>
           ${items.length ? `<h2 class="wr-mo-h">相关单品</h2>
-          <ul class="wr-mo-items">${items.map((p) => `<li><button type="button" class="wr-mo-item" data-act="mo-item" data-pid="${p.id}" aria-label="查看商品详情：${esc(p.name)}">
-            <span class="wr-mo-thumb">${VT.ui.img(p.img.square || p.img.tile, '', '', 'loading="lazy"')}</span><span class="wr-mo-name">${esc(p.name)}</span>${(m.missing || []).includes(p.id) ? '<em class="wr-mo-tag">暂无上身图</em>' : ''}</button></li>`).join('')}</ul>` : ''}
+          <ul class="wr-mo-items">${items.map((p) => { const own = VT.garments.ownsProduct(s, p.id); return `<li><button type="button" class="wr-mo-item" data-act="mo-item" data-pid="${p.id}" aria-label="查看商品详情：${esc(p.name)}${own ? '，已拥有' : ''}">
+            <span class="wr-mo-thumb">${VT.ui.img(p.img.square || p.img.tile, '', '', 'loading="lazy"')}${VT.ui.ownMark(own)}</span><span class="wr-mo-name">${esc(p.name)}</span>${(m.missing || []).includes(p.id) ? '<em class="wr-mo-tag">暂无上身图</em>' : ''}</button></li>`; }).join('')}</ul>` : ''}
           <p class="sheet-note">${m.scene ? '首页数字分身的试穿画面（演示版使用示例模特）' : '示例照片（演示版）'}</p>
         </div>
         <div class="sub-foot wr-foot wr-mo-cta">

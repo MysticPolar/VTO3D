@@ -2,19 +2,19 @@
    The avatar is the 2D image of the active digital avatar (切换角色). Garment
    selection swaps to real on-body imagery only where it exists (base + three
    stylist looks); anything else is recorded in the outfit and flagged honestly.
-   The right rail has two sources: 推荐 (the try-on catalogue, garments with an
-   on-body image first) and 我的上传 (garment photos taken or picked with 拍照).
-   Uploads are temporary: they live in this browser session only and reach
-   个人衣橱 only through 加入衣橱. They are never drawn onto the avatar. */
+   The right rail is one list of the active person's garments (VT.garments), whatever
+   their source: this session's try-ons first (photos taken with 拍照, products tried on
+   from elsewhere), then their wardrobe. ✓ marks the ones they own, and only those; the
+   thin border marks what is worn. Photos are temporary: this browser session only, they
+   reach 个人衣橱 only through 加入衣橱, and they are never drawn onto the avatar. */
 (function () {
   const VT = window.VT;
   const I = (n, o) => VT.icon(n, o);
   const D = () => VT.data;
+  const G = () => VT.garments;
   const esc = (x) => VT.esc(x);
   const SLOTS = ['top', 'bottom', 'dress', 'outer', 'shoes', 'bag', 'acc'];
   const EXTRA = ['outer', 'bag', 'acc', 'dress', 'shoes'];
-  /** the outfit slot an upload fills, from the 首页 category it is filed under */
-  const CAT_SLOT = { upper: 'top', lower: 'bottom', dress: 'dress', outer: 'outer', shoes: 'shoes', bag: 'bag', acc: 'acc' };
   /** 切换场景: tonal backdrops behind the avatar cut-out (css: [data-scene]) */
   const SCENES = [
     { id: 'taupe', name: '暖灰' },
@@ -56,37 +56,23 @@
     if (slot === 'top' || slot === 'bottom') delete o.dress;
   }
 
-  /* ---------- 我的上传: garment photos kept for this browser session only ---------- */
-  const UP_KEY = 'vt-fit-uploads-v1';
-  let uploads = readUploads(); // newest first: { id, src, name, cat, at }
-  let railSrc = 'rec'; // 'rec' 推荐 · 'mine' 我的上传
   let previewOv = null; // the open 确认衣物照片 sheet
 
-  function readUploads() {
-    try { return JSON.parse(window.sessionStorage.getItem(UP_KEY)) || []; } catch (e) { return []; }
+  /** the outfit and the rail stay one list: a photo gone with an earlier session comes off; a product
+      worn from elsewhere (an older pick, say) becomes a temporary garment the rail shows */
+  function syncOutfit() {
+    const s = VT.store.get();
+    const o = s.fit.outfit;
+    const fix = {};
+    Object.keys(o).forEach((k) => {
+      if (typeof o[k] !== 'string' || !o[k].startsWith('up:')) return;
+      const g = G().fromRef(s, o[k]);
+      const r = g ? G().ref(g) : null;
+      if (r !== o[k]) fix[k] = r;
+    });
+    G().adopt(s, Object.values(o).filter((v) => typeof v === 'string' && !v.startsWith('up:')));
+    if (Object.keys(fix).length) VT.store.update((st) => { Object.keys(fix).forEach((k) => { if (fix[k]) st.fit.outfit[k] = fix[k]; else delete st.fit.outfit[k]; }); });
   }
-  function writeUploads() {
-    try { window.sessionStorage.setItem(UP_KEY, JSON.stringify(uploads)); } catch (e) { console.info('[fitting] session storage unavailable:', e && e.name); }
-  }
-  const refOf = (u) => 'up:' + u.id;
-  const isUpRef = (ref) => typeof ref === 'string' && ref.startsWith('up:');
-  const upOf = (ref) => (isUpRef(ref) ? uploads.find((u) => refOf(u) === ref) || null : null);
-  /** outfit entries whose upload ended with an earlier session are dropped */
-  function pruneOutfit() {
-    const o = VT.store.get().fit.outfit;
-    const stale = Object.keys(o).filter((k) => isUpRef(o[k]) && !upOf(o[k]));
-    if (stale.length) VT.store.update((s) => { stale.forEach((k) => { delete s.fit.outfit[k]; }); });
-  }
-  /** uploads the avatar is trying on, newest first */
-  function wornUploads(s) {
-    const refs = new Set(Object.values(s.fit.outfit));
-    return uploads.filter((u) => refs.has(refOf(u)));
-  }
-  /** the active avatar's wardrobe entry saved from this upload, if any */
-  const savedFrom = (s, u) => s.wardrobe.find((w) => w.fromUpload === u.id) || null;
-  VT.store.subscribe((s, meta) => {
-    if (meta && meta.reset) { uploads = []; railSrc = 'rec'; writeUploads(); }
-  });
 
   /** a camera roll name (IMG_0042, image, 微信图片…) says nothing about the garment */
   function cleanName(file) {
@@ -104,36 +90,18 @@
     }).join('');
   }
 
-  function srcTabs() {
-    return [['rec', '推荐'], ['mine', '我的上传']].map(([id, label]) => {
-      const on = railSrc === id;
-      return `<button type="button" role="tab" class="fit-src-tab ${on ? 'is-on' : ''}" data-act="src" data-src="${id}" aria-selected="${on}">${label}</button>`;
-    }).join('');
-  }
-
-  /** 推荐: the category's whole try-on list, garments with an on-body image first */
-  function recItems(catId) {
-    const all = D().fitCatsAll.find((c) => c.id === catId) || D().fitCatsAll[0];
-    const ready = (D().fitCats.find((c) => c.id === catId) || { items: [] }).items;
-    return ready.concat(all.items.filter((pid) => !ready.includes(pid)));
-  }
-
+  /** every garment of the selected category, whatever its source; ✓ on the owned ones */
   function rail(s) {
     const sel = new Set(Object.values(s.fit.outfit).filter(Boolean));
-    if (railSrc === 'mine') {
-      const label = (D().fitCats.find((c) => c.id === s.fit.cat) || D().fitCats[0]).label;
-      const mine = uploads.filter((u) => u.cat === s.fit.cat);
-      const add = `<li><button type="button" class="fit-thumb fit-thumb--add" data-act="shoot-menu" aria-label="上传${label}照片">${I('camera', { size: 22, stroke: 1.5 })}</button></li>`;
-      return add + (mine.length ? mine.map((u) => {
-        const on = sel.has(refOf(u));
-        return `<li><button type="button" class="fit-thumb ${on ? 'is-on' : ''}" data-act="pick-up" data-up="${u.id}" aria-pressed="${on}" aria-label="${on ? '取消试穿' : '试穿'}${esc(u.name)}（临时上传）">${VT.ui.img(u.src, '', 'fit-thumb-img')}</button></li>`;
-      }).join('') : `<li class="fit-rail-note">还没有上传的${label}</li>`);
-    }
-    return recItems(s.fit.cat).map((pid, i) => {
-      const p = D().byId[pid];
-      const on = sel.has(pid);
-      return `<li><button type="button" class="fit-thumb ${on ? 'is-on' : ''}" data-act="pick" data-pid="${pid}" aria-pressed="${on}" aria-label="${on ? '取消试穿' : '试穿'}${p.name}">
-        ${VT.ui.img(p.img.thumb || p.img.tile, '', 'fit-thumb-img', i >= RAIL_EAGER ? 'loading="lazy"' : '')}</button></li>`;
+    const items = G().all(s).filter((g) => G().inFitCat(g, s.fit.cat));
+    if (!items.length) return `<li class="fit-rail-note">还没有${(D().fitCats.find((c) => c.id === s.fit.cat) || D().fitCats[0]).label}</li>`;
+    return items.map((g, i) => {
+      const on = sel.has(G().ref(g));
+      const p = G().product(g);
+      const act = g.custom ? `data-act="pick-up" data-up="${g.uid}"` : `data-act="pick" data-pid="${g.p}"`;
+      const label = `${on ? '取消试穿' : '试穿'}${esc(G().nameOf(g))}${g.isOwned ? '，已拥有' : ''}`;
+      return `<li><button type="button" class="fit-thumb ${on ? 'is-on' : ''}" ${act} aria-pressed="${on}" aria-label="${label}">
+        ${VT.ui.img(g.custom ? g.custom.src : p.img.thumb || p.img.tile, '', 'fit-thumb-img', i >= RAIL_EAGER ? 'loading="lazy"' : '')}${VT.ui.ownMark(g.isOwned)}</button></li>`;
     }).join('');
   }
 
@@ -155,16 +123,17 @@
     });
   }
 
-  /** 临时试穿: the newest upload being tried on, with 加入衣橱 */
+  /** 临时试穿: the newest garment photo being tried on (photos have no on-body image), with 加入衣橱 */
   function dock(s) {
-    const u = wornUploads(s)[0];
+    const worn = new Set(Object.values(s.fit.outfit));
+    const u = G().all(s).find((g) => g.custom && worn.has(G().ref(g)));
     const temp = u ? `
       <div class="fit-temp" role="group" aria-label="临时试穿">
-        <div class="fit-temp-top">${VT.ui.img(u.src, '', 'fit-temp-img')}<b class="fit-temp-t">临时试穿</b></div>
+        <div class="fit-temp-top">${VT.ui.img(u.custom.src, '', 'fit-temp-img')}<b class="fit-temp-t">临时试穿</b></div>
         <p class="fit-temp-note">演示版暂无上身图</p>
-        ${savedFrom(s, u)
-          ? `<button type="button" class="fit-temp-btn is-done" disabled>${I('check', { size: 14, stroke: 2.4 })}已在衣橱</button>`
-          : `<button type="button" class="fit-temp-btn" data-act="keep" data-up="${u.id}" aria-label="将${esc(u.name)}加入衣橱">${I('plus', { size: 14, stroke: 2.2 })}加入衣橱</button>`}
+        ${u.isTemporary
+          ? `<button type="button" class="fit-temp-btn" data-act="keep" data-up="${u.uid}" aria-label="将${esc(u.custom.name)}加入衣橱">${I('plus', { size: 14, stroke: 2.2 })}加入衣橱</button>`
+          : `<button type="button" class="fit-temp-btn is-done" disabled>${I('hanger', { size: 15, stroke: 1.8 })}已在衣橱</button>`}
       </div>` : '';
     return `${temp}<button type="button" class="fit-pill fit-save" data-act="save-look" aria-label="保存造型到穿搭瞬间">${I('image', { size: 19, stroke: 1.6 })}<span>保存造型</span></button>
       <button type="button" class="fit-pill fit-shoot" data-act="shoot-menu" aria-haspopup="menu" aria-expanded="false">${I('camera', { size: 20, stroke: 1.6 })}<span>拍照</span></button>`;
@@ -184,7 +153,7 @@
       else window.addEventListener('load', () => app.later(preloadRenders, 400), { once: true });
     },
     render(app) {
-      pruneOutfit();
+      syncOutfit();
       const s = app.s;
       const who = VT.store.avatars.nameOf(s, VT.store.avatars.active(s));
       return `
@@ -201,7 +170,6 @@
         </header>
         <nav class="fit-menu" aria-label="服装分类"><ul>${menu(s)}</ul></nav>
         <div class="fit-picker">
-          <div class="fit-src" role="tablist" aria-label="单品来源">${srcTabs()}</div>
           <div class="fit-rail scroll" data-keep-scroll="rail" aria-label="可试穿单品"><ul>${rail(s)}</ul></div>
         </div>
         <div class="fit-dock">${dock(s)}</div>
@@ -216,12 +184,6 @@
         update(app, { top: true });
         const btn = app.screenEl().querySelector(`.fit-cat[data-cat="${id}"]`);
         if (btn) btn.focus({ preventScroll: true });
-      },
-      src(app, el) {
-        railSrc = el.dataset.src === 'mine' ? 'mine' : 'rec';
-        update(app, { top: true });
-        const tab = app.screenEl().querySelector(`.fit-src-tab[data-src="${railSrc}"]`);
-        if (tab) tab.focus({ preventScroll: true });
       },
       pick(app, el) {
         const pid = el.dataset.pid;
@@ -242,11 +204,12 @@
           app.toast(`已试穿：${p.name}`);
         }
       },
-      /** try an upload on, or take it off; it is never drawn onto the avatar */
+      /** try a garment photo on, or take it off; it is never drawn onto the avatar */
       'pick-up'(app, el) {
-        const u = uploads.find((x) => x.id === el.dataset.up);
-        if (!u) return;
-        const slot = CAT_SLOT[u.cat], ref = refOf(u);
+        const g = G().find(app.s, el.dataset.up);
+        if (!g || !g.custom) return;
+        const u = { id: g.uid, name: g.custom.name };
+        const slot = g.custom.cat, ref = G().ref(g);
         let added = false;
         VT.store.update((s) => {
           if (s.fit.outfit[slot] === ref) delete s.fit.outfit[slot];
@@ -269,14 +232,10 @@
           app.toast(e.message === 'type' ? '请选择图片文件（JPG / PNG 等）' : e.message === 'size' ? '图片超过 25MB，请换一张' : '无法读取这张图片，请换一张');
         }
       },
-      /** 加入衣橱: the only way an upload reaches the active avatar's wardrobe */
+      /** 加入衣橱: the only way a photo reaches the active avatar's wardrobe (not owned: 个人衣橱 can mark it) */
       keep(app, el) {
-        const u = uploads.find((x) => x.id === el.dataset.up);
-        if (!u || savedFrom(app.s, u)) return;
-        VT.store.update((s) => {
-          s.wardrobe.unshift({ uid: VT.store.uid('w'), custom: { src: u.src, name: u.name, cat: CAT_SLOT[u.cat] }, fav: false, source: 'uploaded', addedAt: Date.now(), fromUpload: u.id });
-          s.wardrobeCat = 'all';
-        });
+        if (!G().keep(el.dataset.up)) return;
+        VT.store.update((s) => { s.wardrobeCat = 'all'; });
         update(app);
         const A = VT.store.avatars;
         const s = app.s;
@@ -299,7 +258,6 @@
     if (!root || root.dataset.screen !== 'fitting') return;
     const s = app.s;
     root.querySelector('.fit-menu ul').innerHTML = menu(s);
-    root.querySelector('.fit-src').innerHTML = srcTabs();
     const r = root.querySelector('.fit-rail');
     const st = r.scrollTop;
     r.querySelector('ul').innerHTML = rail(s);
@@ -434,17 +392,14 @@
     previewOv = ov;
   }
 
-  /** a confirmed photo joins 我的上传 (this session only) and goes on at once */
+  /** a confirmed photo joins the rail (a temporary garment, this session only) and goes on at once */
   function addUpload(app, o) {
-    const u = { id: VT.store.uid('u'), src: o.src, name: o.name, cat: o.cat, at: Date.now() };
-    uploads.unshift(u);
-    writeUploads();
-    railSrc = 'mine';
-    VT.store.update((s) => { s.fit.cat = u.cat; wear(s.fit.outfit, CAT_SLOT[u.cat], refOf(u)); });
+    const g = G().addPhoto(app.s, { src: o.src, name: o.name, cat: G().CAT_OF[o.cat] });
+    VT.store.update((s) => { s.fit.cat = o.cat; wear(s.fit.outfit, g.custom.cat, G().ref(g)); });
     update(app, { top: true });
-    refocus(app, `.fit-thumb[data-up="${u.id}"]`);
+    refocus(app, `.fit-thumb[data-up="${g.uid}"]`);
     swapRender(app, pickRender(app.s.fit.outfit).render);
-    app.toast(`演示版暂无「${u.name}」的上身图，已加入临时试穿`, { ms: 2800 });
+    app.toast(`演示版暂无「${g.custom.name}」的上身图，已加入临时试穿`, { ms: 2800 });
   }
 
   /* ---------- 切换场景 ---------- */
@@ -467,9 +422,5 @@
     });
   }
 
-  VT.fitting = {
-    pickRender,
-    /** other screens that send garments here (VT.tryOn) show them under 推荐 */
-    showRecommended() { railSrc = 'rec'; },
-  };
+  VT.fitting = { pickRender };
 })();

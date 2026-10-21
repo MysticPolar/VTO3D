@@ -50,7 +50,7 @@
       remind(app) { app.toast('已提醒商家尽快发货', { icon: 'check' }); },
       async receive(app, el) {
         const oid = oidOf(app, el);
-        const ok = await app.dialog({ title: '确认收货？', text: '请确认已收到商品且无质量问题。\n确认后订单将完成（演示）。', ok: '确认收货' });
+        const ok = await app.dialog({ title: '确认收货？', text: '请确认已收到商品且无质量问题。\n确认后订单将完成，这件衣服会在衣橱中标记为已拥有（演示）。', ok: '确认收货' });
         if (!ok) return;
         VT.store.update((s) => {
           const o = s.orders.find((x) => x.id === oid);
@@ -58,9 +58,10 @@
           o.status = 4; o.progress = 4;
           o.steps[3] = { label: '已签收', time: nowLabel() };
           o.logistics.unshift({ t: nowLabel(), s: '你已确认收货，交易完成' });
+          VT.garments.received(s, o); // the confirmation that makes it owned (✓)
         });
         app.refresh();
-        app.toast('已确认收货', { icon: 'check' });
+        app.toast('已确认收货，已标记为已拥有', { icon: 'check' });
       },
       paynow(app, el) {
         const oid = oidOf(app, el);
