@@ -42,7 +42,11 @@
   }
 
   function message(m, s) {
-    if (m.role === 'user') return `<div class="st-msg st-msg--user">${m.img ? `<div class="st-bubble st-bubble--img">${VT.ui.img(m.img, '我上传的穿搭照片')}</div>` : `<div class="st-bubble">${VT.ui.nl2br(m.text)}</div>`}${userAvatar(s)}</div>`;
+    if (m.role === 'user') {
+      const photo = m.img && VT.media.src(m.img); // kept on this device (js/media.js)
+      if (m.img && !photo) return ''; // not loaded yet at start-up, or no longer on this device
+      return `<div class="st-msg st-msg--user">${photo ? `<div class="st-bubble st-bubble--img">${VT.ui.img(photo, '我上传的穿搭照片')}</div>` : `<div class="st-bubble">${VT.ui.nl2br(m.text)}</div>`}${userAvatar(s)}</div>`;
+    }
     if (m.role === 'ai') return `<div class="st-msg st-msg--ai"><span class="st-ava st-ava--ai">${I('sparkle-duo', { size: 21 })}</span><div class="st-bubble">${VT.ui.nl2br(m.text)}</div></div>`;
     if (m.role === 'looks') return `<div class="st-looks ${m.looks.length === 1 ? 'is-single' : ''}">${m.looks.map((id) => lookCard(D().lookById[id], s)).join('')}</div>`;
     if (m.role === 'wardrobe') return wardrobeLook(m.pids, s);
@@ -134,13 +138,12 @@
               const f = el.files && el.files[0];
               if (!f) return;
               if (!f.type.startsWith('image/')) { app.toast('请选择图片文件'); return; }
-              const r = new FileReader();
-              r.onload = () => shrink(r.result, (src) => {
+              shrink(f, async (blob) => {
+                const img = { media: await VT.media.put(blob) };
                 app.closeOverlay(ov, true);
-                push(app, { role: 'user', img: src });
+                push(app, { role: 'user', img });
                 reply(app, { text: '照片收到啦！这套搭配的配色很协调。演示版无法真正识别照片内容，\n我先按「朋友聚会」场景给你一个参考：叠穿一件西装外套会更有质感。', looks: ['look2'] });
               });
-              r.readAsDataURL(f);
             },
           },
         });
@@ -148,21 +151,26 @@
     },
   };
 
-  function shrink(dataUrl, cb) {
+  /** a JPEG of at most 420 px; a file the browser can't decode is kept as it is */
+  function shrink(file, cb) {
+    const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
       const k = Math.min(1, 420 / Math.max(img.width, img.height));
       const cv = document.createElement('canvas');
       cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
       cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-      cb(cv.toDataURL('image/jpeg', 0.8));
+      URL.revokeObjectURL(url);
+      cv.toBlob((blob) => cb(blob || file), 'image/jpeg', 0.8);
     };
-    img.onerror = () => cb(dataUrl);
-    img.src = dataUrl;
+    img.onerror = () => { URL.revokeObjectURL(url); cb(file); };
+    img.src = url;
   }
 
   function push(app, msg) {
-    VT.store.update((s) => { s.chat.push(msg); if (s.chat.length > 60) s.chat.splice(4, s.chat.length - 60); });
+    let gone = [];
+    VT.store.update((s) => { s.chat.push(msg); if (s.chat.length > 60) gone = s.chat.splice(4, s.chat.length - 60); });
+    VT.media.remove(gone.map((m) => m.img && m.img.media)); // photos of the messages that fell out
     const sc = app.screenEl().querySelector('.st-scroll');
     if (!sc) return;
     sc.querySelector('.st-thread').insertAdjacentHTML('beforeend', message(msg, app.s));
