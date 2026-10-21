@@ -112,7 +112,7 @@
 33. **No 「查看全部」 beside 当季精选.** ZARA's three collections all fit on screen, so the link would lead nowhere.
 34. **全部商品 shows only the categories the store sells** (ZARA: 全部 · 下装 · 外套), not all seven chips.
 35. **ZARA's banner keeps its photo** (the one in the mockup). Its text and 进入店铺 are now live HTML over a text-free copy, so the store page shows the same banner without the button. The asset kit's photos are not used: every model photo in it is one of our ZARA products (cardigan, jeans, blazer, maxi skirt), so on another store's banner it would show ZARA's garments. Those stores get a collage of their own products instead.
-36. **关注 and 收藏 name one list.** The store page says 关注 / 已关注, as in the mockup; 购物广场 keeps 收藏 for its favourite stores.
+36. **关注 names the favourite-store list everywhere**, as in the mockup: the store page, 购物广场's bar, search pills and 管理 sheet (「关注的商家」), the toasts (「已关注「ZARA」」) and the store chat copy. 收藏 stays for product wishlists (hearts, 我的收藏).
 
 ## How the imagery was prepared
 

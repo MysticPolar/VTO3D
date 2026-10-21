@@ -230,7 +230,7 @@
   const seedStoreFavs = ['zara', 'soft-archive', 'linea-studio', 'mono-atelier', 'forma'];
   /* chats with stores (商家消息); `at` orders the list, newest first */
   const storeChatSeed = {
-    zara: { unread: 1, at: 3, msgs: [{ me: false, text: '您收藏的店铺上新啦！2024 秋冬系列已上线，收藏店铺的顾客可领取 ¥30 新品券～', t: '10:24' }] },
+    zara: { unread: 1, at: 3, msgs: [{ me: false, text: '您关注的店铺上新啦！2024 秋冬系列已上线，关注店铺的顾客可领取 ¥30 新品券～', t: '10:24' }] },
     'mono-atelier': { unread: 0, at: 2, msgs: [{ me: true, text: '黑色西装外套还有 S 码吗？', t: '昨天' }, { me: false, text: '亲，黑色 S 码有现货，下单后 48 小时内发货哦～', t: '昨天' }] },
     forma: { unread: 0, at: 1, msgs: [{ me: false, text: '您的小白板鞋已送达，穿着还合适吗？有任何问题随时联系我们～', t: '7月13日' }] },
   };

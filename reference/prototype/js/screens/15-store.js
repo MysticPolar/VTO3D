@@ -82,7 +82,7 @@
         catch (e) { app.toast('分享面板在此浏览器不可用'); }
       },
       follow(app) {
-        const on = VT.plaza.toggleFav(app, storeOf(app).id, { verb: '关注' });
+        const on = VT.plaza.toggleFav(app, storeOf(app).id);
         const root = app.screenEl();
         root.querySelector('.sf-follow').outerHTML = followBtn(on);
         root.querySelector('.sf-follow').focus({ preventScroll: true });

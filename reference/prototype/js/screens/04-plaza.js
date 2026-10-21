@@ -25,11 +25,11 @@
     const cur = curStore(s);
     const favs = favStores(s);
     const tab = (id, label, face) => `<button type="button" role="tab" class="pz-st ${cur === id ? 'is-on' : ''}" aria-selected="${cur === id}" data-act="store" data-store="${id}">${face}<span class="pz-st-l">${VT.esc(label)}</span></button>`;
-    return `<div class="pz-st-tabs" role="tablist" aria-label="收藏的商家">
+    return `<div class="pz-st-tabs" role="tablist" aria-label="关注的商家">
         ${tab('all', '全部', `<span class="st-logo st-logo--all" aria-hidden="true">${I('grid', { size: 20, stroke: 1.6 })}</span>`)}
         ${favs.map((st) => tab(st.id, st.name, logo(st))).join('')}
       </div>
-      <button type="button" class="pz-st pz-st--manage" data-act="manage"><span class="st-logo st-logo--add" aria-hidden="true">${I('plus', { size: 18, stroke: 1.7 })}</span><span class="pz-st-l">${favs.length ? '管理' : '收藏商家'}</span></button>`;
+      <button type="button" class="pz-st pz-st--manage" data-act="manage"><span class="st-logo st-logo--add" aria-hidden="true">${I('plus', { size: 18, stroke: 1.7 })}</span><span class="pz-st-l">${favs.length ? '管理' : '关注商家'}</span></button>`;
   }
 
   /* ---------- feed ---------- */
@@ -80,9 +80,9 @@
     </li>`;
   }
 
-  /** 收藏 / 已收藏 pill used in search results and the manage sheet */
+  /** 关注 / 已关注 pill used in search results and the manage sheet */
   function favBtn(st, on) {
-    return `<button type="button" class="pz-sfav ${on ? 'is-on' : ''}" data-act="sfav" data-store="${st.id}" aria-pressed="${on}">${on ? '已收藏' : '收藏'}<span class="sr-only">${VT.esc(st.name)}</span></button>`;
+    return `<button type="button" class="pz-sfav ${on ? 'is-on' : ''}" data-act="sfav" data-store="${st.id}" aria-pressed="${on}">${on ? '已关注' : '关注'}<span class="sr-only">${VT.esc(st.name)}</span></button>`;
   }
 
   function banners() {
@@ -279,12 +279,11 @@
     sc.scrollTop = 0;
   }
 
-  /** favourite / unfavourite a store; favourites go to the front of the bar. The store page
-      calls it 关注 (opts.verb), 购物广场 calls it 收藏: it is the one list, s.storeFavs */
-  function toggleFav(app, id, opts) {
+  /** 关注 / 取消关注 a store (the user's favourite stores, s.storeFavs: the same list on 购物广场's
+      bar, search pills, 管理 and the store's page); a new one goes to the front of the bar */
+  function toggleFav(app, id) {
     const st = D().storeById[id];
     if (!st) return false;
-    const follow = opts && opts.verb === '关注';
     let on = false;
     VT.store.update((s) => {
       const favs = s.storeFavs || (s.storeFavs = []);
@@ -292,8 +291,7 @@
       if (i >= 0) { favs.splice(i, 1); if (s.plaza.store === id) s.plaza.store = 'all'; }
       else { favs.unshift(id); on = true; }
     });
-    if (follow) app.toast(on ? `已关注「${st.name}」` : `已取消关注「${st.name}」`);
-    else app.toast(on ? `已收藏店铺「${st.name}」` : `已取消收藏「${st.name}」`);
+    app.toast(on ? `已关注「${st.name}」` : `已取消关注「${st.name}」`);
     const el = app.screenEl();
     if (el && el.dataset.screen === 'plaza') app.refresh();
     return on;
@@ -304,20 +302,20 @@
   /** kept for callers of the old store sheet: a store now opens its own page */
   function openStore(app, id) { VT.storefront.open(app, id); }
 
-  /** 管理: unfavourite stores, or favourite one of the others */
+  /** 管理: 取消关注 a store, or 关注 one of the others */
   function manageStores(app) {
     const body = () => {
       const s = app.s;
       const favs = favStores(s);
       const others = D().stores.filter((st) => !isFavStore(s, st.id));
       const row = (st, on) => `<li class="ms-row">${logo(st, 'st-logo--md')}<span class="ms-main"><b>${VT.esc(st.name)}</b><em>${VT.esc(st.tagline)}</em></span>${favBtn(st, on)}</li>`;
-      return `<p class="sheet-lead">收藏的商家会显示在购物广场顶部，左右滑动、点击即可切换。</p>
-        <h4 class="ss-h">已收藏 ${favs.length}</h4>
-        ${favs.length ? `<ul class="ms-list">${favs.map((st) => row(st, true)).join('')}</ul>` : '<p class="ms-empty">还没有收藏的商家</p>'}
+      return `<p class="sheet-lead">关注的商家会显示在购物广场顶部，左右滑动、点击即可切换。</p>
+        <h4 class="ss-h">已关注 ${favs.length}</h4>
+        ${favs.length ? `<ul class="ms-list">${favs.map((st) => row(st, true)).join('')}</ul>` : '<p class="ms-empty">还没有关注的商家</p>'}
         ${others.length ? `<h4 class="ss-h">推荐商家</h4><ul class="ms-list">${others.map((st) => row(st, false)).join('')}</ul>` : ''}`;
     };
     const ov = app.sheet({
-      title: '收藏的商家',
+      title: '关注的商家',
       html: `<div class="js-ms">${body()}</div>`,
       actions: {
         sfav: (el) => {
