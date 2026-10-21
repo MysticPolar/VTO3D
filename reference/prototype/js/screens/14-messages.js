@@ -1,5 +1,7 @@
 /* 商家消息 — chats with stores (secondary screen from 购物广场's top-right icon).
-   First row: the system notices; then one row per store chat, newest first.
+   First row: the system notices; then one row per store chat, newest first. A row opens its
+   chat; the store's avatar on it, and the avatar and name in the chat's header, open the
+   store's page (15-store.js).
    Threads are a scripted demo: the store answers with a preset reply chosen by keyword. */
 (function () {
   const VT = window.VT;
@@ -10,7 +12,7 @@
   const REPLIES = [
     { k: ['发货', '什么时候', '多久', '到货', '快递'], text: '亲，现货商品下单后 48 小时内发货，一般 2–3 天送达～' },
     { k: ['尺码', '码', '大小', '身高', '体重', '合身'], text: '亲，可以参考商品页的「尺码表」；告诉我身高体重，也可以帮您推荐尺码哦～' },
-    { k: ['优惠', '券', '便宜', '活动', '折扣', '打折'], text: '收藏店铺的顾客可领取 ¥30 新品券，下单时自动抵扣（演示数据）～' },
+    { k: ['优惠', '券', '便宜', '活动', '折扣', '打折'], text: '关注店铺的顾客可领取 ¥30 新品券，下单时自动抵扣（演示数据）～' },
     { k: ['退', '换'], text: '支持 7 天无理由退换，签收后可在「我的订单」中申请～' },
     { k: ['面料', '起球', '洗', '材质'], text: '面料正常穿着不易起球，建议冷水轻柔手洗或干洗～' },
   ];
@@ -42,11 +44,12 @@
         const st = D().storeById[id];
         const c = s.storeChats[id];
         const last = c.msgs[c.msgs.length - 1];
-        return `<li><button type="button" class="msg-row" data-act="open" data-store="${id}">
-          <span class="msg-face">${VT.plaza.logo(st, 'st-logo--msg')}${c.unread ? `<span class="msg-dot" aria-hidden="true">${c.unread}</span>` : ''}</span>
+        // two targets: the row opens the chat; the store avatar on top of it opens the store's page
+        return `<li class="msg-item"><button type="button" class="msg-row" data-act="open" data-store="${id}">
+          <span class="msg-face" aria-hidden="true"></span>
           <span class="msg-main"><span class="msg-top"><b>${VT.esc(st.full)}</b><i>${VT.esc(last.t)}</i></span><em>${last.me ? '我：' : ''}${VT.esc(last.text)}</em></span>
           ${c.unread ? `<span class="sr-only">，${c.unread} 条未读</span>` : ''}
-        </button></li>`;
+        </button><button type="button" class="msg-shop" data-act="shop" data-store="${id}" aria-label="查看店铺 ${VT.esc(st.full)}">${VT.plaza.logo(st, 'st-logo--msg')}${c.unread ? `<span class="msg-dot" aria-hidden="true">${c.unread}</span>` : ''}</button></li>`;
       };
       return `
         ${VT.ui.subHead('商家消息')}
@@ -63,11 +66,15 @@
     },
     actions: {
       open(app, el) { open(app, el.dataset.store); },
+      shop(app, el) { VT.storefront.open(app, el.dataset.store); },
       notices(app) { VT.plaza.notices(app); },
     },
   };
 
-  /** chat thread with one store (also opened by 联系商家 on the store sheet) */
+  /** unsent text per store chat, kept while the app runs (closing the sheet or visiting the store keeps it) */
+  const drafts = {};
+
+  /** chat thread with one store (also opened by 联系商家 on the store's page) */
   function open(app, id) {
     const st = D().storeById[id];
     if (!st) return null;
@@ -79,15 +86,28 @@
     const ov = app.sheet({
       title: st.full,
       full: true,
+      cls: 'ov--chat',
       html: `<div class="mchat js-thread">${msgs.length ? msgs.map(bubble).join('') : bubble({ me: false, text: greet })}</div>
         <div class="or-quick">${QUICK.map((q) => `<button type="button" class="chip" data-act="q" data-q="${q}">${q}</button>`).join('')}</div>
         <div class="mchat-input"><input type="text" placeholder="输入消息…" aria-label="输入消息" data-enter="send" class="js-msg"><button type="button" class="btn btn--dark" data-act="send">发送</button></div>
         <p class="sheet-note">演示对话，回复为预设内容</p>`,
+      onClose: () => { drafts[id] = ov.querySelector('.js-msg').value; },
       actions: {
         q: (el) => say(el.dataset.q),
         send: () => { const i = ov.querySelector('.js-msg'); const v = i.value.trim(); if (!v) return; i.value = ''; say(v); },
+        // the store's avatar and name in the header open its page; back from there re-opens this chat
+        shop: () => {
+          if (app.cur.id === 'store' && app.params.sid === id) { app.closeOverlay(ov); return; } // already on it
+          VT.storefront.open(app, id, { chat: '1' });
+        },
       },
     });
+    // header: the store's avatar and name, one button (the dialog keeps the plain name as its label)
+    const sheet = ov.querySelector('.sheet');
+    sheet.removeAttribute('aria-labelledby');
+    sheet.setAttribute('aria-label', st.full);
+    ov.querySelector('.sheet-head h3').innerHTML = `<button type="button" class="mchat-who" data-act="shop" aria-label="查看店铺 ${VT.esc(st.full)}">${VT.plaza.logo(st, 'st-logo--chat')}<span>${VT.esc(st.full)}</span>${I('chevron-right', { size: 15, stroke: 1.8 })}</button>`;
+    if (drafts[id]) ov.querySelector('.js-msg').value = drafts[id];
     const th = ov.querySelector('.js-thread');
     const down = () => { th.parentElement.scrollTop = th.parentElement.scrollHeight; };
     const isOpen = () => !ov._closing && document.body.contains(th);

@@ -28,6 +28,7 @@
 | Garment selection with multi-slot outfits, selected indicators, swaps to the matching on-body image | 首页 |
 | Live camera preview via `getUserMedia`: permission explainer, front/back switch, clear errors; stops on close | 首页 |
 | Search, category filters, favourites | 购物广场, 我的收藏 |
+| Store pages: 关注 (the same list as 购物广场's favourite stores), 联系商家 (the store's chat), categories, 当季精选, brand intro, share. Reached from the store banner's 进入店铺, search, 商品详情's brand row and 商家消息 (avatars, chat header); an open store page is reused, not stacked twice, and back from a chat's header re-opens that chat with its draft | 商家店铺 |
 | Gallery, colour and size selection, size guide, reviews, share | 商品详情 |
 | Add to wardrobe → appears at the top of 个人衣橱 | 商品详情 → 个人衣橱 |
 | Wardrobe: 衣服 / 搭配集 / 穿搭瞬间 views; filters, search, hearts, try-on queue, upload; long-press (or right-click) menu 立即试穿 · 加入搭配集 · 分享 · 删除 | 个人衣橱 |
@@ -57,6 +58,7 @@
 | Video try-on | Camera preview only; real-time AI garment replacement needs a model service. In the online preview the host page blocks the camera, and the overlay explains how to run it locally |
 | AI stylist | Keyword-matched scripted replies, no LLM call |
 | Login, payment, logistics, merchant chat, FAQ, feedback, notifications, data export | Predetermined demo behaviour; no money moves, nothing is sent |
+| Store intros, campaign lines, collections, ratings | Demo data in `VT.data.stores`, written as each store's own description (no founding years, follower counts or other company facts). Only ZARA has campaign photography and 当季精选; the other stores' banners are a collage of their own product photos, and their pages hide 当季精选 |
 
 ## Deliberate deviations from the mockup (please review)
 
@@ -103,6 +105,15 @@
 29. **背景简洁度** stands for the brief's 背景清晰度, following the mockup's 「背景简洁」 and the brief's "Background suitability".
 30. **The uploaded video** shows its first frame with a play button, rather than tiny inline controls; the preview opens in a sheet.
 
+**商家店铺 (21 Oct 2026, `reference/design/screens/04_plaza_store_v2.webp` and `Merchant_Commerce_App_Assets_V1`).**
+
+31. **No follower count.** The mockup's 「128.6万 粉丝」 is replaced by 「在售 {n} 件 · 店铺评分 {r}」, which the store data has.
+32. **The brand intro has no company facts.** The mockup's 「创立于 1974 年」 and 「可持续理念」 are dropped; the positioning sentences stay.
+33. **No 「查看全部」 beside 当季精选.** ZARA's three collections all fit on screen, so the link would lead nowhere.
+34. **全部商品 shows only the categories the store sells** (ZARA: 全部 · 下装 · 外套), not all seven chips.
+35. **ZARA's banner keeps its photo** (the one in the mockup). Its text and 进入店铺 are now live HTML over a text-free copy, so the store page shows the same banner without the button. The asset kit's photos are not used: every model photo in it is one of our ZARA products (cardigan, jeans, blazer, maxi skirt), so on another store's banner it would show ZARA's garments. Those stores get a collage of their own products instead.
+36. **关注 names the favourite-store list everywhere**, as in the mockup: the store page, 购物广场's bar, search pills and 管理 sheet (「关注的商家」), the toasts (「已关注「ZARA」」) and the store chat copy. 收藏 stays for product wishlists (hearts, 我的收藏).
+
 ## How the imagery was prepared
 
 All imagery comes from your asset kit and reference screens. No stock or generated fashion photos were added.
@@ -114,6 +125,7 @@ All imagery comes from your asset kit and reference screens. No stock or generat
 - Products that only exist as tiny thumbnails (slip dress, black bag, pumps, heels, hoops) were upscaled ×4 and look softer.
 - Payment marks are cropped from the checkout mockup.
 - 个人衣橱 V2 (`assets/wardrobe/`, from `Wardrobe_Instagram_Assets_V2`): the four portraits (256 px WebP), the twelve square garment shots (trimmed 8% top and left and 4.5% at the bottom to remove the mockup tile frames, then 720 px wide), the four 搭配集 covers and the four 穿搭瞬间 photos, as supplied.
+- ZARA banner (`assets/plaza/banners/zara-hero.webp`): the old banner's wordmark, two lines and button were removed by fitting a smooth surface to the plain backdrop around them, so the copy can be live text. The 当季精选 covers reuse the plaza's model photos.
 - Avatar onboarding (`assets/avatar-onboarding/`, from `Avatar_Onboarding_Production_Assets_V1`): the method previews, reference photos (360 × 480) and turn frames, the 错误示范 examples (240 px) and the result face, re-encoded as WebP q80. The kit has no heavy-filter example, so `wrong/heavy_filter.webp` was made from its face portrait (smoothing, a pink cast, extra saturation). The kit marks all its photos as synthetic illustrative references.
 - Scripts: `tools/asset-pipeline/`. They need the ONNX models noted in `imgtools.py`.
 

@@ -19,7 +19,7 @@ A high-fidelity, interactive HTML/CSS/JS prototype of the virtual try-on & perso
 | Primary screens (bottom tabs) | Secondary screens (back button, no tab bar) |
 |---|---|
 | 1 首页 · 虚拟试衣间 | 启动页 → 上传照片 / 视频 · 创建数字分身 (选择上传方式 → 照片 or 视频 → 智能检测 → 生成建模 → 完成; first launch only) |
-| 2 购物广场 | 商品详情 → 结算下单 → 支付成功 · 商家消息 |
+| 2 购物广场 | 商品详情 → 结算下单 → 支付成功 · 商家店铺 (from a store banner's 进入店铺, 商品详情's brand row or 商家消息) · 商家消息 |
 | 3 个人衣橱 | 搭配集详情 · 穿搭瞬间 · 商品详情 (from any item) |
 | 4 AI 造型师 | 商品详情, look sheets |
 | 5 我的 | 我的订单 → 订单详情 → 物流跟踪 / 申请退换货 · 我的形象 → 上传照片 → 生成 · 我的资料 · 收货地址 · 支付方式 · 消息通知 · 帮助与客服 · 设置 → 隐私与安全 · 我的收藏 · 浏览记录 |
@@ -38,7 +38,7 @@ A high-fidelity, interactive HTML/CSS/JS prototype of the virtual try-on & perso
 | Deep links | `index.html#profile` (or any screen id) opens the simulator there. `index.html?app=plaza` opens the bare app with no frame; `?app=launch` simulates an app launch (local only) |
 | Reset demo data | **重置演示数据** in the simulator, the mobile menu, or 我的 → 设置 |
 
-Screen ids: `fitting, plaza, wardrobe, stylist, profile` (tabs) and `onboarding, avatar, product, checkout, messages, outfit, moment, orderlist, orders, tracking, returns, avatarhub, editprofile, addresses, payments, notifications, privacy, settings, help, favorites, history`.
+Screen ids: `fitting, plaza, wardrobe, stylist, profile` (tabs) and `onboarding, avatar, product, checkout, messages, store, outfit, moment, orderlist, orders, tracking, returns, avatarhub, editprofile, addresses, payments, notifications, privacy, settings, help, favorites, history`.
 
 ## Project structure
 
@@ -47,7 +47,7 @@ index.html              entry: showcase board + simulator
 css/tokens.css          colours, radii, type stacks
 css/base.css            self-hosted fonts, reset
 css/components.css      status bar, buttons, chips, the shared tab bar, settings lists, sheets, dialogs, toasts
-css/screens/*.css       one file per screen family (01–11)
+css/screens/*.css       one file per screen family (01–13)
 css/showcase.css        board, simulator frame, mobile mode
 js/icons.js             SVG icon set (also exported to assets/icons/*.svg)
 js/data.js              catalog, tabs, looks, orders, chat scripts: all demo data
@@ -57,7 +57,7 @@ js/app.js               navigation (per-tab stacks, launch flow), transitions, e
 js/camera.js            video try-on camera preview (getUserMedia)
 js/media.js             personal photos (avatar, 头像, 售后凭证, AI 造型师) as Blobs in IndexedDB (never in localStorage)
 js/screens/01–09        onboarding, avatar, 首页, 购物广场, product, 衣橱 (+ 搭配集详情, 穿搭瞬间), AI 造型师, checkout, orders
-js/screens/10–14        我的, account & settings, 我的形象, 我的收藏 / 浏览记录, 商家消息
+js/screens/10–15        我的, account & settings, 我的形象, 我的收藏 / 浏览记录, 商家消息, 商家店铺
 js/showcase.js          board, simulator, mobile/solo mode, deep links
 assets/people|clothing|icons|backgrounds|ui|fonts|wardrobe (个人衣橱 V2 kit: portraits, square garment shots, 搭配集 covers, 穿搭瞬间 photos)
                         |avatar-onboarding (创建数字分身 kit: reference photos, 正确 / 错误示范, turn frames, method previews)
