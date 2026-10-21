@@ -129,12 +129,30 @@
         return `<li><button type="button" class="fit-thumb ${on ? 'is-on' : ''}" data-act="pick-up" data-up="${u.id}" aria-pressed="${on}" aria-label="${on ? '取消试穿' : '试穿'}${esc(u.name)}（临时上传）">${VT.ui.img(u.src, '', 'fit-thumb-img')}</button></li>`;
       }).join('') : `<li class="fit-rail-note">还没有上传的${label}</li>`);
     }
-    return recItems(s.fit.cat).map((pid) => {
+    return recItems(s.fit.cat).map((pid, i) => {
       const p = D().byId[pid];
       const on = sel.has(pid);
       return `<li><button type="button" class="fit-thumb ${on ? 'is-on' : ''}" data-act="pick" data-pid="${pid}" aria-pressed="${on}" aria-label="${on ? '取消试穿' : '试穿'}${p.name}">
-        ${VT.ui.img(p.img.thumb || p.img.tile, '', 'fit-thumb-img')}</button></li>`;
+        ${VT.ui.img(p.img.thumb || p.img.tile, '', 'fit-thumb-img', i >= RAIL_EAGER ? 'loading="lazy"' : '')}</button></li>`;
     }).join('');
+  }
+
+  /** the rail shows about eight tiles on a 844 px screen; tiles further down load when scrolled to,
+      so they don't compete with the body render a pick is waiting for */
+  const RAIL_EAGER = 8;
+
+  /** the four body renders (≈ 425 KB together) are what every outfit change waits for: fetch them at
+      low priority once 首页 has drawn, so later picks swap from the cache instead of the network */
+  let preloads = null;
+  function preloadRenders() {
+    if (preloads) return;
+    preloads = D().renders.map((r) => {
+      const im = new Image();
+      im.decoding = 'async';
+      im.fetchPriority = 'low';
+      im.src = r.img;
+      return im;
+    });
   }
 
   /** 临时试穿: the newest upload being tried on, with 加入衣橱 */
@@ -159,6 +177,12 @@
 
   VT.screens.fitting = {
     title: '虚拟试衣间',
+    mount(app) {
+      // only once the page has loaded: earlier, the preloads would compete with the screen's own
+      // images and hold the load event, keeping the browser's loading indicator spinning
+      if (document.readyState === 'complete') app.later(preloadRenders, 400);
+      else window.addEventListener('load', () => app.later(preloadRenders, 400), { once: true });
+    },
     render(app) {
       pruneOutfit();
       const s = app.s;

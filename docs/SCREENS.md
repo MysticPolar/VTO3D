@@ -289,6 +289,7 @@ Camera error copy (`errorCopy`, shared by both camera layers):
 - Reads `fit.cat`, `fit.outfit`, `fitScene`, `avatars`, `activeAvatar`, `profile.name`, `wardrobe` (for 已在衣橱) and this session's uploads, plus `data.fitCats`, `data.fitCatsAll`, `data.byId`, `data.slotOf` and `data.renders`.
 - Writes `fit.cat`, `fit.outfit` (product ids, or `up:{id}` for uploads), `fitScene`, `wardrobe` and `wardrobeCat` (加入衣橱); the avatars go through `VT.store.avatars` (HANDOFF §9.15).
 - `fit.outfit` belongs to the active avatar; `fit.cat` and `fitScene` are shared by all avatars. All of these are persisted. Keep `data-keep-scroll="rail"`.
+- **Loading.** Once the page has loaded, 首页 fetches the four body renders at low priority, so later outfit changes swap from the cache; the preloads never start before `load`. In 推荐 the first 8 rail tiles load at once and the rest use `loading="lazy"`.
 - **Session uploads (我的上传)**: `sessionStorage['vt-fit-uploads-v1']` = `[{ id, src (JPEG data URL), name, cat (首页 category id), at }]`, newest first. They last for the browser session: a reload keeps them, a new tab or a closed browser doesn't. 「重置演示数据」 clears them. They are shared by all avatars. Outfit entries that point at an upload that no longer exists are dropped when 首页 renders.
 - The rail's source (推荐 / 我的上传) lives in memory, default 推荐. `VT.tryOn` sets it back to 推荐 (`VT.fitting.showRecommended()`).
 
