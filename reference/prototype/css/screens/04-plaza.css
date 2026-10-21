@@ -86,16 +86,39 @@
 .pz-ban-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; border-radius: 12px; }
 .pz-ban-track::-webkit-scrollbar { display: none; }
 .pz-ban { flex: 0 0 100%; display: block; aspect-ratio: 2.95; scroll-snap-align: start; border-radius: 12px; overflow: hidden; background: #E3DBD2; }
-.pz-ban img, .pz-shop-ban img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pz-ban img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .pz-ban-dots { position: absolute; left: 0; right: 0; bottom: 7px; display: flex; justify-content: center; gap: 5px; pointer-events: none; }
 .pz-ban-dots i { width: 5px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .6); transition: width .2s var(--ease); }
 .pz-ban-dots i.is-on { width: 12px; background: #fff; }
-.pz-shop-ban { display: block; width: 100%; aspect-ratio: 2.31; margin-bottom: 12px; border-radius: 12px; overflow: hidden; background: #E3DBD2; }
-.pz-shop { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 12px; border-radius: 14px; background: #F2EDE7; }
-.pz-shop-main, .pz-srow-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.pz-shop-main b, .pz-srow-main b { font-size: 13.2px; color: #1E1C1A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pz-shop-main em, .pz-srow-main em { font-style: normal; font-size: 11px; color: #6F675F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pz-shop-go { flex: none; display: inline-flex; align-items: center; gap: 2px; height: 32px; padding: 0 9px 0 12px; border-radius: 999px; background: #FFFDF9; color: #393532; font-size: 11.5px; }
+.pz-shop-ban { margin-bottom: 12px; }
+
+/* a store's promotional banner (购物广场 head and the store's page): live copy on the left over
+   its text-free campaign photo, or over a collage of its own products on a tint of its colour */
+.mban { position: relative; display: block; width: 100%; aspect-ratio: 2.31; border-radius: 12px; overflow: hidden; background: #E3DBD2; text-align: left; color: #1A1816; }
+.mban-art, .mban-img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mban-img { object-fit: cover; }
+.mban-art.is-collage { background: linear-gradient(100deg, #F8F4EE 0%, #F8F4EE 34%, var(--mb-tint, #EDE4DA) 100%); }
+.mban-tiles { position: absolute; right: 5.6%; top: 0; bottom: 0; display: flex; align-items: center; }
+.mban-tile { position: relative; z-index: 1; display: block; width: 62px; height: 84px; border-radius: 9px; overflow: hidden; background: #FFFDF9; border: 2px solid #FFFDF9; box-shadow: 0 6px 16px rgba(70, 52, 38, .13); }
+.mban-tile + .mban-tile { margin-left: -14px; }
+.mban-tile:nth-child(1) { transform: translateY(7px); }
+.mban-tile:nth-child(2) { z-index: 2; transform: translateY(-6px); }
+.mban-tile:nth-child(3) { transform: translateY(8px); }
+.mban-tiles.n1 .mban-tile { width: 88px; height: 116px; transform: none; }
+.mban-tile img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
+.mban-tile.is-model img { object-position: 50% 24%; }
+.mban-tile.is-top img { object-position: 50% 0; }
+.mban-tile.is-small img { object-fit: contain; padding: 7px; background: #F2EEE9; }
+.mban-copy { position: absolute; left: 7.4%; top: 12%; bottom: 10%; max-width: 52%; display: flex; flex-direction: column; align-items: flex-start; }
+.mban-word { font-family: "Didot", "Bodoni 72", "Bodoni MT", "Times New Roman", serif; font-size: 34px; line-height: .92; letter-spacing: -.03em; color: #141210; white-space: nowrap; }
+.mban-word.is-name { font-size: 20px; line-height: 1.05; letter-spacing: -.01em; }
+.mban-word + .mban-line { margin-top: 10px; }
+.mban-line { margin-top: 3px; font-size: 12.6px; line-height: 17px; letter-spacing: .02em; color: #2A2622; white-space: nowrap; }
+.mban-cta { margin-top: auto; display: inline-flex; align-items: center; gap: 2px; height: 27px; padding: 0 8px 0 14px; border-radius: 999px; background: linear-gradient(180deg, #876A56, #6E5443); color: #fff; font-size: 12.4px; font-weight: 500; letter-spacing: .05em; box-shadow: 0 2px 6px rgba(70, 45, 30, .18); }
+.mban-cta svg { width: 13px; height: 13px; }
+.pz-srow-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pz-srow-main b { font-size: 13.2px; color: #1E1C1A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pz-srow-main em { font-style: normal; font-size: 11px; color: #6F675F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* search results: matching stores, then matching products */
 .pz-sec { margin: 2px 2px 8px; font-size: 12.5px; font-weight: 700; color: #3A3532; letter-spacing: .02em; }
@@ -106,14 +129,7 @@
 .pz-sfav.is-on { background: #F1ECE6; color: #59524C; }
 .pz-none { padding: 30px 0; text-align: center; color: var(--text-3); font-size: 13px; }
 
-/* store sheet, 秋日灵感穿搭 picks and 管理 sheet */
-.ss-head { display: flex; align-items: center; gap: 12px; }
-.ss-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.ss-main b { font-size: 16px; }
-.ss-main span { font-size: 12.5px; color: var(--text-2); }
-.ss-main em { font-style: normal; font-size: 11.5px; color: var(--text-3); }
-.ss-actions { margin-top: 14px; }
-.ss-actions .btn { gap: 6px; }
+/* 秋日灵感穿搭 picks and 管理 sheet */
 .ss-h { margin: 18px 0 10px; font-size: 14px; font-weight: 700; }
 .ms-list { display: flex; flex-direction: column; gap: 8px; }
 .ms-row { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; border-radius: 14px; background: var(--card); }

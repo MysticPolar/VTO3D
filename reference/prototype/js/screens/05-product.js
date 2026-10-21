@@ -41,7 +41,7 @@
               <h1 class="pd-title">${p.name}</h1>
               <button type="button" class="pd-rating" data-act="reviews" aria-label="评分 ${p.rating}，${p.reviews} 条评价">${I('star', { size: 17 })}<b>${p.rating.toFixed(1)}</b><span>(${p.reviews})</span></button>
             </div>
-            <button type="button" class="pd-brand" data-act="brand">${p.brand}${I('chevron-right', { size: 15, stroke: 1.8 })}</button>
+            <button type="button" class="pd-brand" data-act="brand" aria-label="${p.brand}，进入店铺">${VT.plaza.logo(D().storeOf(p), 'st-logo--pd')}<span>${p.brand}</span><span class="pd-brand-go">进入店铺${I('chevron-right', { size: 15, stroke: 1.8 })}</span></button>
             <p class="pd-price">${VT.ui.price(p.price)}</p>
             <p class="pd-desc">${VT.ui.nl2br(p.desc)}</p>
             <div class="pd-sec">
@@ -131,9 +131,9 @@
         });
       },
       brand(app) {
-        // the brand is a store: the same sheet as 购物广场 (收藏店铺, 联系商家, its products)
+        // the brand is a store: open its page (back returns here; an open copy is reused)
         const p = D().byId[pidOf(app)];
-        VT.plaza.openStore(app, D().storeOf(p).id);
+        VT.storefront.open(app, D().storeOf(p).id);
       },
       async share(app) {
         const p = D().byId[pidOf(app)];

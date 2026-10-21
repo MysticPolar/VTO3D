@@ -189,15 +189,39 @@
   ['striped-shirt', 'black-blazer', 'pleated-skirt', 'white-tee', 'taupe-coat', 'white-sneakers', 'brown-tote', 'black-cardigan', 'white-shirt']
     .forEach((id) => { byId[id].img.plaza = P + 'cards/' + id + '.webp'; });
 
-  /* ---------- stores (商家): every product belongs to the store of its brand ---------- */
+  /* ---------- stores (商家): every product belongs to the store of its brand ----------
+     One record feeds both merchant views: 购物广场 (bar, banner, search) and the store's own page.
+     - campaign: the promotional banner. `img` is a text-free photo (the copy is live HTML);
+       without one the banner is a collage of the store's own products. `line` is its title.
+     - intro: the store's own description (demo copy; no company facts, no follower counts).
+     - collections: 当季精选, only where the store has editorial imagery; the section hides otherwise. */
   const stores = [
-    { id: 'zara', name: 'ZARA', full: 'ZARA 官方旗舰店', tagline: '简约与质感的日常时装', mono: 'ZARA', bg: '#1C1A18', fg: '#FFFFFF', rating: 4.9, banner: P + 'banners/zara.webp', bannerAlt: 'ZARA 2024 秋冬系列：简约与质感的日常时装' },
-    { id: 'soft-archive', name: 'Soft Archive', full: 'Soft Archive 官方店', tagline: '柔软针织 · 基础衣橱', mono: 'SA', bg: '#E6DACB', fg: '#5B4A3C', rating: 4.8 },
-    { id: 'linea-studio', name: 'Linea Studio', full: 'Linea Studio 官方店', tagline: '法式温柔 · 日常优雅', mono: 'LS', bg: '#D5CABD', fg: '#3E3631', rating: 4.8 },
-    { id: 'mono-atelier', name: 'Mono Atelier', full: 'Mono Atelier 官方店', tagline: '利落剪裁 · 摩登通勤', mono: 'MA', bg: '#2F2B28', fg: '#F3EDE6', rating: 4.8 },
-    { id: 'forma', name: 'Forma', full: 'Forma 官方旗舰店', tagline: '鞋包配饰 · 简约实用', mono: 'F', bg: '#B89B7E', fg: '#FFFFFF', rating: 4.7 },
-    { id: 'reformation', name: 'Reformation', full: 'Reformation 官方旗舰店', tagline: '轻盈面料 · 经典衬衫', mono: 'R', bg: '#F1ECE6', fg: '#1C1A18', rating: 4.8 },
-    { id: 'linea-denim', name: 'Linea Denim', full: 'Linea Denim 官方店', tagline: '经典丹宁 · 自在随性', mono: 'LD', bg: '#5E7FA6', fg: '#FFFFFF', rating: 4.7 },
+    { id: 'zara', name: 'ZARA', full: 'ZARA 官方旗舰店', tagline: '简约与质感的日常时装', mono: 'ZARA', bg: '#1C1A18', fg: '#FFFFFF', rating: 4.9,
+      campaign: { img: P + 'banners/zara-hero.webp', line: '2024 秋冬系列' },
+      intro: 'ZARA 致力于将现代设计与日常穿着完美结合。我们相信时尚应来源于真实生活，为每个人提供兼具品质与设计感的当代衣橱。',
+      collections: [
+        { id: 'outer', name: '秋冬外套系列', sub: '质感廓形 从容日常', img: P + 'models/brown-blazer.webp', items: ['brown-blazer', 'knit-cardigan'] },
+        { id: 'knit', name: '针织毛衣系列', sub: '柔软舒适 百搭实穿', img: P + 'models/knit-cardigan.webp', items: ['knit-cardigan'] },
+        { id: 'denim', name: '牛仔系列', sub: '经典重塑 自在穿着', img: P + 'models/straight-jeans.webp', items: ['straight-jeans'] },
+      ] },
+    { id: 'soft-archive', name: 'Soft Archive', full: 'Soft Archive 官方店', tagline: '柔软针织 · 基础衣橱', mono: 'SA', bg: '#E6DACB', fg: '#5B4A3C', rating: 4.8,
+      campaign: { line: '秋冬针织系列' },
+      intro: 'Soft Archive 专注柔软针织与基础单品，用亲肤的面料和克制的设计，打造可以反复穿着的日常衣橱。' },
+    { id: 'linea-studio', name: 'Linea Studio', full: 'Linea Studio 官方店', tagline: '法式温柔 · 日常优雅', mono: 'LS', bg: '#D5CABD', fg: '#3E3631', rating: 4.8,
+      campaign: { line: '本季新品' },
+      intro: 'Linea Studio 以法式的温柔与松弛为灵感，偏爱垂坠的面料与简洁的线条，让日常穿着多一分优雅。' },
+    { id: 'mono-atelier', name: 'Mono Atelier', full: 'Mono Atelier 官方店', tagline: '利落剪裁 · 摩登通勤', mono: 'MA', bg: '#2F2B28', fg: '#F3EDE6', rating: 4.8,
+      campaign: { line: '西装与大衣系列' },
+      intro: 'Mono Atelier 专注利落剪裁的通勤外套，以中性色与挺括的廓形，陪你从容度过每一个工作日。' },
+    { id: 'forma', name: 'Forma', full: 'Forma 官方旗舰店', tagline: '鞋包配饰 · 简约实用', mono: 'F', bg: '#B89B7E', fg: '#FFFFFF', rating: 4.7,
+      campaign: { line: '秋冬鞋包上新' },
+      intro: 'Forma 精选实用又耐看的鞋包与配饰，用简约的设计为日常穿搭补上点睛的一笔。' },
+    { id: 'reformation', name: 'Reformation', full: 'Reformation 官方旗舰店', tagline: '轻盈面料 · 经典衬衫', mono: 'R', bg: '#F1ECE6', fg: '#1C1A18', rating: 4.8,
+      campaign: { line: '亚麻衬衫系列' },
+      intro: 'Reformation 以轻盈的面料和经典衬衫为核心，打造清爽自在、适合通勤的日常造型。' },
+    { id: 'linea-denim', name: 'Linea Denim', full: 'Linea Denim 官方店', tagline: '经典丹宁 · 自在随性', mono: 'LD', bg: '#5E7FA6', fg: '#FFFFFF', rating: 4.7,
+      campaign: { line: '复古牛仔系列' },
+      intro: 'Linea Denim 专注经典丹宁，以耐穿的面料与随性的版型，陪伴每一天的自在穿搭。' },
   ];
   const storeById = Object.fromEntries(stores.map((st) => [st.id, st]));
   const storeByBrand = Object.fromEntries(stores.map((st) => [st.name, st]));
@@ -468,6 +492,7 @@
       { id: 'avatar', title: '上传照片 · 创建数字分身', from: '首次启动 / 我的形象' },
       { id: 'product', title: '商品详情', from: '购物广场' },
       { id: 'messages', title: '商家消息', from: '购物广场' },
+      { id: 'store', title: '商家店铺', from: '购物广场 / 商品详情' },
       { id: 'checkout', title: '结算下单', from: '商品详情' },
       { id: 'outfit', title: '搭配集详情', from: '个人衣橱' },
       { id: 'moment', title: '穿搭瞬间', from: '个人衣橱' },

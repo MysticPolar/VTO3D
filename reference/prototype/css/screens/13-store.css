@@ -1,0 +1,55 @@
+/* 商家店铺 — a store's own page (from 购物广场, 商品详情 and 商家消息).
+   Same gutters, chips and product cards as 购物广场, so both merchant views read as one app. */
+.screen--store { background: #FAF6F0; }
+.sf-top { position: relative; flex: none; height: 88px; }
+.sf-top .back-btn { position: absolute; left: 4.8px; top: 41px; }
+.sf-top .back-btn svg { width: 22.5px; height: 22.5px; }
+.sf-share { position: absolute; right: 8.6px; top: 41px; color: #1C1A18; }
+.sf-share svg { width: 23px; height: 23px; }
+.sf-scroll { padding: 0 19.4px 22px 19.9px; }
+
+/* the store: logo, name, tagline, counts; 关注 and 联系商家 stacked on the right */
+.sf-id { display: flex; align-items: center; gap: 12px; }
+.st-logo--sf { width: 64px; height: 64px; font-size: 18px; }
+.st-logo--sf.is-word { font-size: 15.5px; }
+.sf-id-main { flex: 1; min-width: 0; }
+.sf-name { font-size: 19px; line-height: 24px; font-weight: 800; letter-spacing: .01em; color: #1C1A18; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sf-tag { margin-top: 3px; font-size: 11.6px; line-height: 16px; color: #5E5750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sf-meta { margin-top: 2px; font-size: 11px; line-height: 15px; color: #8A837C; }
+.sf-id-acts { flex: none; display: flex; flex-direction: column; gap: 8px; }
+.sf-follow, .sf-contact { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: 84px; height: 30px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: .02em; transition: background-color .15s ease, color .15s ease; }
+.sf-follow::after, .sf-contact::after { content: ''; position: absolute; inset: -4px -2px; } /* taller touch target */
+.sf-follow { background: #2B2623; color: #fff; }
+.sf-follow.is-on { background: #EEE8E1; color: #59524C; }
+.sf-contact { background: #FFFDF9; color: #2B2623; font-weight: 500; box-shadow: inset 0 0 0 1px #D9D0C6; }
+
+.sf-ban { margin-top: 16px; }
+.sf-intro { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 12px; text-align: left; color: #5E5750; }
+.sf-intro span { flex: 1; min-width: 0; font-size: 11.6px; line-height: 19px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.sf-intro svg { flex: none; color: #8A837C; }
+.sf-h { margin: 20px 0 10px; font-size: 14.5px; line-height: 20px; font-weight: 800; letter-spacing: .02em; color: #1C1A18; }
+
+/* 当季精选: editorial cards, three across, swipe for more */
+.sf-cols { display: flex; gap: 8px; margin: 0 -19.4px; padding: 0 19.4px 2px; overflow-x: auto; scrollbar-width: none; }
+.sf-cols::-webkit-scrollbar { display: none; }
+.sf-col { flex: none; width: 111px; text-align: left; }
+.sf-col img { display: block; width: 100%; aspect-ratio: 1.6; border-radius: 10px; object-fit: cover; object-position: 50% 26%; background: #E3DBD2; }
+.sf-col b { display: block; margin-top: 7px; font-size: 11.5px; line-height: 15px; font-weight: 700; color: #1E1C1A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sf-col em { display: block; margin-top: 1px; font-style: normal; font-size: 10.2px; line-height: 14px; color: #8A837C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 全部商品: 购物广场's chips and grid */
+.sf-chips { margin: 0 -19.4px 12px; padding: 0 19.4px; } /* full-bleed rows: -19.4px both sides stays inside the 19.9px right gutter (no 1px overflow) */
+.sf-scroll .sheet-note { margin-top: 18px; }
+
+/* 品牌介绍 and collection sheets */
+.sf-about-head { display: flex; align-items: center; gap: 12px; }
+.sf-about-main { min-width: 0; }
+.sf-about-main b { display: block; font-size: 16px; }
+.sf-about-main span { display: block; margin-top: 3px; font-size: 12.5px; color: var(--text-2); }
+.sf-about-text { margin-top: 14px; font-size: 13.5px; line-height: 1.75; color: var(--text-2); }
+.sf-facts { margin-top: 14px; display: grid; gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--card); }
+.sf-facts div { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.sf-facts dt { color: var(--text-3); }
+.sf-facts dd { color: var(--ink); font-weight: 500; text-align: right; }
+.sf-col-hero { margin-bottom: 12px; aspect-ratio: 1.9; border-radius: 14px; overflow: hidden; background: #E3DBD2; }
+.sf-col-hero img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 26%; }

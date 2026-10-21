@@ -1,7 +1,8 @@
 /* 购物广场 — Shopping Plaza (primary tab 2)
    Top to bottom: search over every store and product · the user's favourite stores
-   (全部 + favourites; swipe, tap to switch) · category chips · the feed: a banner for
-   全部 or the chosen store, then its products in the chosen category.
+   (全部 + favourites; swipe, tap to filter in place) · category chips · the feed: the platform
+   banners for 全部, or the chosen store's promotional banner, whose 进入店铺 opens the store's
+   own page (15-store.js); then the products in the chosen category.
    The chat icon at the top right opens 商家消息 (chats with stores). */
 (function () {
   const VT = window.VT;
@@ -49,13 +50,17 @@
     return D().stores.filter((st) => [st.name, st.full, st.tagline].join(' ').toLowerCase().includes(k));
   }
 
+  /** how a product photo sits in its box: model photos keep the face, small items sit on a plate */
+  function imgCls(p) {
+    const src = p.img.plaza || p.img.card;
+    return src.includes('/models/') ? 'is-model' : p.small ? 'is-small' : p.cardFocus === 'top' ? 'is-top' : '';
+  }
+
   function card(p, s, i) {
     const fav = VT.store.h.isFav(s, p.id);
-    const src = p.img.plaza || p.img.card;
-    const cls = src.includes('/models/') ? 'is-model' : p.small ? 'is-small' : p.cardFocus === 'top' ? 'is-top' : '';
     return `<li class="pz-card" data-pid="${p.id}">
       <button type="button" class="pz-open" data-act="nav" data-to="product" data-pid="${p.id}" aria-label="查看 ${p.name}，¥${p.price}"></button>
-      <div class="pz-img ${cls}">${VT.ui.img(src, p.name, '', i < 6 ? '' : 'loading="lazy"')}</div>
+      <div class="pz-img ${imgCls(p)}">${VT.ui.img(p.img.plaza || p.img.card, p.name, '', i < 6 ? '' : 'loading="lazy"')}</div>
       ${VT.ui.heart(p.id, fav, { cls: 'pz-heart', size: 23, stroke: 1.55 })}
       <div class="pz-meta">
         <h3>${p.cardName}</h3>
@@ -92,13 +97,36 @@
     </div>`;
   }
 
+  /** hex colour `a` moved toward `b` by t (0–1): the collage banners' tint from the store's colour */
+  function mix(a, b, t) {
+    const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const x = rgb(a), y = rgb(b);
+    return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
+  }
+
+  /** a store's promotional banner, the same on 购物广场 and on the store's page: live copy over
+      its text-free campaign photo, or, for a store without one, over a collage of its own
+      products. opts.cta adds the 进入店铺 pill. Markup is phrasing content, so it can sit in a button. */
+  function banner(st, opts) {
+    const o = opts || {};
+    const c = st.campaign || {};
+    const tiles = storeProducts(st.id).slice(0, 3);
+    const art = c.img
+      ? `<span class="mban-art">${VT.ui.img(c.img, '', 'mban-img')}</span>`
+      : `<span class="mban-art is-collage" style="--mb-tint:${mix(st.bg, '#F6F1EA', 0.78)}" aria-hidden="true"><span class="mban-tiles n${tiles.length}">${tiles.map((p) => `<span class="mban-tile ${imgCls(p)}">${VT.ui.img(p.img.plaza || p.img.card, '')}</span>`).join('')}</span></span>`;
+    return `${art}<span class="mban-copy">
+        <span class="mban-word ${st.mono.length > 2 ? '' : 'is-name'}">${VT.esc(st.name)}</span>
+        ${c.line ? `<span class="mban-line">${VT.esc(c.line)}</span>` : ''}
+        <span class="mban-line">${VT.esc(st.tagline)}</span>
+        ${o.cta ? `<span class="mban-cta">进入店铺${I('chevron-right', { size: 14, stroke: 1.9 })}</span>` : ''}
+      </span>`;
+  }
+  /** what the banner says, for its accessible name */
+  const bannerText = (st) => `${st.name}${st.campaign && st.campaign.line ? ' ' + st.campaign.line : ''}：${st.tagline}`;
+
+  /** the chosen store's head on 购物广场: its banner; the banner and its 进入店铺 open the store's page */
   function storeHead(st) {
-    if (st.banner) {
-      return `<button type="button" class="pz-shop-ban" data-act="store-info" data-store="${st.id}" aria-label="${VT.esc(st.bannerAlt)}，进入店铺">${VT.ui.img(st.banner, '')}</button>`;
-    }
-    return `<div class="pz-shop">${logo(st, 'st-logo--md')}
-      <span class="pz-shop-main"><b>${VT.esc(st.full)}</b><em>${VT.esc(st.tagline)} · 在售 ${storeProducts(st.id).length} 件</em></span>
-      <button type="button" class="pz-shop-go" data-act="store-info" data-store="${st.id}">店铺详情${I('chevron-right', { size: 14, stroke: 1.8 })}</button></div>`;
+    return `<button type="button" class="mban pz-shop-ban" data-act="store-info" data-store="${st.id}" aria-label="${VT.esc(bannerText(st))}，进入店铺">${banner(st, { cta: true })}</button>`;
   }
 
   const empty = (msg, btn, act) => `<div class="pz-empty">${I('search', { size: 30, stroke: 1.4 })}<p>${msg}</p><button type="button" class="btn btn--ghost btn--sm" data-act="${act}">${btn}</button></div>`;
@@ -182,7 +210,8 @@
         app.refresh();
       },
       manage(app) { manageStores(app); },
-      'store-info'(app, el) { openStore(app, el.dataset.store); },
+      // the store banner's 进入店铺 and the search rows open the store's own page
+      'store-info'(app, el) { VT.storefront.open(app, el.dataset.store); },
       sfav(app, el) { toggleFav(app, el.dataset.store); },
       season(app) { seasonPicks(app); },
       scan(app) {
@@ -250,10 +279,12 @@
     sc.scrollTop = 0;
   }
 
-  /** favourite / unfavourite a store; favourites go to the front of the bar */
-  function toggleFav(app, id) {
+  /** favourite / unfavourite a store; favourites go to the front of the bar. The store page
+      calls it 关注 (opts.verb), 购物广场 calls it 收藏: it is the one list, s.storeFavs */
+  function toggleFav(app, id, opts) {
     const st = D().storeById[id];
     if (!st) return false;
+    const follow = opts && opts.verb === '关注';
     let on = false;
     VT.store.update((s) => {
       const favs = s.storeFavs || (s.storeFavs = []);
@@ -261,7 +292,8 @@
       if (i >= 0) { favs.splice(i, 1); if (s.plaza.store === id) s.plaza.store = 'all'; }
       else { favs.unshift(id); on = true; }
     });
-    app.toast(on ? `已收藏店铺「${st.name}」` : `已取消收藏「${st.name}」`);
+    if (follow) app.toast(on ? `已关注「${st.name}」` : `已取消关注「${st.name}」`);
+    else app.toast(on ? `已收藏店铺「${st.name}」` : `已取消收藏「${st.name}」`);
     const el = app.screenEl();
     if (el && el.dataset.screen === 'plaza') app.refresh();
     return on;
@@ -269,31 +301,8 @@
 
   const mini = (p) => `<button type="button" class="mini" data-act="go" data-pid="${p.id}">${VT.ui.img(p.img.plaza || p.img.card, p.name)}<span class="mini-main"><span class="mini-title">${p.name}</span><span class="mini-sub">${p.tags}</span></span>${VT.ui.price(p.price)}</button>`;
 
-  /** store sheet: details, 收藏店铺, 联系商家 and every product it sells */
-  function openStore(app, id) {
-    const st = D().storeById[id];
-    if (!st) return null;
-    const items = storeProducts(id);
-    const fav = () => {
-      const on = isFavStore(app.s, id);
-      return `<button type="button" class="btn ${on ? 'btn--ghost' : 'btn--dark'} btn--lg js-sfav" data-act="sfav" aria-pressed="${on}">${I(on ? 'heart-filled' : 'heart', { size: 19 })}${on ? '已收藏' : '收藏店铺'}</button>`;
-    };
-    const ov = app.sheet({
-      title: st.full,
-      cls: 'ov--shop',
-      html: `<div class="ss-head">${logo(st, 'st-logo--lg')}<div class="ss-main"><b>${VT.esc(st.name)}</b><span>${VT.esc(st.tagline)}</span><em>在售 ${items.length} 件 · 店铺评分 ${st.rating.toFixed(1)}</em></div></div>
-        <div class="sheet-actions ss-actions"><button type="button" class="btn btn--ghost btn--lg" data-act="chat">${I('chat-dots', { size: 19 })}联系商家</button>${fav()}</div>
-        <h4 class="ss-h">店铺商品</h4>
-        <div class="opt-list">${items.map(mini).join('')}</div>
-        <p class="sheet-note">演示数据</p>`,
-      actions: {
-        sfav: () => { toggleFav(app, id); ov.querySelector('.js-sfav').outerHTML = fav(); },
-        chat: () => { app.closeOverlay(ov, true); VT.storeChat.open(app, id); },
-        go: (el) => app.go('product', { pid: el.dataset.pid }),
-      },
-    });
-    return ov;
-  }
+  /** kept for callers of the old store sheet: a store now opens its own page */
+  function openStore(app, id) { VT.storefront.open(app, id); }
 
   /** 管理: unfavourite stores, or favourite one of the others */
   function manageStores(app) {
@@ -359,5 +368,6 @@
     if (b) b.outerHTML = msgBtn(app.s);
   }
 
-  VT.plaza = { openStore, manageStores, toggleFav, notices, logo, syncBadge };
+  // shared with the store's page (15-store.js), 商品详情 and 商家消息: one store model, one card, one banner
+  VT.plaza = { openStore, manageStores, toggleFav, notices, logo, syncBadge, banner, bannerText, card, mini, storeProducts, isFavStore };
 })();
