@@ -42,6 +42,9 @@ Every screen of the app: what it shows, what each control does, its sheets and d
 | 22 | 帮助与客服 | `help` | `/me/help` |
 | 23 | 我的收藏 | `favorites` | `/me/favorites` |
 | 24 | 浏览记录 | `history` | `/me/history` |
+| 25 | 搭配集详情 | `outfit` | `/wardrobe/sets/:id` (proposed, HANDOFF §13.1 #20) |
+| 26 | 穿搭瞬间 | `moment` | `/wardrobe/moments/:id` (proposed, HANDOFF §13.1 #20) |
+| 27 | 商家店铺 | `store` | `/plaza/s/:sid` (proposed, HANDOFF §13.1 #20) |
 
 ## Launch flow (first launch only)
 
@@ -320,9 +323,9 @@ Then a checkbox, 「我已阅读并同意《敏感个人信息处理规则》」
 
 ### 3. 首页 · 虚拟试衣间 · `fitting`
 
-**Route** `/home` · **Type** tab root · **Prototype** `js/screens/03-fitting.js`, `css/screens/03-fitting.css`, `js/camera.js` (video try-on and 拍摄衣服), `js/screens/12-avatar-hub.js` (the 切换角色 sheet), `js/store.js` (digital avatars) · **Design ref** `reference/design/screens/03_fitting_room_v2.webp` (the single-column selector, 拍照 and the header) and `reference/design/fitting-upload-flow.png` (拍照 / 上传 → 临时试穿 → 自主保存). The original `reference/design/screens/03_fitting_room.png` and phone 1 of `reference/design/five-screen-mockup.png` still show the avatar, plate and category menu.
+**Route** `/home` · **Type** tab root · **Prototype** `js/screens/03-fitting.js`, `css/screens/03-fitting.css`, `js/camera.js` (video try-on and 拍摄衣服), `js/screens/12-avatar-hub.js` (the 切换角色 sheet), `js/screens/06-wardrobe.js` (保存造型, `VT.wardrobe.saveLook`), `js/store.js` (digital avatars) · **Design ref** `reference/design/screens/03_fitting_room_v2.webp` (the single-column selector, 拍照 and the header) and `reference/design/fitting-upload-flow.png` (拍照 / 上传 → 临时试穿 → 自主保存). The original `reference/design/screens/03_fitting_room.png` and phone 1 of `reference/design/five-screen-mockup.png` still show the avatar, plate and category menu.
 
-**Purpose.** Dress the active digital avatar in that person's own garments, picked by category from one list (✓ on the ones they own); try on photos of garments without saving them; switch avatar and backdrop; open a live camera preview ("video try-on").
+**Purpose.** Dress the active digital avatar in that person's own garments, picked by category from one list (✓ on the ones they own); try on photos of garments without saving them; save the look to that person's 穿搭瞬间 (保存造型); switch avatar and backdrop; open a live camera preview ("video try-on").
 
 **Layout (top → bottom).** A fixed composition. Only the garment rail scrolls. Positions below are at 390 × 844 and include the 44 px status bar (HANDOFF §4.2).
 - One continuous plate behind everything (`assets/backgrounds/fitting-plate.webp`), tinted by the backdrop chosen with 切换场景 (`s.fitScene`, default 暖灰). Each backdrop is the same texture with a CSS filter; mid-plate results: 暖灰 `brightness(1.14) saturate(.9)` #D0C0B0 · 奶白 `brightness(1.31) saturate(.5)` #E8DED4 · 燕麦 `sepia(.15) brightness(1.22) saturate(.8)` #E5D4C1 · 深咖 `sepia(.2) brightness(.44) saturate(1.7)` #5A4C3D. On 深咖 the title, the unselected menu labels and the rail note turn light (#F7F1EA / #EFE6DC). Fake status bar (light): drop it.
@@ -341,9 +344,10 @@ Then a checkbox, 「我已阅读并同意《敏感个人信息处理规则》」
   - Fresh 本人 (✓ = owned): 上装 knit-cardigan ✓, striped-shirt, black-blazer ✓, white-tee, white-shirt, brown-sweater, ribbed-tank ✓, basic-cami ✓ · 下装 straight-jeans, pleated-skirt ✓, beige-trousers ✓ · 连衣裙 satin-slip-dress · 外套 knit-cardigan ✓, black-blazer ✓, taupe-coat, black-cardigan ✓, denim-jacket · 鞋履 white-sneakers ✓, black-pumps, strappy-heels · 包包 brown-tote, black-handbag · 配饰 gold-hoops.
   - ✓ (`VT.ui.ownMark`, 15 px, top-right, 4 px in) marks the garments the person owns, and only those. It never marks a selection: the coral ring does, so a worn owned garment shows both.
   - A category with nothing in it shows the note 「还没有{category}」 (e.g. 「还没有配饰」). There is no camera tile: 「拍照」 is the way to add a photo.
-- Bottom left, 14 px above the tab bar:
+- Bottom left, 14 px above the tab bar, a column with 8 px gaps (`.fit-dock`), from the bottom up:
   - 「拍照」: an ivory pill (38 px, `camera` icon; `aria-haspopup="menu"`, `aria-expanded`).
-  - Above it, only while a garment photo is being tried on, the **临时试穿 card** (116 px): the thumbnail of the first worn photo in the rail's order (temporary ones first, newest first) and 「临时试穿」, the note 「演示版暂无上身图」 **[demo]**, and, while that photo is temporary, a dark 「＋ 加入衣橱」 button (aria 「将{name}加入衣橱」). Once it is in the wardrobe, the button reads 「已在衣橱」 with a hanger icon (no ✓: ✓ means owned) and is disabled. On screens 700 px tall or less the card is just its button.
+  - 「保存造型」: the same ivory pill with the `image` icon (aria 「保存造型到穿搭瞬间」), always shown. It arrived with 个人衣橱 V2 (8bf9527).
+  - Above them, only while a garment photo is being tried on, the **临时试穿 card** (116 px): the thumbnail of the first worn photo in the rail's order (temporary ones first, newest first) and 「临时试穿」, the note 「演示版暂无上身图」 **[demo]**, and, while that photo is temporary, a dark 「＋ 加入衣橱」 button (aria 「将{name}加入衣橱」). Once it is in the wardrobe, the button reads 「已在衣橱」 with a hanger icon (no ✓: ✓ means owned) and is disabled. On screens 700 px tall or less the card is just its button.
 - Tab bar, with 首页 active.
 
 **Interactions.**
@@ -354,8 +358,9 @@ Then a checkbox, 「我已阅读并同意《敏感个人信息处理规则》」
   - Item removed: no toast. A garment without a render stays on the rail, so focus stays on its tile.
 - Photo tile (temporary, or saved in the wardrobe) → toggles the photo in the slot of its garment category (`custom.cat`, from the category chosen in 确认衣物照片: 上装 → `top`, 下装 → `bottom`, 连衣裙 → `dress`, 外套 → `outer`, 鞋履 → `shoes`, 包包 → `bag`, 配饰 → `acc`), with the same slot rules. The outfit stores `up:{uid}`. A photo is never drawn onto the avatar: `pickRender` counts it as missing, so the render changes only when the slot rules take something else off. Added → 「演示版暂无「{name}」的上身图，已加入临时试穿」 for 2800 ms **[demo]**; removed → no toast.
 - 「拍照」 → the 拍照 menu (see Overlays).
+- 「保存造型」 → saves what the avatar wears now into the **active person's** 穿搭瞬间 (`VT.wardrobe.saveLook`; the record is described under 穿搭瞬间, §26): the current render on the current backdrop, with the outfit's catalogue garments as its 相关单品. It goes first, and the toast 「已保存到穿搭瞬间」 (check icon) offers 「去看看」, which sets 个人衣橱 to its 穿搭瞬间 view and makes a contextual jump there. If the newest 穿搭瞬间 already has the same render, backdrop and garments, nothing is saved and the toast is 「这套造型已经保存过了」, with the same 「去看看」.
 - 「加入衣橱」 → moves the temporary photo into the front of the **active avatar's** wardrobe as the same record (same `uid`, so the outfit keeps wearing it; `source: 'photo_upload'`, not owned: 个人衣橱 can mark it; HANDOFF §9.17) and sets `wardrobeCat = 'all'`. The button becomes 「已在衣橱」. Toast 「已加入个人衣橱」 (check icon), or 「已加入「{avatar name}」的衣橱」 when there is more than one avatar, with the action 「去看看」 (contextual jump to 个人衣橱). A second save is impossible: the photo is no longer temporary. Deleting it in 个人衣橱 also takes it off the outfit, so the card goes away.
-- While the 临时试穿 card shows, toasts sit above it (tab bar + 186 px), so 加入衣橱 stays reachable.
+- While the 临时试穿 card shows, toasts sit at tab bar + 186 px, so 加入衣橱 stays reachable. Since 保存造型 joined the column, the card reaches higher (its top is at tab bar + 212 px at 390 × 844), so a toast covers the right end of the card's top row (HANDOFF §13.2 #39).
 - 「开启视频试衣」 → opens the camera layer (see Overlays).
 - 「切换场景」 → the scene sheet. 「切换角色」 → the 切换角色 sheet.
 - Tapping the 首页 tab while already on 首页 smooth-scrolls the rail to the top. Other tabs switch instantly, and this screen keeps its state.
@@ -421,11 +426,11 @@ Port the rule as it is, because acceptance checks depend on it. One known side e
   - ✕, a tap on the scrim, Esc and back cancel: nothing is kept.
   - 确认试穿 (a blank name becomes 「我的衣物」) makes the photo a temporary garment of the active person (`VT.garments.addPhoto`: `source: 'photo_upload'`, not owned, not in the wardrobe; HANDOFF §9.17) at the front of the rail, sets `fit.cat` to the chosen category, puts the photo on (slot rules), focuses its tile and toasts 「演示版暂无「{name}」的上身图，已加入临时试穿」.
 - **切换场景 sheet.** Title 「切换场景」. Four options in a row (`role="radiogroup"`, aria 「试衣间背景」): 暖灰, 奶白, 燕麦, 深咖. Each is a 3:4 swatch of that backdrop with the base avatar standing in it, over its name. The current one has an ink ring and a bold name (`aria-checked`). Tapping one stores `fitScene` and changes the backdrop at once, visible behind the sheet; the sheet stays open. Note 「场景只更换试衣间的背景，不影响当前搭配」.
-- **切换角色 sheet** (`VT.avatarUI.switcher(app)`, also opened from 个人衣橱).
+- **切换角色 sheet** (`VT.avatarUI.switcher(app)`). 个人衣橱 switches with its portrait row instead (§5); both set the same active avatar.
   - Title 「切换角色」, then a radiogroup (aria 「数字分身」) of `.opt` rows: the avatar's portrait (its 生活照, else 本人's profile photo, else the demo face), its name (本人's is the profile nickname, followed by the tag 「本人」), 「衣橱 {n} 件 · 已生成」 or 「衣橱 {n} 件 · 示例形象」, and a radio.
   - Tapping another avatar switches to it (HANDOFF §9.15), closes the sheet, re-renders the current screen and toasts 「已切换到「{name}」」 (check icon). Tapping the active one just closes the sheet.
   - Below the list: a ghost 「＋ 新建数字分身」 and the note 「每个数字分身都有自己的衣橱和搭配」 / 「演示版的数字分身均使用示例模特形象」 **[demo]**.
-- **新建数字分身 sheet.** Lead 「为家人或朋友创建一个数字分身，TA 的衣橱和搭配与你的分开保存。」. 「名称」 field (max 8, placeholder 「例如：家人、朋友」, Enter submits). A dark 「下一步：上传照片」: a blank name toasts 「请填写名称」; otherwise it pushes the upload screen in its `new` context (§2) on the current tab.
+- **新建数字分身 sheet** (`VT.avatarUI.create(app)`; also opened by the ＋ at the end of 个人衣橱's portrait row, §5). Lead 「为家人或朋友创建一个数字分身，TA 的衣橱和搭配与你的分开保存。」. 「名称」 field (max 8, placeholder 「例如：家人、朋友」, Enter submits). A dark 「下一步：上传照片」: a blank name toasts 「请填写名称」; otherwise it pushes the upload screen in its `new` context (§2) on the current tab.
 - **Video try-on camera layer** (`VT.camera.open(app)` in js/camera.js). It is full screen and dark, with aria 「视频试衣」. **[demo]**: it is a camera preview only, with no AI garment replacement.
   - Always shown:
     - ✕ at the top left (aria 「关闭视频试衣」).
@@ -455,7 +460,7 @@ Camera error copy (`errorCopy`, shared by both camera layers):
 
 **Data.**
 - Reads `fit.cat`, `fit.outfit`, `fitScene`, `avatars`, `activeAvatar`, `profile.name`, and the active person's garments through `VT.garments` (their wardrobe and this session's temporary garments, with `isOwned` for ✓; HANDOFF §9.17), plus `data.fitCats`, `data.fitCatsAll`, `data.byId`, `data.slotOf` and `data.renders`.
-- Writes `fit.cat`, `fit.outfit` (product ids, or `up:{uid}` for photos), `fitScene`, the temporary garments, `wardrobe` and `wardrobeCat` (加入衣橱); the avatars go through `VT.store.avatars` (HANDOFF §9.15).
+- Writes `fit.cat`, `fit.outfit` (product ids, or `up:{uid}` for photos), `fitScene`, the temporary garments, `wardrobe` and `wardrobeCat` (加入衣橱), the active person's `moments` and, through 「去看看」, `wardrobeView` (保存造型); the avatars go through `VT.store.avatars` (HANDOFF §9.15).
 - `fit.outfit` belongs to the active avatar; `fit.cat` and `fitScene` are shared by all avatars. All of these are persisted. Keep `data-keep-scroll="rail"`.
 - **Loading.** Once the page has loaded, 首页 fetches the four body renders at low priority, so later outfit changes swap from the cache; the preloads never start before `load`. The first 8 rail tiles load at once and the rest use `loading="lazy"`.
 - **Temporary garments**: `sessionStorage['vt-garments-temp-v1']` holds garment records with `isTemporary: true` (HANDOFF §9.17), each with its `avatarId`, newest first: photos as `custom: { src (JPEG data URL), name, cat (garment category) }`, products as `p` with its `merchantId`. They last for the browser session: a reload keeps them, a new tab or a closed browser doesn't. Each person sees only their own; deleting a person removes theirs, and 「重置演示数据」 clears them all. The old shared list `vt-fit-uploads-v1` (我的上传) is moved once into the active person's temporary garments, leaving out photos already saved, and removed.
@@ -471,33 +476,38 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
 - maxi-skirt is in no `data.fitCatsAll` list. Sent here (商品详情 「试穿上身」), it joins the outfit as `bottom` with the 「演示版暂无…」 toast and, as a temporary garment, shows under 「下装」 by its garment category, so it can be tapped off (HANDOFF §13.2 #35).
 - A new person (新建数字分身) has no garments: every category shows 「还没有{category}」 until they take a photo or try something on.
 - A temporary garment belongs to the person it was made for: another person doesn't see it, and 加入衣橱 moves it into that (active) person's wardrobe, once.
+- 保存造型 works with any outfit, the empty one included: that saves the base render with basic-cami, straight-jeans and white-sneakers, the garments it wears. A garment photo is never drawn and never listed, so putting one on doesn't make a new look: the save is the same render as before (「这套造型已经保存过了」 when that is the newest 穿搭瞬间).
+- Short viewports: 保存造型 made the bottom-left column 46 px taller. Without the status bar it reaches the category menu below about 584 px of height (624 px while the 临时试穿 card, reduced to its button, shows), e.g. iPhone SE in Safari: 保存造型 then overlaps 「配饰」 (HANDOFF §13.2 #39). The §5.3 test heights are clear.
 - Ownership is per person: 本人 owns white-sneakers (✓), 伴侣 has them without ✓, 妈妈 doesn't have them (HANDOFF §9.17). Switching avatar redraws the rail with that person's garments.
 - Once `setupDone` is true, every launch opens this screen. Before setup is finished it is never shown; the path is onboarding → avatar → 首页.
 - There are no loading or error states apart from the camera layers and the image checks. All images are local.
 
-**Components used.** `VT.ui.statusBar('light')`, `VT.ui.img`, `VT.ui.ownMark` (`.own-mark`), `VT.ui.tabBar('fitting')`, `.scroll`, `.chip`, `.field` / `.field-row`, `.btn--ghost` / `.btn--dark` `.btn--lg`, `.sheet-actions`, `.sheet-note`, `.opt` / `.radio` (切换角色), `VT.icon` (category icons and their `-filled` variants, `person`, `home`, `chevron-down`, `chevron-right`, `video`, `camera`, `image`, `plus`, `hanger`, `check`), `app.sheet`, `app.layer`, `app.toast`, `app.later`, `VT.garments`. Camera: `app.layer`, `.btn--light.btn--lg.btn--block`, `.spinner`, `VT.icon` (`close`, `switch-camera`, `info`).
+**Components used.** `VT.ui.statusBar('light')`, `VT.ui.img`, `VT.ui.ownMark` (`.own-mark`), `VT.ui.tabBar('fitting')`, `.scroll`, `.chip`, `.field` / `.field-row`, `.btn--ghost` / `.btn--dark` `.btn--lg`, `.sheet-actions`, `.sheet-note`, `.opt` / `.radio` (切换角色), `VT.icon` (category icons and their `-filled` variants, `person`, `home`, `chevron-down`, `chevron-right`, `video`, `camera`, `image`, `plus`, `hanger`, `check`), `app.sheet`, `app.layer`, `app.toast`, `app.later`, `VT.garments`, `VT.wardrobe.saveLook` (保存造型), `VT.avatarUI` (`switcher`, `create`). Camera: `app.layer`, `.btn--light.btn--lg.btn--block`, `.spinner`, `VT.icon` (`close`, `switch-camera`, `info`).
 
-**Acceptance checks.** `AC1: setup complete → 首页 (virtual fitting room)` · `AC3: tab → fitting` · `AC2/4: fitting has one bar with the 5 tabs` · `tab switch to fitting is instant` · `fitting has no back button (primary)` · `outfit change: blazer → look2 render` · `outfit change: dress → look3 render` · `the selection border and ✓ are separate (worn dress: border only; worn owned blazer: both)` · `首页 rail: no 推荐 / 我的上传; 本人's 上装 in one list, ✓ on the owned ones` · `each category lists the person's garments of that kind from every source (VT.garments)` · `honest toast for garments without imagery` (grey-hoodie sent through `VT.tryOn`, as from 商品详情) · `a product tried on from elsewhere joins the rail: temporary, from 购物广场, not owned, not in the wardrobe` · `garment without a render can be tapped off (it stays in the rail this session)` · `camera preview live (getUserMedia)` · `camera stops on close` · `look → 首页 with outfit` · `AC1: relaunch after setup opens 首页` · `mobile: relaunch opens 首页` · `mobile: tabs work` · `首页 header: 切换角色 · 切换场景 · 开启视频试衣; no 推荐 / 我的上传 tabs` · `拍照 opens 拍摄衣服 / 从相册上传` · `upload → the one rail, tried on: temporary, not owned (no ✓), not in the wardrobe` · `外套 lists the photo with the wardrobe's own garments (owned ✓ and not), no source headings` · `the photo lasts for the browser session (still temporary)` · `加入衣橱 saves the upload once, still not owned` · `拍摄衣服 captures a photo (getUserMedia)` · `切换场景 changes the backdrop` · `新建数字分身: one new avatar, its own empty wardrobe, now active` · `切换角色 back to 本人 restores her wardrobe` · `per person: 本人 owns the white sneakers (✓), 伴侣 only saved them, 妈妈 has none; the photo stays 本人's` · `去试衣间试穿 wears the photo with the rest on 首页`. `board phone opens simulator on 首页` exists only for the showcase board.
+**Acceptance checks.** `AC1: setup complete → 首页 (virtual fitting room)` · `AC3: tab → fitting` · `AC2/4: fitting has one bar with the 5 tabs` · `tab switch to fitting is instant` · `fitting has no back button (primary)` · `outfit change: blazer → look2 render` · `outfit change: dress → look3 render` · `the selection border and ✓ are separate (worn dress: border only; worn owned blazer: both)` · `首页 rail: no 推荐 / 我的上传; 本人's 上装 in one list, ✓ on the owned ones` · `each category lists the person's garments of that kind from every source (VT.garments)` · `honest toast for garments without imagery` (grey-hoodie sent through `VT.tryOn`, as from 商品详情) · `a product tried on from elsewhere joins the rail: temporary, from 购物广场, not owned, not in the wardrobe` · `garment without a render can be tapped off (it stays in the rail this session)` · `camera preview live (getUserMedia)` · `camera stops on close` · `look → 首页 with outfit` · `AC1: relaunch after setup opens 首页` · `mobile: relaunch opens 首页` · `mobile: tabs work` · `首页 header: 切换角色 · 切换场景 · 开启视频试衣; no 推荐 / 我的上传 tabs` · `拍照 opens 拍摄衣服 / 从相册上传` · `upload → the one rail, tried on: temporary, not owned (no ✓), not in the wardrobe` · `外套 lists the photo with the wardrobe's own garments (owned ✓ and not), no source headings` · `the photo lasts for the browser session (still temporary)` · `加入衣橱 saves the upload once, still not owned` · `拍摄衣服 captures a photo (getUserMedia)` · `切换场景 changes the backdrop` · `新建数字分身: one new avatar, its own empty wardrobe, now active` · `切换角色 back to 本人 restores her wardrobe` · `per person: 本人 owns the white sneakers (✓), 伴侣 only saved them, 妈妈 has none; the photo stays 本人's` · `去试衣间试穿 wears the photo with the rest on 首页`. From the 个人衣橱 V2 block: `one active person across 首页 切换角色 and the portrait row` · `一键试穿这套 → 首页 wears the set` · `首页 保存造型 → 本人's 穿搭瞬间, newest first` (one more 穿搭瞬间, 「去看看」 lands on 个人衣橱, and the first photo is a body render). `board phone opens simulator on 首页` exists only for the showcase board.
 
 
 ### 4. 购物广场 · `plaza`
 
-**Route** `/plaza` · **Type** tab root · **Prototype** `js/screens/04-plaza.js`, `css/screens/04-plaza.css`; stores in `js/data.js` (`stores`, `storeOf`, `seedStoreFavs`, `seasonPicks`) · **Design ref** `reference/design/screens/04_shopping_plaza.png`. The mockup predates the stores redesign (514de38): it has a bell, no store bar, banners or store header, and taller cards in the first rows. For those parts the prototype is the only reference.
+**Route** `/plaza` · **Type** tab root · **Prototype** `js/screens/04-plaza.js`, `css/screens/04-plaza.css`; stores in `js/data.js` (`stores`, `storeOf`, `seedStoreFavs`, `seasonPicks`) · **Design ref** `reference/design/screens/04_shopping_plaza.png`. The mockup predates the stores redesign (514de38): it has a bell, no store bar, banners or store header, and taller cards in the first rows. `reference/design/screens/04_plaza_store_v2.webp` (商家店铺, 66f648a) adds the bar with a store chosen and that store's banner with 「进入店铺」 (its first phone; the second is 商家店铺, §27). For the platform banners, search and the sheets the prototype is the only reference.
 
-**Purpose.** Shop across stores: search every store and product, switch between the user's favourite stores, filter by category, and browse a two-column feed with wishlist hearts. It is also the entry point to product details, the store sheets, the one-item checkout (购物袋) and 商家消息.
+**Purpose.** Shop across stores: search every store and product, switch between the stores the user follows (关注), filter by category, and browse a two-column feed with wishlist hearts. It is also the entry point to product details, the store pages (商家店铺, §27), the one-item checkout (购物袋) and 商家消息.
 
 **Layout (top → bottom).**
 - Header (fixed): h1 「购物广场」 on the left. On the right are two icon buttons: 购物袋 (aria 「购物袋」) and 商家消息 (chat-dots icon; aria 「商家消息」, or 「商家消息，{n} 条未读」 when store chats have unread messages). The second carries a red count badge (`.pz-badge`, 16 px, `#C8473D`) with the unread total over all store chats, 「99+」 above 99, hidden at 0. REPORT deviation 5 still applies: the newer mockup drops both icons, the prototype keeps them.
 - Search pill (fixed): search icon plus `<input type="search">` with placeholder 「搜索商家、品牌或单品...」 (aria 「搜索商家、品牌或单品」, `enterkeyhint="search"`). A scan button (aria 「拍照找同款」) sits at the right end of the pill. There is no inline clear (×) button: the native WebKit cancel button is hidden.
-- Favourite-stores bar (fixed, scrolls sideways with a hidden scrollbar, `data-keep-scroll="pz-stores"`). A tablist (aria 「收藏的商家」) of 60 px items, each a 46 px round logo over a one-line 10 px label (at most 66 px, then ellipsis):
+- Favourite-stores bar (fixed, scrolls sideways with a hidden scrollbar, `data-keep-scroll="pz-stores"`). A tablist (aria 「关注的商家」) of 60 px items, each a 46 px round logo over a one-line 10 px label (at most 66 px, then ellipsis):
   - 「全部」 first (grid icon on `#F1ECE6`), then one item per favourite store in `s.storeFavs` order, labelled with the store's `name`. A store's logo is its monogram (`mono`) in its `fg` colour on its `bg` colour; a monogram longer than two letters (only 「ZARA」) is set as a serif wordmark (`.st-logo.is-word`: Didot, Bodoni 72, Times New Roman; local fonts only, nothing is downloaded).
   - The chosen item (`aria-selected`) gets a dark ring around its logo (`box-shadow: 0 0 0 2px #FAF6F0, 0 0 0 3.6px #393532`) and a bold dark label.
-  - After the tablist, in the same scroller: a button with a + in an outlined circle, labelled 「管理」, or 「收藏商家」 when the user has no favourite stores.
+  - After the tablist, in the same scroller: a button with a + in an outlined circle, labelled 「管理」, or 「关注商家」 when the user has no favourite stores.
+  - Since b483527, 关注 / 已关注 name this list everywhere: the bar, 管理, the search pills, the store page and the toasts. 收藏 stays for product hearts and 我的收藏 (REPORT deviation 36).
 - Category chip row (fixed, scrolls sideways, `role="tablist"` aria 「商品分类」): 「全部」「上衣」「下装」「外套」「连衣裙」「鞋包」「配饰」 (`data.plazaCats`). The active chip is dark (`.chip.is-on`, `aria-selected`).
 - Feed (`.scroll.pz-scroll`, the only vertical scroller): a head, then the product grid. While a query is active, search results replace both (see Interactions).
   - **Head for 全部:** the platform banner carousel. Two full-width slides, `assets/plaza/banners/platform-new-season.webp` and `platform-autumn.webp` (aspect ratio 2.95, radius 12; the second loads lazily), in a horizontal scroll-snap track (`data-keep-scroll="pz-ban"`). Two dots at the bottom centre follow the swipe (5 px; the current one 12 px wide and white). No autoplay. Each slide is a button, aria 「NEW SEASON 秋日灵感穿搭，探索本季精选单品」 and 「秋日灵感穿搭，精选单品，定义新季风格」; their visible text is part of the images.
-  - **Head for ZARA** (the only store with a `banner`): one full-width banner button (`assets/plaza/banners/zara.webp`, aspect ratio 2.31, radius 12), aria 「ZARA 2024 秋冬系列：简约与质感的日常时装，进入店铺」.
-  - **Head for any other store:** a store card (`#F2EDE7`, radius 14): 40 px logo, the store's full name (bold), 「{tagline} · 在售 {n} 件」 and a pill button 「店铺详情 ›」.
+  - **Head for a chosen store** (every store since 66f648a): the store's banner (`VT.plaza.banner`, the same one 商家店铺 shows), one full-width button (`.mban.pz-shop-ban`, aspect ratio 2.31, radius 12, 12 px above the grid) with the aria 「{name} {campaign line}：{tagline}，进入店铺」, e.g. 「ZARA 2024 秋冬系列：简约与质感的日常时装，进入店铺」.
+    - Live copy on the left (at most 52 % of the width): the store's `name` (ZARA as a 34 px serif wordmark, the others 20 px in the same serif stack), its campaign line (`campaign.line`, table below), its tagline and, at the bottom, the pill 「进入店铺 ›」 (27 px, a brown gradient).
+    - Behind it, ZARA's text-free campaign photo (`campaign.img`, `assets/plaza/banners/zara-hero.webp`). A store without a campaign photo (all the others) gets a collage of its first three products in feed order instead: 62 × 84 px tiles, overlapping and staggered at the right, on a gradient from `#F8F4EE` to its logo colour mixed 78 % toward `#F6F1EA` (REPORT deviation 35).
+    - The old ZARA banner image with its text baked in (`zara.webp`), the store card and its 「店铺详情 ›」 are gone.
   - **Grid:** 2 columns in `data.plazaOrder` order, filtered by the chosen store and the active chip. All matching products render at once (29 for 全部), with no pagination. Rows are top-aligned, not masonry.
   - Each card has: an image in a fixed 1 : 0.95 box (`aspect-ratio: 1 / .95`), a heart at top-right, `cardName` (one line, ellipsis), `tags` (one line), and a row with `¥{price}` plus up to 4 colour dots (`p.dots`) and `+N` (`p.dotsMore`; aria `{n} 种颜色`). The first 6 images load eagerly, the rest use `loading="lazy"`.
   - ✓ (`VT.ui.ownMark`, `own-mark--l`: 18 px, top-left, 8 px in, since the heart has the top-right) when the active person owns the product (`VT.garments.ownsProduct`, HANDOFF §9.17). A heart is not ownership, and a product saved but not owned has no mark. Search results and 商家店铺 use the same card. Seed (本人): knit-cardigan, black-blazer, pleated-skirt, white-sneakers, black-cardigan, ribbed-tank, beige-trousers, basic-cami.
@@ -506,13 +516,13 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
 
 **Interactions.**
 - Store item (「全部」 or a favourite) → writes `s.plaza.store`. Without a query, only the bar's selection and the feed re-render. With a query, it also clears the query and refreshes the whole screen: tapping a store leaves the search. Either way the feed scrolls to the top, the bar scrolls just enough to show the chosen item whole (16 px margin), and the chip is kept.
-- 「管理」 / 「收藏商家」 → 「收藏的商家」 sheet.
+- 「管理」 / 「关注商家」 → 「关注的商家」 sheet.
 - Chip → writes `s.plaza.cat`, re-renders the feed and scrolls it to the top. The category applies inside the chosen store, and to search results. 「鞋包」 matches `cat` shoes or bag; the other chips match `p.cat` exactly.
-- Banner slide (全部) → 「秋日灵感穿搭」 sheet. The ZARA banner, or 「店铺详情」 on a store card → that store's sheet.
+- Banner slide (全部) → 「秋日灵感穿搭」 sheet. A store's banner (its 「进入店铺」 is part of it) → that store's page: push `store` `{sid}` → `/plaza/s/:sid` (proposed; 商家店铺, §27). Back returns here with the store and chip as they were.
 - Card → push `product` `{pid}` → `/plaza/p/:pid`. The whole card is a transparent button `.pz-open` with aria `查看 {name}，¥{price}`, followed by 「，已拥有」 when the person owns it. The heart sits above it.
 - Heart (`VT.ui.heart`, global `fav` action) → toggles `s.favorites[pid]`. It updates every heart for that pid on screen (`aria-pressed`, aria 「收藏」/「取消收藏」, pop animation) and toasts 「已收藏」 / 「已取消收藏」 (2200 ms).
 - Search input → on every `input` event (no submit, no debounce) writes the raw value to `s.plaza.q`. If the trimmed value isn't blank and a store other than 全部 is chosen, `s.plaza.store` becomes `'all'` and the bar re-renders, keeping its scroll position. Then the feed re-renders; its scroll is not reset. Matching rules and verified counts: HANDOFF §9.1.
-  - Matching stores (any of the 7, favourite or not, in `data.stores` order) come first, under the heading 「相关商家」. Each row is a card (`#FBF8F3`, radius 14) and the whole row is a transparent button (aria 「查看店铺 {full name}」) that opens the store sheet. It shows a 40 px logo, the full name (bold), 「{tagline} · 在售 {n} 件」, and a pill on top of the row button: 「收藏」 (dark) or 「已收藏」 (light), with `aria-pressed` and the store name as sr-only text. The pill toggles the favourite and refreshes the screen.
+  - Matching stores (any of the 7, favourite or not, in `data.stores` order) come first, under the heading 「相关商家」. Each row is a card (`#FBF8F3`, radius 14) and the whole row is a transparent button (aria 「查看店铺 {full name}」) that opens the store's page (§27). It shows a 40 px logo, the full name (bold), 「{tagline} · 在售 {n} 件」, and a pill on top of the row button: 「关注」 (dark) or 「已关注」 (light), with `aria-pressed` and the store name as sr-only text. The pill toggles the favourite and refreshes the screen.
   - Matching products follow in the grid, under the heading 「相关商品」 when there are store rows above them, without a heading otherwise. Store rows ignore the chip; products don't.
   - Stores match but no products do: after the rows, the line 「没有找到「{q}」相关的单品」. Nothing matches: the empty state below.
 - 「清除搜索」 (empty state) → resets both `s.plaza.q = ''` and `s.plaza.cat = 'all'`, then re-renders the whole screen with `app.refresh()`. The store stays 全部.
@@ -522,15 +532,9 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
 - Tapping the active 购物广场 tab again while at root → smooth-scrolls the feed to the top (instant with reduced motion).
 
 **Overlays.** All sheets close via ×, scrim tap or Esc (generic `app.sheet`). `app.go` and `app.open` also close them instantly.
-- **Store sheet** (`VT.plaza.openStore(app, storeId)`, class `ov--shop`; 商品详情's brand row opens the same sheet). Title: the store's full name, e.g. 「ZARA 官方旗舰店」.
-  - Head: 54 px logo; the store's `name` (bold); its tagline; 「在售 {n} 件 · 店铺评分 {rating}」 (rating with one decimal).
-  - Two buttons side by side: ghost 「联系商家」 (chat icon) and 「收藏店铺」 (dark, outline heart) or 「已收藏」 (ghost, filled heart), with `aria-pressed`.
-  - Heading 「店铺商品」, then one `.mini` row per product of the store in feed order (image `img.plaza || img.card`, name, tags, price), then the note 「演示数据」.
-  - 「收藏店铺」 / 「已收藏」 → toggles the favourite and swaps the button in place. When the sheet is open over 购物广场, the plaza behind it refreshes.
-  - 「联系商家」 → closes this sheet at once and opens the store's chat thread sheet (see 商家消息). It doesn't navigate.
-  - A product row → push `product` (`/plaza/p/:pid`; from 商品详情, `…/p/:pid/p/:pid2`).
-- **「收藏的商家」 sheet** (「管理」): lead 「收藏的商家会显示在购物广场顶部，左右滑动、点击即可切换。」, then the heading 「已收藏 {n}」 with one row per favourite (40 px logo, `name`, tagline, an 「已收藏」 pill), or 「还没有收藏的商家」 when there are none. Then, when some stores aren't favourites, the heading 「推荐商家」 with their rows and 「收藏」 pills. A pill toggles that store: the sheet body re-renders (the store moves to the other list; a new favourite goes to the top of 已收藏) and focus returns to that store's pill. The plaza behind the sheet refreshes.
-- Favouriting anywhere (search row, store sheet, 管理) puts the store first in `s.storeFavs`, so it shows right after 「全部」. Unfavouriting removes it, and if it was the chosen store the feed goes back to 全部. Toasts 「已收藏店铺「{name}」」 / 「已取消收藏「{name}」」, with the store's `name`.
+- The store sheet is gone (66f648a). Every way into a store (its banner here, a search row, 商品详情's brand row, 商家消息's store logo and chat header) opens the store's page, 商家店铺 (§27), through `VT.storefront.open`. `VT.plaza.openStore` still exists for old callers and opens the page too.
+- **「关注的商家」 sheet** (「管理」): lead 「关注的商家会显示在购物广场顶部，左右滑动、点击即可切换。」, then the heading 「已关注 {n}」 with one row per favourite (40 px logo, `name`, tagline, an 「已关注」 pill), or 「还没有关注的商家」 when there are none. Then, when some stores aren't favourites, the heading 「推荐商家」 with their rows and 「关注」 pills. A pill toggles that store: the sheet body re-renders (the store moves to the other list; a new favourite goes to the top of 已关注) and focus returns to that store's pill. The plaza behind the sheet refreshes.
+- Following a store anywhere (search row, 管理, the store page's 「关注」) puts it first in `s.storeFavs`, so it shows right after 「全部」. Unfollowing removes it, and if it was the chosen store the feed goes back to 全部. Toasts 「已关注「{name}」」 / 「已取消关注「{name}」」, with the store's `name`.
 - **「秋日灵感穿搭」 sheet** (either banner slide, class `ov--shop`): lead 「本季精选单品 · 演示数据」, then `.mini` rows for `data.seasonPicks`: taupe-coat, knit-cardigan, maxi-skirt, brown-blazer, brown-sweater, black-cardigan, pleated-skirt. A row → push `product`. **[demo]**
 - **「拍照找同款」 sheet:**
   - Content: lead 「上传一张衣服照片，演示版会从本地商品库中推荐风格相近的单品（非真实图像识别）。」 and a dark button 「选择照片」 (a label wrapping a hidden `accept="image/*"` file input).
@@ -540,19 +544,20 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
 - The 「消息通知」 sheet, which the bell used to open, now opens from 商家消息's first row.
 
 **Data.**
-- Reads `data.plazaOrder`, `data.byId`, `data.plazaCats`, `data.inCat`, `data.stores`, `data.storeById`, `data.storeOf`, `data.seasonPicks`, `s.plaza.{cat,q,store}`, `s.storeFavs`, `s.storeChats` (the badge), `s.favorites`, and the active person's wardrobe for ✓ (`VT.garments.ownsProduct`). Writes `s.plaza.{q,cat,store}`, `s.storeFavs` and `s.favorites[pid]`.
+- Reads `data.plazaOrder`, `data.byId`, `data.plazaCats`, `data.inCat`, `data.stores` (with each store's `campaign`), `data.storeById`, `data.storeOf`, `data.seasonPicks`, `s.plaza.{cat,q,store}`, `s.storeFavs`, `s.storeChats` (the badge), `s.favorites`, and the active person's wardrobe for ✓ (`VT.garments.ownsProduct`). Writes `s.plaza.{q,cat,store}`, `s.storeFavs` and `s.favorites[pid]`.
 - **Stores** (`data.stores`, in this order). Every product belongs to the store whose `name` equals its `brand` (`data.storeOf`; no product falls through to its first-store fallback). Logo colours are in `data.js`.
 
-| id | `name` (bar label) | full name | tagline | mono | rating | products, in feed order |
-|---|---|---|---|---|---|---|
-| `zara` | ZARA | ZARA 官方旗舰店 | 简约与质感的日常时装 | ZARA | 4.9 | knit-cardigan, straight-jeans, brown-blazer, maxi-skirt |
-| `soft-archive` | Soft Archive | Soft Archive 官方店 | 柔软针织 · 基础衣橱 | SA | 4.8 | basic-cami, brown-sweater, black-cardigan, white-tee, black-sweater, ribbed-tank |
-| `linea-studio` | Linea Studio | Linea Studio 官方店 | 法式温柔 · 日常优雅 | LS | 4.8 | pleated-skirt, satin-slip-dress, white-shirt, beige-trousers, bow-blouse, oxford-shirt |
-| `mono-atelier` | Mono Atelier | Mono Atelier 官方店 | 利落剪裁 · 摩登通勤 | MA | 4.8 | black-blazer, taupe-coat, beige-blazer |
-| `forma` | Forma | Forma 官方旗舰店 | 鞋包配饰 · 简约实用 | F | 4.7 | brown-tote, white-sneakers, black-handbag, black-pumps, grey-hoodie, utility-jacket, strappy-heels, gold-hoops |
-| `reformation` | Reformation | Reformation 官方旗舰店 | 轻盈面料 · 经典衬衫 | R | 4.8 | striped-shirt |
-| `linea-denim` | Linea Denim | Linea Denim 官方店 | 经典丹宁 · 自在随性 | LD | 4.7 | denim-jacket |
+| id | `name` (bar label) | full name | tagline | `campaign.line` | mono | rating | products, in feed order |
+|---|---|---|---|---|---|---|---|
+| `zara` | ZARA | ZARA 官方旗舰店 | 简约与质感的日常时装 | 2024 秋冬系列 | ZARA | 4.9 | knit-cardigan, straight-jeans, brown-blazer, maxi-skirt |
+| `soft-archive` | Soft Archive | Soft Archive 官方店 | 柔软针织 · 基础衣橱 | 秋冬针织系列 | SA | 4.8 | basic-cami, brown-sweater, black-cardigan, white-tee, black-sweater, ribbed-tank |
+| `linea-studio` | Linea Studio | Linea Studio 官方店 | 法式温柔 · 日常优雅 | 本季新品 | LS | 4.8 | pleated-skirt, satin-slip-dress, white-shirt, beige-trousers, bow-blouse, oxford-shirt |
+| `mono-atelier` | Mono Atelier | Mono Atelier 官方店 | 利落剪裁 · 摩登通勤 | 西装与大衣系列 | MA | 4.8 | black-blazer, taupe-coat, beige-blazer |
+| `forma` | Forma | Forma 官方旗舰店 | 鞋包配饰 · 简约实用 | 秋冬鞋包上新 | F | 4.7 | brown-tote, white-sneakers, black-handbag, black-pumps, grey-hoodie, utility-jacket, strappy-heels, gold-hoops |
+| `reformation` | Reformation | Reformation 官方旗舰店 | 轻盈面料 · 经典衬衫 | 亚麻衬衫系列 | R | 4.8 | striped-shirt |
+| `linea-denim` | Linea Denim | Linea Denim 官方店 | 经典丹宁 · 自在随性 | 复古牛仔系列 | LD | 4.7 | denim-jacket |
 
+- 商家店铺 (66f648a) gave every store a `campaign` (`line`, the banner's title; `img` only for ZARA) and an `intro` (its introduction on the store page), and ZARA alone `collections` (当季精选, §27). The stores' `banner` / `bannerAlt` went with `zara.webp`.
 - The redesign moved knit-cardigan, straight-jeans and brown-blazer to brand ZARA and added maxi-skirt (ZARA, 下装, ¥359, model photo only), so the catalogue has 29 products. For the three moved products the plaza model photo is also the second gallery image on 商品详情 (`data.js:185-188`). ZARA is a real trademark, used here as a demo store (HANDOFF §13.1 #12).
 - Favourite stores: `s.storeFavs` (persisted), seed `['zara', 'soft-archive', 'linea-studio', 'mono-atelier', 'forma']`, so Reformation and Linea Denim start under 推荐商家. `s.plaza.store` (persisted, default `'all'`) counts only while that store is a favourite; otherwise the feed shows 全部.
 - Query, category and store live in the persisted store. They survive tab switches, pushes and full reloads. The input value is re-rendered from `s.plaza.q`, raw and untrimmed.
@@ -564,49 +569,68 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
 - Empty, with a query: search icon, 「没有找到「{q}」相关的商家或单品」 (the trimmed query) and a ghost button 「清除搜索」.
 - Typing moves the bar to 全部, and clearing the query doesn't bring the earlier store back.
 - Store rows ignore the chip: 「衬衫」 with 鞋包 shows the Reformation row (its tagline 「轻盈面料 · 经典衬衫」 matches) and 「没有找到「衬衫」相关的单品」.
-- Unfavouriting the chosen store sends the feed back to 全部. With no favourites, the bar shows only 「全部」 and 「收藏商家」.
+- Unfollowing the chosen store sends the feed back to 全部. With no favourites, the bar shows only 「全部」 and 「关注商家」.
 - The filter also runs on unfinished IME composition text (pinyin letters), because there is no `isComposing` guard. The empty state can flash while typing Chinese.
-- **[demo]** The banners, the 秋日灵感穿搭 picks, the store data and the scan results are static. The scan object URL is never revoked (`04-plaza.js:200`).
+- **[demo]** The banners, the 秋日灵感穿搭 picks, the store data and the scan results are static. The scan object URL is never revoked (`04-plaza.js:232`).
 - Same for logged-in and logged-out users.
 
-**Components used.** `VT.ui.iconBtn`, `VT.ui.heart` + global `fav`, global `nav`, `VT.ui.img`, `VT.ui.ownMark`, `VT.ui.price`, `VT.ui.dots`, `VT.ui.tabBar` + global `tab`, `.chip`, `.scroll`, `app.sheet`, `.opt-list`, `.mini`, `.badge-demo`, `.sheet-lead`, `.sheet-note`, `.btn--ghost.btn--sm`, `.btn--dark.btn--lg`, `.sr-only`. Local: `logo()` (`.st-logo` and its `--md` 40 px / `--lg` 54 px / `--msg` 44 px sizes), the store bar (`.pz-stores`, `.pz-st`), the banners (`.pz-banners`, `.pz-ban`, `.pz-ban-dots`), the store head (`.pz-shop-ban`, `.pz-shop`), the search results (`.pz-sec`, `.pz-srow`, `.pz-sfav`, `.pz-none`), the store sheet (`.ss-*`) and the 管理 sheet (`.ms-*`). Exports `VT.plaza = { openStore, manageStores, toggleFav, notices, logo, syncBadge }`.
+**Components used.** `VT.ui.iconBtn`, `VT.ui.heart` + global `fav`, global `nav`, `VT.ui.img`, `VT.ui.ownMark`, `VT.ui.price`, `VT.ui.dots`, `VT.ui.tabBar` + global `tab`, `.chip`, `.scroll`, `app.sheet`, `.opt-list`, `.mini`, `.badge-demo`, `.sheet-lead`, `.sheet-note`, `.btn--ghost.btn--sm`, `.btn--dark.btn--lg`, `.sr-only`. Local: `logo()` (`.st-logo` and its `--md` 40 px / `--lg` 54 px / `--msg` 44 px sizes), the store bar (`.pz-stores`, `.pz-st`), the banners (`.pz-banners`, `.pz-ban`, `.pz-ban-dots`), the store banner (`banner()`: `.mban`, `.mban-art`, `.mban-copy`, `.mban-cta`; `.pz-shop-ban` here), the search results (`.pz-sec`, `.pz-srow`, `.pz-sfav`, `.pz-none`) and the 管理 sheet (`.ms-*`, `.ss-h`). Exports `VT.plaza = { openStore, manageStores, toggleFav, notices, logo, syncBadge, banner, bannerText, card, mini, storeProducts, isFavStore }`; 商家店铺, 商品详情 and 商家消息 use them, so both store views share one store model, card and banner.
 
-**Acceptance checks.** `AC3: tab → plaza`, `AC2/4: plaza has one bar with the 5 tabs`, `tab switch to plaza is instant`, `plaza has no back button (primary)`, `plaza search`, `plaza scroll kept after switching tabs`, `plaza heart toggles`, `plaza → product details`, `AC6: back from product → plaza`, `plaza tab returns to its own history (product page)`, `finished checkout removed from plaza history`, `mobile: tabs work`. The stores block (mobile context, seed data): `plaza: store bar = 全部 + favourite stores only`, `plaza: 全部 shows every store, with the platform banner`, `plaza: a favourite store shows only its products` (ZARA: 4 products and its banner), `plaza: category narrows the chosen store` (ZARA + 外套 → knit-cardigan, brown-blazer), `plaza: search covers every store and product` (「Reformation」 → one store row, striped-shirt, bar on 全部), `plaza: favouriting a store from search adds it to the bar`, `plaza: 管理 removes a store from the bar`. 商家消息 lists the three checks that continue from here. Ownership block: `购物广场: ✓ on exactly the products 本人 owns (a heart is not ownership)`.
+**Acceptance checks.** `AC3: tab → plaza`, `AC2/4: plaza has one bar with the 5 tabs`, `tab switch to plaza is instant`, `plaza has no back button (primary)`, `plaza search`, `plaza scroll kept after switching tabs`, `plaza heart toggles`, `plaza → product details`, `AC6: back from product → plaza`, `plaza tab returns to its own history (product page)`, `finished checkout removed from plaza history`, `mobile: tabs work`. The stores block (mobile context, seed data): `plaza: store bar = 全部 + favourite stores only`, `plaza: 全部 shows every store, with the platform banner`, `plaza: a favourite store shows only its products` (ZARA: 4 products and its banner), `plaza: category narrows the chosen store` (ZARA + 外套 → knit-cardigan, brown-blazer), `plaza: the store banner's 进入店铺 opens the store page` (ZARA), then five store-page checks (商家店铺, §27), then `plaza: search covers every store and product` (「Reformation」 → one store row, striped-shirt, bar on 全部), `plaza: favouriting a store from search adds it to the bar`, `plaza: 管理 removes a store from the bar`. 商家消息 and 商家店铺 list the checks that continue from here. Ownership block: `购物广场: ✓ on exactly the products 本人 owns (a heart is not ownership)`.
 
 
 ### 5. 个人衣橱 · `wardrobe`
 
-**Route** `/wardrobe` · **Type** tab root · **Prototype** `js/screens/06-wardrobe.js`, `css/screens/06-wardrobe.css` · **Design ref** `reference/design/screens/06_my_wardrobe.png`
+**Route** `/wardrobe` · **Type** tab root · **Prototype** `js/screens/06-wardrobe.js`, `css/screens/06-wardrobe.css`, `js/store.js` (each person's 搭配集 and 穿搭瞬间), images in `assets/wardrobe/` · **Design ref** `reference/design/screens/06_my_wardrobe.png` (the header, category tabs and grid). 个人衣橱 V2 (8bf9527, 20 Oct 2026) follows an Instagram-style mockup and the asset kit `Wardrobe_Instagram_Assets_V2`, neither of which is in `reference/design/`: for the portrait row, 衣服 / 搭配集 / 穿搭瞬间 and the long-press menu the prototype is the only reference (REPORT deviations 16–23).
 
-**Purpose.** Browse, filter and search the active digital avatar's saved garments, whatever their source (from 购物广场, photos, already there), see and set which ones they own (✓, 标记为已拥有), heart them, queue several items for 首页 try-on, and add photos of the user's own clothes.
-
-**Not yet described here.** This section predates 个人衣橱 V2 (8bf9527): the portrait row, 衣服 / 搭配集 / 穿搭瞬间, 搭配集详情 and 穿搭瞬间 are not in it, so follow the prototype for those. The ownership parts (21 Oct 2026) are current, including theirs: 搭配集详情's tiles and 穿搭瞬间's 相关单品 show ✓ (16 px, top-right, 5 px in; aria adds 「，已拥有」) on what the person owns, and 一键试穿这套 works whenever the set has garments, photos included.
+**Purpose.** Each person's wardrobe. A row of portraits switches whose it is (the same setting as 首页's 切换角色). Under it, three views: 衣服, to browse, filter and search the active digital avatar's saved garments, whatever their source (from 购物广场, photos, already there), see and set which ones they own (✓, 标记为已拥有), heart them, queue several items for 首页 try-on, and add photos of the user's own clothes; 搭配集, outfit collections to open (搭配集详情, §25) and try on in one go; 穿搭瞬间, a private gallery of saved looks (§26), including the ones 首页's 保存造型 adds.
 
 **Layout (top → bottom).**
 - Header (fixed): centred h1 「个人衣橱」; on the right a search icon button (aria 「搜索衣橱」, `aria-expanded`) and an add button (＋ in a circle, aria 「添加衣物」). No back button, although the design ref shows one (tab roots have none, REPORT deviation 1). The design's own tab bar (分类/购物车) is replaced by the shared 5-tab bar.
-  - With more than one digital avatar (HANDOFF §9.15) a pill sits at the top left: the avatar's portrait (26 px), its name (ellipsis past 108 px) and a chevron-down; aria 「切换角色，当前：{name}」. It opens the 切换角色 sheet (§3); after switching, the screen re-renders with that avatar's wardrobe and try-on queue. With one avatar the header is as before.
-- Search bar (fixed, only while open): pill `type=search` input, placeholder 「搜索衣橱里的单品」, aria 「搜索衣橱」.
-- Category tabs (fixed row, scrolls sideways, `role=tablist` aria 「衣橱分类」), from `data.wardrobeCats`: 「全部」「上衣」「下装」「鞋包」「配饰」「外套」「连衣裙」. The active tab is bold and underlined.
-- Grid (`.wr-scroll`, the only vertical scroller): 3 columns of tiles, every saved garment of the person whatever its source. Each tile has the garment image (the whole tile is a button; aria `{name}`, followed by 「，已拥有」 when owned), a heart toggle top-right, and ✓ top-left on the garments the person owns (`VT.ui.ownMark`, `own-mark--l`: 18 px, 7 px in; top-left because the heart keeps the top-right, REPORT deviation 37). There are no source labels (the old 已收藏 / 已购买 / 我上传的 badges are gone). A queued tile gets a dark outline and, bottom-left, its place in the queue (「1」, 「2」…: a dark pill, 11 px VT Inter, no ✓).
-- Queue bar (only when `tryQueue` is not empty): a floating pill just above the tab bar with 「已选 N 件」, the text button 「清空」 and the dark button 「去试衣间」 plus an arrow.
+- Portrait row (切换角色; `role="radiogroup"` aria 「切换角色」, scrolls sideways with a hidden scrollbar, `data-keep-scroll="wr-people"`): one 56 px round portrait per digital avatar in `s.avatars` order (seed: 本人, 伴侣, 爸爸, 妈妈), then a ＋ button with a thin ring (aria 「新建数字分身」).
+  - No names are shown. Each portrait is a `role="radio"` button whose aria-label and `title` are the name, 本人's followed by 「（本人）」 (seed: 「小橙子（本人）」). The active one has `aria-checked` and a thin brown ring 5 px outside it (`#64402F`).
+  - The gaps are `clamp(10px, (row width − 280px) / 4, 18px)`: four people and ＋ fill the row at 390 px and still fit at 360 px; more people scroll.
+  - A portrait is the person's uploaded 生活照, else (本人) the profile photo, else their demo portrait (`assets/wardrobe/avatars/`), else `assets/people/chat-user.webp` (`VT.store.avatars.portraitOf`). The demo portraits are kit images, not real relatives (REPORT deviation 23).
+- Toggle 「衣服」 | 「搭配集」 | 「穿搭瞬间」 (`role="tablist"` aria 「衣橱内容」): a 36 px track (`#EDE6DA`, radius 12, 16 px from the sides) with a brown thumb (`#55392E`) that slides under the selected tab in 260 ms; the selected label is white and bold (`aria-selected`).
+- The view (`role="tabpanel"`, labelled with its tab's name), one of three. The chosen one is `s.wardrobeView` (default 衣服).
+  - **衣服:**
+    - Search bar (fixed, only while open): pill `type=search` input, placeholder 「搜索衣橱里的单品」, aria 「搜索衣橱」.
+    - Category tabs (fixed row, scrolls sideways, `role=tablist` aria 「衣橱分类」), from `data.wardrobeCats`: 「全部」「上衣」「下装」「鞋包」「配饰」「外套」「连衣裙」. The active tab is bold and underlined.
+    - Grid (`.wr-scroll`, the view's only vertical scroller, `data-keep-scroll="wr-clothes"`): 3 columns of 123.8 px tiles (radius 10), every saved garment of the person whatever its source. Each tile has the garment image (the kit's square shot `img.square` for the 12 products that have one, else `img.tile`; a photo garment shows its photo; the whole tile is a button with `aria-haspopup="dialog"`; aria `{name}`, followed by 「，已拥有」 when owned), a heart toggle top-right, and ✓ top-left on the garments the person owns (`VT.ui.ownMark`, `own-mark--l`: 18 px, 7 px in; top-left because the heart keeps the top-right, REPORT deviation 37). There are no source labels (the old 已收藏 / 已购买 / 我上传的 badges are gone). A queued tile gets a dark outline and, bottom-left, its place in the queue (「1」, 「2」…: a dark pill, 11 px VT Inter, no ✓).
+    - Queue bar (only in 衣服, when `tryQueue` is not empty): a floating pill just above the tab bar with 「已选 N 件」, the text button 「清空」 and the dark button 「去试衣间」 plus an arrow.
+  - **搭配集:**
+    - A bar: 「{n} 个搭配集」 on the left (empty when there are none) and the pill button 「＋ 新建搭配集」 on the right.
+    - The list (`data-keep-scroll="wr-sets"`, gap 14): one card per collection of the person, in their order (new ones first). A card (`#EFE8E0`, radius 16) is the cover, then the name (15 px bold) and 「{n} 件单品」; it is one button (aria 「{name}，{n} 件单品」), with a ⋯ button at its bottom-right (aria 「更多操作：{name}」, `aria-haspopup="dialog"`).
+    - The cover is the collection's kit image (`cover`, `assets/wardrobe/collections/`), cropped to 16 : 10 and zoomed 4.5 % so the frame drawn inside the image doesn't show (REPORT deviation 18). A collection without one (the demo people's, new ones) shows a collage of its first garments on `#E9E1D7`: one fills it, two side by side, three as one tall and two stacked, four as 2 × 2. An empty collection shows a hanger.
+  - **穿搭瞬间:**
+    - A bar: a lock and 「仅自己可见」 on the left, 「{n} 张」 on the right.
+    - A 2-column gallery (`data-keep-scroll="wr-moments"`, gaps 12), newest first. Each photo is 2 : 3 (radius 12) and a button (aria 「{M月D日}的穿搭瞬间」), with a heart at its top-right (white; dark brown `#5E3729` when hearted) and the date 「{M月D日}」 under it. A seed photo fills its frame; a 首页 render stands whole at the bottom on its backdrop's colour (暖灰 #D0C0B0 · 奶白 #E8DED4 · 燕麦 #E5D4C1 · 深咖 #5A4C3D).
 - Tab bar (个人衣橱 active).
 
 **Interactions.**
+- Portrait → that person becomes the active avatar (`VT.store.avatars.switchTo`, HANDOFF §9.15: the same setting as 首页's 切换角色, so 首页 follows). The search closes and its query clears, every view's remembered scroll is dropped, and the view fades in (200 ms) with that person's garments, 搭配集 or 穿搭瞬间, at the top; the chosen view and category stay. No toast. Tapping the active portrait does nothing.
+- ＋ at the end of the row → the 新建数字分身 sheet (§3, `VT.avatarUI.create`), then the upload screen in its `new` context, pushed on this tab (`/wardrobe/avatars/new`, proposed, HANDOFF §13.1 #13).
+- Toggle tab → writes `s.wardrobeView` and slides the new view in from the side of its tab (220 ms; none with reduced motion). While the tab stays open, each view keeps its scroll position (in memory). Tapping the selected tab scrolls its view to the top.
 - Category tab → sets `s.wardrobeCat`, re-renders the grid in place and scrolls it to the top. Mapping (`data.inCat`): 全部 shows everything; 鞋包 shows product `cat` `shoes` or `bag`; every other tab matches its own `cat` id (`top`/`bottom`/`acc`/`outer`/`dress`). Seed counts (本人): 全部 21 · 上衣 6 · 下装 3 · 鞋包 5 · 配饰 1 · 外套 5 · 连衣裙 1.
-- Search icon → toggles the search bar. Opening it focuses the field; closing it clears the query. Filtering is live on every keystroke: a case-insensitive substring match on `name + tags` (uploaded items: name only), combined (AND) with the active category.
-- Heart → toggles that wardrobe entry's own `fav` flag, with a pop animation and no toast; aria 「标记喜欢：<name>」/「取消喜欢：<name>」. This flag is **not** 我的收藏 (`s.favorites`) and not ownership (✓), and nothing else reads it.
+- Search icon → toggles the search bar; from 搭配集 or 穿搭瞬间 it switches to 衣服 with the search open. Opening it focuses the field; closing it clears the query. Filtering is live on every keystroke: a case-insensitive substring match on `name + tags` (uploaded items: name only), combined (AND) with the active category.
+- Heart → toggles that wardrobe entry's own `fav` flag, with a pop animation and no toast; aria 「标记喜欢：<name>」/「取消喜欢：<name>」, updated with the state. This flag is **not** 我的收藏 (`s.favorites`) and not ownership (✓), and nothing else reads it.
 - Tile → item sheet (below). A tile never opens the product page directly.
+- Press and hold a tile for 480 ms, right-click it, or press the context-menu key on it → long-press menu (below).
 - 「去试衣间」 → takes the queued entries in queue order, photos included (as `up:{uid}`), always empties the queue, then calls `VT.tryOn(refs)`. With nothing to send, it shows the toast 「所选衣物暂不支持试穿」 and stays on the wardrobe.
 - 「清空」 → empties `tryQueue` and hides the bar (no confirm, no toast).
 - ＋ in the header, or 「添加衣物」 in the empty state → 添加衣物 sheet.
-- Re-tapping the active tab scrolls the grid to the top (global `tab` action).
-- Arrives from: the tab bar and 我的 → stats 「我的衣橱」 (both keep the tab's own stack), and 商品详情 → 「加入衣橱」 sheet → 「去衣橱看看」 (contextual jump, which resets the tab to its root).
-- **Try-on (`VT.tryOn`, `js/screens/05-product.js:195`)**, used by 「立即试穿」 and 「去试衣间」. For each garment in order (a product id, or `up:{uid}` for a photo) it sets `s.fit.outfit[slot]`, where the slot is its garment category; a photo joins without an on-body image. A dress removes top and bottom; a top or bottom removes the dress. Slots not touched stay in the outfit (merge, not replace). It sets 首页's left-menu category `s.fit.cat` from the first item (see 首页) and marks the avatar ready (`avatar.demo = true`) if there is none **[demo]**. Then it does a contextual tab jump to 首页 `/home` (fade). 420 ms later it shows the toast 「已为你的数字分身换上所选单品」, or 「演示版暂无「<name>」的上身图，已加入当前搭配」 (3000 ms, naming the first tried item that has no on-body image). The wardrobe stack is left as it was.
+- 「新建搭配集」 (the bar or the empty state) → the name sheet titled 「新建搭配集」 with 「创建」. The new, empty collection goes first; then 搭配集详情 is pushed for it and opens 编辑单品 by itself (§25).
+- A collection card → push 搭配集详情 `{id}` (§25). Its ⋯ → the collection menu (below).
+- A 穿搭瞬间 → push 穿搭瞬间 `{id}` (§26). Its heart → toggles that 穿搭瞬间's own `fav` (pop animation, no toast; aria 「标记喜欢：{M月D日}的穿搭」 / 「取消喜欢：{M月D日}的穿搭」); nothing else reads it.
+- 「去试衣间」 in the 穿搭瞬间 empty state → contextual tab jump to 首页.
+- Re-tapping the active tab scrolls the shown view to the top (global `tab` action).
+- Arrives from: the tab bar and 我的 → stats 「我的衣橱」 (both keep the tab's own stack), and 商品详情 → 「加入衣橱」 sheet → 「去衣橱看看」 (contextual jump, which resets the tab to its root). 首页's toasts jump here too: 「去看看」 after 加入衣橱, and 「去看看」 after 保存造型, which first sets the view to 穿搭瞬间.
+- **Try-on (`VT.tryOn`, `js/screens/05-product.js:195`)**, used by 「立即试穿」, 「去试衣间」, 「一键试穿这套」 (§25) and 「再次试穿」 (§26). For each garment in order (a product id, or `up:{uid}` for a photo) it sets `s.fit.outfit[slot]`, where the slot is its garment category; a photo joins without an on-body image. A dress removes top and bottom; a top or bottom removes the dress. Slots not touched stay in the outfit (merge, not replace). It sets 首页's left-menu category `s.fit.cat` from the first item (see 首页) and marks the avatar ready (`avatar.demo = true`) if there is none **[demo]**. Then it does a contextual tab jump to 首页 `/home` (fade). 420 ms later it shows the toast 「已为你的数字分身换上所选单品」, or 「演示版暂无「<name>」的上身图，已加入当前搭配」 (3000 ms, naming the first tried item that has no on-body image). The wardrobe stack is left as it was.
 
 **Overlays.**
 - **Item sheet** (title = item name; a tap on a tile, or on a 搭配集详情 tile). It shows a large image (catalog: `img.hd`, falling back to `img.tile`; photo: the photo) and a meta line 「已拥有 · {brand} · {colour name} · {size}」: 「已拥有」 with an inline ✓ (`own-mark--inline`, 14 px) only for an owned garment, the brand only for catalog items, colour and size only when set (added from 商品详情 or bought). Missing parts are left out; with none, the line is hidden. Rows (icon, label), top to bottom:
   - 「立即试穿」 (hanger) → closes the sheet and calls `VT.tryOn([ref])`. A photo joins the 首页 outfit without an on-body image.
-  - 「加入搭配集」 (circled ＋) → the 加入搭配集 sheet. Opened from 搭配集详情, 「从「{name}」移出」 (minus) follows it.
+  - 「加入搭配集」 (circled ＋) → the 加入搭配集 sheet. Opened from 搭配集详情, 「从「{name}」移出」 (minus) follows it: it takes the garment out of that collection, closes the sheet and toasts 「已从「{name}」移出」.
   - 「加入试衣搭配」 (t-shirt) / 「移出试衣搭配」 (minus) → toggles the entry `uid` in `tryQueue`, closes the sheet, toast 「已加入试衣搭配」 / 「已移出试衣搭配」. This is the only way to queue items, and photos can be queued.
   - 「标记为已拥有」 (a circled ✓, drawn like the circled ＋) or 「取消已拥有标记」 (close icon) → sets or clears `isOwned` (`VT.garments.setOwned`): the source stays and no record is added (HANDOFF §9.17). Closes the sheet and refreshes; toast 「已标记为已拥有」 (check icon) / 「已取消已拥有标记」. With 确认收货, this is the only way a garment becomes owned.
   - 「查看商品详情」 (bag; catalog items only) → pushes `product` `{pid}` onto the wardrobe stack → `/wardrobe/p/:pid`; the sheet closes.
@@ -614,6 +638,22 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
   - 「删除」 (trash, red tint) → dialog 「删除这件单品？」 / 「「{name}」将从衣橱和搭配集中移除。」 / 「取消」 · 「删除」. Confirm removes the entry, its queue slot, its place in that person's 搭配集 and, when it is worn, its slot in the 首页 outfit; it closes the sheet and toasts 「已删除」. Every garment can be deleted (REPORT deviation 20).
   - Photos also show the note 「演示版暂无这件衣物的上身图，试穿时会加入当前搭配」 **[demo]**.
 - **Long-press menu** (press and hold a tile for 480 ms, right-click, or the context-menu key): the garment lifts as a card (its heart top-right, ✓ top-left at 22 px when owned) over a menu (`role="menu"`): 「立即试穿」 · 「加入搭配集」 · 「标记为已拥有」 / 「取消已拥有标记」 · 「分享」 · 「删除」, which do what the item sheet's rows do.
+  - The card is 264 × 236 px (radius 20), centred over a darker scrim (`rgba(28, 22, 18, .46)`); the menu card overlaps its bottom edge by 16 px, and both scale in (240 ms). The card's heart toggles like the tile's and updates the tile too. 「删除」 is red.
+  - Moving more than 10 px cancels the press; the held tile shrinks a little while pressed. The click that ends the press is swallowed (within 600 ms), so it neither opens the item sheet nor closes the menu.
+  - The first item takes focus (60 ms later); ↑ / ↓ move between items. Where allowed, the phone vibrates for 8 ms. A tap on the scrim, Esc or back closes it; a second one never opens while it is open.
+- **加入搭配集 sheet** (title 「加入搭配集」): one row per collection of the person (a `role="checkbox"` button: a 60 px 4 : 3 cover, the name, 「{n} 件单品」 and a round tick, filled brown with a brown outline on the row when the garment is in it), then a ghost 「＋ 新建搭配集」.
+  - A row adds the garment to that collection (at the end) or takes it out, closes the sheet and toasts 「已加入「{name}」」 (check icon) / 「已从「{name}」移出」.
+  - 「新建搭配集」 → the name sheet titled 「新建搭配集」 with 「创建并加入」: a new collection holding this garment goes first; toast 「已加入「{name}」」 (check icon).
+- **Name sheet** (新建搭配集, 重命名): a 「名称」 field (max 12, placeholder 「例如：周末出游」, aria 「搭配集名称」; focused; Enter submits) and a dark button (「创建」, 「创建并加入」 or 「保存」). A blank or all-space name toasts 「请填写名称」 and keeps the sheet open.
+- **Collection menu** (⋯ on a card, or in 搭配集详情; a sheet titled with the collection's name):
+  - 「重命名」 → the name sheet titled 「重命名」, pre-filled, with 「保存」; toast 「已重命名」.
+  - 「编辑单品」 → the 编辑单品 sheet.
+  - 「分享」 → the text 「我的搭配集「{name}」：{a、b、c}」 (its garments' names), shared like an item.
+  - 「删除搭配集」 (red) → dialog 「删除「{name}」？」 / 「搭配集里的单品仍会保留在衣橱中。」 / 「取消」 · 「删除」. Confirming removes the collection (its garments stay in the wardrobe), toasts 「已删除搭配集」 and, from 搭配集详情, goes back.
+- **编辑单品 sheet** (title 「编辑单品」; full height when the person has more than 8 garments): the lead 「从「{person}」的衣橱里挑选单品，组成「{collection}」。」, every garment of the person in a 4-column grid of square checkboxes (aria the name; a round tick top-left, brown, and a brown outline when chosen; no ✓ marks), and a sticky dark button 「完成 · 已选 {n} 件」 that counts live.
+  - 完成 keeps the garments still chosen in their order and adds the new ones after them, in the order they were tapped; toast 「已更新搭配集」. Closing the sheet any other way changes nothing.
+  - With an empty wardrobe: the lead 「衣橱里还没有单品，先添加几件吧。」 and a dark 「添加衣物」 → the 添加衣物 sheet.
+- **穿搭瞬间 menu** (⋯ in 穿搭瞬间, §26).
 - **添加衣物 sheet**. Contents, top to bottom:
   - The lead 「拍下或选择一张衣物照片，保存到你的个人衣橱。」.
   - A drop zone (a label wrapping a hidden `<input type=file accept="image/*">`) with 「选择照片」 and 「支持 JPG / PNG，建议纯色背景平铺拍摄」.
@@ -627,27 +667,31 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
 - Sheets close with ✕ (aria 「关闭」), a scrim tap, Esc, or any navigation. The dialog closes only with its buttons or Esc.
 
 **Data.**
-- Reads: `s.wardrobe`, `s.wardrobeCat`, `s.tryQueue`, `data.wardrobeCats`, `data.inCat`, `data.byId`; for the pill, `s.avatars` and `s.activeAvatar`. `wardrobe` and `tryQueue` are the **active avatar's** (each avatar has its own); `wardrobeCat` is shared.
-- Writes: `s.wardrobe` (fav, ownership, remove, upload), `s.wardrobeCat`, `s.tryQueue`; delete also writes that person's 搭配集 and `s.fit.outfit`; try-on also writes `s.fit` and `s.avatar`.
+- Reads: `s.wardrobe`, `s.wardrobeCat`, `s.wardrobeView`, `s.tryQueue`, `s.collections`, `s.moments`, `data.wardrobeCats`, `data.inCat`, `data.byId`; for the portrait row, `s.avatars`, `s.activeAvatar` and the profile photo. `wardrobe`, `tryQueue`, `collections` and `moments` are the **active avatar's** (each avatar has its own); `wardrobeCat` and `wardrobeView` are shared.
+- Writes: `s.wardrobe` (fav, ownership, remove, upload), `s.wardrobeCat`, `s.wardrobeView`, `s.tryQueue`, `s.collections` (new, rename, 加入搭配集, 编辑单品, delete), `s.moments` (`fav`), the active avatar (portraits); delete also writes that person's 搭配集 and `s.fit.outfit`; try-on also writes `s.fit` and `s.avatar`.
 - Entries are garment records (HANDOFF §9.17), every change through `VT.garments`: catalog `{uid, avatarId, p, merchantId, source, isOwned, isSavedToWardrobe: true, isTemporary: false, fav, color?, size?, addedAt}`; photos `{uid, avatarId, custom:{src,name,cat}, source: 'photo_upload', isOwned, …}`. A photo saved from 首页 keeps its temporary `uid`; one saved before 21 Oct 2026 also has `fromUpload` (the old 我的上传 id). `source` is `manual`, `shopping_plaza` or `photo_upload` and never changes; ✓ follows `isOwned` only.
-- Seed: `data.seedWardrobe`, 本人's 21 garments with uids `w1…w21` (the reference screen's 15, then basic-cami, satin-slip-dress, black-handbag, black-pumps, strappy-heels and gold-hoops), 4 of them hearted. 8 are owned (`manual`, ✓): knit-cardigan, black-blazer, pleated-skirt, white-sneakers, black-cardigan, ribbed-tank, beige-trousers, basic-cami. The other 13 came from 购物广场 (`shopping_plaza`, no ✓); the striped shirt's order VT20260715092418 is still on its way. 伴侣, 爸爸 and 妈妈 own their garments, except those they saved from 购物广场: 伴侣's utility-jacket and white-sneakers, 爸爸's brown-blazer, 妈妈's satin-slip-dress and black-handbag.
+- Seed: `data.seedWardrobe`, 本人's 21 garments with uids `w1…w21` (the reference screen's 15, then basic-cami, satin-slip-dress, black-handbag, black-pumps, strappy-heels and gold-hoops), 4 of them hearted. 8 are owned (`manual`, ✓): knit-cardigan, black-blazer, pleated-skirt, white-sneakers, black-cardigan, ribbed-tank, beige-trousers, basic-cami. The other 13 came from 购物广场 (`shopping_plaza`, no ✓); the striped shirt's order VT20260715092418 is still on its way. 伴侣, 爸爸 and 妈妈 own their garments, except those they saved from 购物广场: 伴侣's utility-jacket and white-sneakers, 爸爸's brown-blazer, 妈妈's satin-slip-dress and black-handbag. (`data.seedRoles`: 伴侣 has 7 garments, 爸爸 6, 妈妈 8.)
+- **搭配集** (`s.collections`): `{ id, name, cover, createdAt, items }`, where `items` are wardrobe uids and `cover` is a kit image or `null`. The seed lists product ids, turned into that person's uids at start-up (`seedCollections` in `store.js`). 本人's four (`data.seedCollections`, each with a kit cover): 周末最爱 (knit-cardigan, straight-jeans, white-sneakers, brown-tote) · 通勤搭配 (taupe-coat, striped-shirt, white-shirt, brown-tote) · 约会穿搭 (pleated-skirt, white-tee, black-blazer, brown-tote) · 旅行穿搭 (white-tee, straight-jeans, white-sneakers, black-cardigan). The kit's lists have 4 garments each (REPORT deviation 19). The demo people's have no cover: 伴侣 周末最爱 (3) and 旅行穿搭 (4), 爸爸 通勤搭配 (3), 妈妈 约会穿搭 (4) and 通勤搭配 (4). A new person has none.
+- **穿搭瞬间** (`s.moments`): `{ id, src, scene?, at, items, missing?, fav }`, shown newest first by `at` (§26 describes the record). 本人's four seed photos (`data.seedMoments`, crops of the mockup in `assets/wardrobe/moments/`, each with the catalogue garments closest to what it shows): 10月14日 knit-cardigan, straight-jeans · 10月12日 black-blazer, black-handbag · 10月8日 grey-hoodie (hearted) · 10月6日 satin-slip-dress, black-handbag. The demo people and new people start with none.
 - Order is the array order; there is no sort control. New entries are `unshift`ed: photos here and from 首页 (加入衣橱), 商品详情 「加入衣橱」 and checkout (both `shopping_plaza`, not owned). One record per product per person: re-adding a product only updates its colour/size, and buying one that is there changes nothing (owned or not). 确认收货 marks the bought garment owned. `addedAt` is stored but never used.
-- Persisted: the wardrobe, `wardrobeCat` and `tryQueue` (the queue survives a reload).
-- In memory only (kept across tab switches, lost on reload): whether search is open, and the query.
-- Kept when returning to the tab: grid scroll (`data-keep-scroll="wr"`) and category-row scroll (`wr-tabs`).
+- Persisted: the wardrobe, `wardrobeCat`, `wardrobeView`, `tryQueue` (the queue survives a reload), and each person's 搭配集 and 穿搭瞬间.
+- In memory only (kept across tab switches, lost on reload): whether search is open, the query, and each view's scroll position.
+- Kept when returning to the tab: the shown view's scroll (`data-keep-scroll` `wr-clothes`, `wr-sets`, `wr-moments`), the category row (`wr-tabs`) and the portrait row (`wr-people`).
 
 **States & edge cases.**
 - Empty grid: a hanger icon, the text 「没有找到匹配的单品」 (when a query is typed) or 「这个分类还没有衣服」, and the ghost button 「添加衣物」. With 本人's seed no category is empty; a new person's are.
+- No 搭配集: a hanger icon, 「还没有搭配集」, 「把喜欢的单品组合成一套 Look，随时一键试穿」 and a ghost 「新建搭配集」 (a new person). No 穿搭瞬间: an image icon, 「还没有穿搭瞬间」, 「在首页试穿后点「保存造型」，造型会保存在这里」 and a ghost 「去试衣间」 (the demo people and a new person).
 - ✓ and the heart are independent: the seed has hearted garments without ✓ (brown-tote, white-shirt) and owned ones without a heart. Temporary garments (首页) never show here until 加入衣橱.
-- A name of only spaces is saved as an empty string (bug, `06-wardrobe.js:197`; the intent is 「我的衣物」).
+- The queue bar shows only in 衣服; the queue itself stays while another view is shown.
+- A name of only spaces is saved as an empty string (bug, `06-wardrobe.js:580`; the intent is 「我的衣物」).
 - Saving does not clear an open search query, so the new item can be hidden by the search.
-- Toasts appear on top of the queue bar (both sit at about the same height: `components.css:246`, `06-wardrobe.css:40`). Keep them apart in the rebuild.
+- Toasts appear on top of the queue bar (both sit at about the same height: `components.css:259`, `06-wardrobe.css:100`). Keep them apart in the rebuild.
 - The prototype keeps uploaded photos as data URLs in local state **[demo]**.
 - No difference between first launch and later, or logged in and not.
 
-**Components used.** `VT.ui.iconBtn`, `VT.ui.img`, `VT.ui.ownMark` (`.own-mark--l`, `.own-mark--inline` in `.wr-own-tag`), `VT.ui.tabBar`, `.heart-btn` (+`.pop`), `.btn` (`--dark/--ghost/--sm/--lg/--block`), `.chip`, `.field`/`.field-label`/`.field-row`, `.sheet-lead`, `.sheet-note`, `.sr-only`, `.wr-menu-row` (with `.wr-ring-plus` / `.wr-ring-own`), `app.sheet`, `app.layer`, `app.dialog`, `app.toast`, `VT.tryOn`, `VT.garments`. (`VT.ui.statusBar` is prototype-only.)
+**Components used.** `VT.ui.iconBtn`, `VT.ui.img`, `VT.ui.ownMark` (`.own-mark--l`, `.own-mark--inline` in `.wr-own-tag`), `VT.ui.tabBar`, `.heart-btn` (+`.pop`), `.btn` (`--dark/--ghost/--sm/--lg/--block`), `.chip`, `.field`/`.field-label`/`.field-row`, `.sheet-lead`, `.sheet-note`, `.sr-only`, `.wr-menu-row` (with `.wr-ring-plus` / `.wr-ring-own`), `app.sheet`, `app.layer`, `app.dialog`, `app.toast`, `VT.tryOn`, `VT.garments`, `VT.store.avatars`, `VT.avatarUI.create`. Local: the portrait row (`.wr-people`, `.wr-face`), the toggle (`.wr-segs`, `.wr-seg`), the view bars (`.wr-bar`, `.wr-private`), the collection cards and covers (`.wr-set*`, `.wr-cover*`), the gallery (`.wr-moment*`, `.wr-photo`), the long-press layer (`.wr-ctx*`) and the sheets' parts (`.wr-set-row*`, `.wr-pick-*`). Exports `VT.wardrobe = { saveLook }` for 首页's 保存造型. (`VT.ui.statusBar` is prototype-only.)
 
-**Acceptance checks.** `AC3: tab → wardrobe` · `AC2/4: wardrobe has one bar with the 5 tabs` · `tab switch to wardrobe is instant` · `wardrobe has no back button (primary)` · `加入衣橱 → 个人衣橱 tab` · `加入衣橱: top of the wardrobe, from 购物广场 with its store, not owned: no ✓, no source label` · `wardrobe filter 下装` · `wardrobe queue bar; a queued tile is numbered, not ✓` · `添加衣物: saved as a photo garment, not owned (no ✓)`. From the 个人衣橱 V2 block: `category filters follow the person (妈妈 连衣裙 1, 本人 全部 21)` · `个人衣橱: ✓ exactly on the owned garments; hearts apart (♥ without ✓ and ✓ without ♥); no source labels` · `标记为已拥有: ✓ on the tile, source kept, no new record; the heart still toggles on its own` · `取消已拥有标记 takes the ✓ away again` · `long-press: 立即试穿 · 加入搭配集 · 取消已拥有标记 · 分享 · 删除 (not the item sheet)`.
+**Acceptance checks.** `AC3: tab → wardrobe` · `AC2/4: wardrobe has one bar with the 5 tabs` · `tab switch to wardrobe is instant` · `wardrobe has no back button (primary)` · `加入衣橱 → 个人衣橱 tab` · `加入衣橱: top of the wardrobe, from 购物广场 with its store, not owned: no ✓, no source label` · `wardrobe filter 下装` · `wardrobe queue bar; a queued tile is numbered, not ✓` · `添加衣物: saved as a photo garment, not owned (no ✓)`. The 个人衣橱 V2 block runs in a fresh 390 × 844 context with empty storage, from `?app=wardrobe`; each check builds on the one before: `portrait row: 4 people + 新建数字分身, no names, 本人 ringed` · `衣服 | 搭配集 | 穿搭瞬间 over a 3-column grid` (21 tiles) · `tapping a portrait shows that person's wardrobe` (伴侣: 7 garments, grey-hoodie, no knit-cardigan) · `one active person across 首页 切换角色 and the portrait row` · `category filters follow the person (妈妈 连衣裙 1, 本人 全部 21)` · `个人衣橱: ✓ exactly on the owned garments; hearts apart (♥ without ✓ and ✓ without ♥); no source labels` · `标记为已拥有: ✓ on the tile, source kept, no new record; the heart still toggles on its own` · `取消已拥有标记 takes the ✓ away again` · `long-press: 立即试穿 · 加入搭配集 · 取消已拥有标记 · 分享 · 删除 (not the item sheet)` · `加入搭配集 → 新建搭配集 holding that garment` (「春日出游」 with 1 garment, first of 5) · `搭配集 → 搭配集详情 with its garments` · `一键试穿这套 → 首页 wears the set` · `首页 保存造型 → 本人's 穿搭瞬间, newest first` · `穿搭瞬间 detail: photo, date, 仅自己可见, related garments, 再次试穿`. The last four are listed with 搭配集详情 (§25), 首页 (§3) and 穿搭瞬间 (§26) too.
 
 
 ### 6. AI 造型师 · `stylist`
@@ -773,7 +817,7 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
 
 **Route** `/plaza/p/:pid` (canonical parent `plaza`; other paths below) · **Type** secondary · **Prototype** `js/screens/05-product.js`, `css/screens/05-product.css` · **Design ref** `reference/design/screens/05_product_details.png`
 
-**Other paths.** The screen is pushed onto whichever stack opened it: `/wardrobe/p/:pid`, `/stylist/p/:pid`, `/me/favorites/p/:pid`, `/me/history/p/:pid`, `/me/orders/p/:pid` (「再次购买」), `/me/orders/o/:oid/p/:pid`, `…/checkout/p/:pid` (checkout item card), `/plaza/messages/p/:pid` (the 「心愿单降价提醒」 notice on 商家消息) and `…/p/:pid/p/:pid2` (the store sheet's product rows).
+**Other paths.** The screen is pushed onto whichever stack opened it: `/wardrobe/p/:pid`, `/stylist/p/:pid`, `/me/favorites/p/:pid`, `/me/history/p/:pid`, `/me/orders/p/:pid` (「再次购买」), `/me/orders/o/:oid/p/:pid`, `…/checkout/p/:pid` (checkout item card), `/plaza/messages/p/:pid` (the 「心愿单降价提醒」 notice on 商家消息), `…/s/:sid/p/:pid` (a store page's products and 当季精选 rows, proposed route: 商家店铺, §27) and the 搭配集详情 / 穿搭瞬间 paths `/wardrobe/sets/:id/p/:pid`, `/wardrobe/moments/:id/p/:pid` (proposed, §25–§26). The store sheet that pushed `…/p/:pid/p/:pid2` is gone.
 
 **Purpose.** Show one catalogue item (gallery, rating, brand, price, description), let the user choose colour and size, and send it to the wardrobe, to try-on on 首页, or to checkout.
 
@@ -783,7 +827,7 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
   - Hero image `gallery[i]` with alt `{name}（第 {i} 张，共 {n} 张）`. It uses `contain` when the path contains `model` or `items/` and `cover` otherwise; `small` products get padding. A transparent button (aria 「下一张图片」) covers the hero below the top bar.
   - Thumbnail strip (`role="tablist"` aria 「商品图片」, scrolls sideways), built from `galleryThumbs || gallery`. Each tab has aria `第 {i} 张图片`. The active thumb is wider and outlined.
   - Title row: h1 `name`, plus a rating button (★, `rating.toFixed(1)`, `({reviews})`; aria `评分 {rating}，{reviews} 条评价`).
-  - Brand button `{brand} ›` (the brand is the store's `name`, e.g. 「ZARA」), then the large price `¥{price}`, then `desc` (`\n` becomes a line break).
+  - Brand row (`.pd-brand`, one button, aria 「{brand}，进入店铺」; its touch target is stretched to 44 px): the store's 20 px logo (`VT.plaza.logo`), the brand (the store's `name`, e.g. 「ZARA」) and, after a hairline, 「进入店铺 ›」 (12 px, grey). Then the large price `¥{price}`, then `desc` (`\n` becomes a line break).
   - When the active person owns the product (`VT.garments.ownsProduct`), the price line ends with 「已拥有」 after an inline ✓ (`.pd-own`: 10 px after the price, 12.5 px / 600, `--text-2`, ✓ 15 px). Saved but not owned, hearted or ordered: nothing.
   - 「颜色」 heading with a link on the right that shows the current colour name and a ›. Below it, a swatch row (`role="radiogroup"` aria 「颜色」); each swatch is `role="radio"` with the colour name as aria-label. `stripe` swatches draw as stripes.
   - 「尺码」 heading with a link 「尺码指南」 › on the right. Below it, size pills (`role="radiogroup"` aria 「尺码」) from `p.sizes`: XS/S/M/L, shoes 35–39, bags and hoops 「均码」.
@@ -800,7 +844,8 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
   - It **does** change what gets saved or bought: the wardrobe entry's colour, the cart colour, and from there the checkout title prefix (`color.short + cardName`, e.g. 「黑色条纹衬衫」), the 颜色 chip, and the order's `title` / `colorLabel`.
   - Try-on ignores colour.
 - Size pill → `s.selections[pid].size` (persisted). The default is `p.defaultSize`: M when the product has it, otherwise its first size.
-- 「尺码指南」 opens the size guide sheet and the rating opens the reviews sheet. The brand opens the store sheet of the product's store (`data.storeOf(p)`, `05-product.js:133-137`): the same sheet as on 购物广场.
+- 「尺码指南」 opens the size guide sheet and the rating opens the reviews sheet.
+- The brand row opens the page of the product's store (`VT.storefront.open(app, data.storeOf(p).id)`, `05-product.js:133-137`; 商家店铺, §27), pushed on this tab's stack (`…/p/:pid/s/:sid`, proposed). When that store's page is already in the stack, as after store → product, it goes back to it instead of pushing a copy. Until 66f648a it opened the store sheet, and before 514de38 a brand sheet (lead 「品牌店铺 · 演示数据。以下为同品类在售单品：」); both are gone.
 - Heart → global `fav` on `s.favorites[pid]`, with toast 「已收藏」 / 「已取消收藏」.
 - Share. The text is `{name} ¥{price} — 来自「全新的购物体验」原型`.
   1. If `navigator.share` exists (and the page is not framed), call `navigator.share({title: name, text})`. On success or `AbortError`, stop silently. Any other error falls through to step 2.
@@ -824,7 +869,6 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
   - Table headers 「尺码」「胸围」「衣长」「肩宽」「袖长」. Rows: XS 88/64/38/54, S 92/66/39/55, M 96/68/40/56, L 100/70/41/57. The row matching the selected size is highlighted.
   - Note 「单位：cm，平铺测量，误差 ±1–2cm。」.
 - `商品评价 ({reviews})` **[demo]**: summary with `rating`, 「★★★★★」 and `98% 买家认为「尺码合适」`. Then three hard-coded reviews from the `reviews` array in 05-product.js (masked name, stars, text, `size · colour`). Note 「演示数据」.
-- Store sheet, from the brand button: `VT.plaza.openStore(app, data.storeOf(p).id)`, described under 购物广场. It is titled with the store's full name (「ZARA 官方旗舰店」) and lists every product of that store, this one included. A product row closes the sheet instantly and pushes another `product` (`…/p/:pid/p/:pid2`). 「联系商家」 opens that store's chat thread sheet over this page (see 商家消息); 「收藏店铺」 toggles the favourite store, which 购物广场's bar shows when the user returns there. The earlier brand sheet (lead 「品牌店铺 · 演示数据。以下为同品类在售单品：」, three products of the same category from any brand) is gone.
 - 加入衣橱 result sheet:
   - Title 「已加入衣橱」 (new entry) or 「已在你的衣橱中」 (existing entry).
   - A `.mini` row: image, name, `{colour name} / {size}`, price.
@@ -834,7 +878,7 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
   - Closing the sheet keeps the wardrobe change.
 
 **Data.**
-- Reads: `data.byId[pid]` (name, brand, rating, reviews, price, desc, colors, sizes, defaultSize, gallery, galleryThumbs, small, img.card, cat), `data.storeOf` and the store data behind the store sheet (`data.stores`, `s.storeFavs`), `data.fitCatsAll`, `data.slotOf`, `data.renders` (through `pickRender`), `s.selections`, `s.favorites`, `s.avatar.status`, `s.wardrobe` and the temporary garments (through `VT.garments`: 已拥有, 加入衣橱, 试穿上身).
+- Reads: `data.byId[pid]` (name, brand, rating, reviews, price, desc, colors, sizes, defaultSize, gallery, galleryThumbs, small, img.card, cat), `data.storeOf` (the brand row's logo and store), `data.fitCatsAll`, `data.slotOf`, `data.renders` (through `pickRender`), `s.selections`, `s.favorites`, `s.avatar.status`, `s.wardrobe` and the temporary garments (through `VT.garments`: 已拥有, 加入衣橱, 试穿上身).
 - For knit-cardigan, straight-jeans and brown-blazer the gallery's second image is the plaza model photo (`assets/plaza/models/…`), shown with `contain` like the other model shots. maxi-skirt has one image, its model photo.
 - Writes: `s.history`, `s.selections[pid]`, `s.favorites[pid]`, `s.wardrobe`, the temporary garments (试穿上身), `s.cart`, `s.fit.outfit`, `s.fit.cat`, `s.avatar.status/demo`.
 - Kept UI state: `.pd-scroll` (`data-keep-scroll="pd"`). A missing `pid` defaults to 'striped-shirt'.
@@ -846,15 +890,15 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
   - **[demo]** The label is stored as text, so it still says 「今天」 on later days.
 - An unknown `pid` renders the striped shirt (05-product.js:22), but the actions look up `data.byId[pid]` and throw (verified by tapping a size). `mount` still writes the unknown id into history, and 我的 counts it (10-profile.js:73).
 - A product with one image: tapping the hero just re-shows the same image, and there is one thumb.
-- The store sheet lists the product on screen too: tapping its own row pushes a second copy of this page (`…/p/:pid/p/:pid`). Reformation and Linea Denim sell one product each, so their sheet lists only the current product.
+- The brand row never stacks a second copy of a store page: opened from a store page, it returns to it (`plaza › store › product` → `plaza › store`). From any other screen it pushes the store page on that tab, e.g. `/wardrobe/p/:pid/s/:sid`.
 - The size table never matches shoe sizes or 均码. The tip ignores `s.body` and `s.avatarPrefs.sizeTips`.
 - Every product shows the same reviews (they mention 「蓝色条纹」), and the summary is always five stars.
 - 去衣橱看看 resets neither `s.wardrobeCat` nor the wardrobe scroll. If 个人衣橱 is filtered to another category, the new item is hidden (verified).
 - Prototype-only behaviour: the share text says 「原型」, and `VT.framed` (embedded preview) forces the clipboard path. Drop both in the web build.
 
-**Components used.** `VT.ui.backBtn`, `VT.ui.heart` + global `fav`, `VT.ui.iconBtn`, `VT.ui.img`, `VT.ui.price`, `VT.ui.nl2br`, `VT.ui.swatchStyle`, `.btn`, `app.sheet`, `.opt-list`/`.opt`/`.opt-sw`/`.radio`, `.guide-tip`, `.guide-table`, `.rv-sum`/`.rv-list`, `.mini`, `.sheet-actions`, `.sheet-lead`, `.sheet-note`, `app.toast`, `app.later`, `VT.store.h.selection/isFav/viewed`, `VT.fitting.pickRender`, `VT.plaza.openStore` (the store sheet), `VT.ui.ownMark` (`own-mark--inline`), `VT.garments`. Exports `VT.tryOn(app, refs)` (product ids, or `up:{uid}` for a photo), which is also used by 个人衣橱 (「立即试穿」, queue 「去试衣间」, 「一键试穿这套」, 「再次试穿」), AI造型师 (「去试衣间试穿」) and 我的收藏 (「去试衣间试穿」).
+**Components used.** `VT.ui.backBtn`, `VT.ui.heart` + global `fav`, `VT.ui.iconBtn`, `VT.ui.img`, `VT.ui.price`, `VT.ui.nl2br`, `VT.ui.swatchStyle`, `.btn`, `app.sheet`, `.opt-list`/`.opt`/`.opt-sw`/`.radio`, `.guide-tip`, `.guide-table`, `.rv-sum`/`.rv-list`, `.mini`, `.sheet-actions`, `.sheet-lead`, `.sheet-note`, `app.toast`, `app.later`, `VT.store.h.selection/isFav/viewed`, `VT.fitting.pickRender`, `VT.plaza.logo` (`.st-logo--pd`, 20 px), `VT.storefront.open` (the store page), `VT.ui.ownMark` (`own-mark--inline`), `VT.garments`. Exports `VT.tryOn(app, refs)` (product ids, or `up:{uid}` for a photo), which is also used by 个人衣橱 (「立即试穿」, queue 「去试衣间」, 「一键试穿这套」, 「再次试穿」), AI造型师 (「去试衣间试穿」) and 我的收藏 (「去试衣间试穿」).
 
-**Acceptance checks.** `plaza → product details`, `secondary screen hides tab bar`, `AC6: back from product → plaza`, `加入衣橱 → 个人衣橱 tab`, `加入衣橱: top of the wardrobe, from 购物广场 with its store, not owned: no ✓, no source label`, `plaza tab returns to its own history (product page)`, `立即购买 → checkout`, `浏览记录 includes viewed products`, `look → 首页 with outfit` (via `VT.tryOn`), `honest toast for garments without imagery` (via `VT.tryOn`), `a product tried on from elsewhere joins the rail: temporary, from 购物广场, not owned, not in the wardrobe` (via `VT.tryOn`), `product brand opens its store sheet` (the first 购物广场 card, knit-cardigan → 「ZARA 官方旗舰店」), `商品详情 says 已拥有 only for a product 本人 owns`.
+**Acceptance checks.** `plaza → product details`, `secondary screen hides tab bar`, `AC6: back from product → plaza`, `加入衣橱 → 个人衣橱 tab`, `加入衣橱: top of the wardrobe, from 购物广场 with its store, not owned: no ✓, no source label`, `plaza tab returns to its own history (product page)`, `立即购买 → checkout`, `浏览记录 includes viewed products`, `look → 首页 with outfit` (via `VT.tryOn`), `honest toast for garments without imagery` (via `VT.tryOn`), `a product tried on from elsewhere joins the rail: temporary, from 购物广场, not owned, not in the wardrobe` (via `VT.tryOn`), `product brand opens its store page` (the first 购物广场 card, knit-cardigan → ZARA's page: 购物广场 › 商品详情 › 商家店铺), `store page → product; its brand row returns to the same store page` (商家店铺, §27), `商品详情 says 已拥有 only for a product 本人 owns`.
 
 
 ### 9. 结算下单 · `checkout`
@@ -988,7 +1032,7 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
 - Scroll (`.sub-scroll.msg-scroll`, `data-keep-scroll="msg"`):
   - System row (a button, card background, radius 16, padding 12): a 44 px round bell icon; 「消息通知」 (bold) with the time 「10 分钟前」 on the right; below, 「心愿单降价提醒、订单物流与 AI 造型师推荐」 on one line.
   - Heading 「商家」.
-  - One row per store chat that has at least one message, newest activity first (gap 8). Each row is a button with the same card look: the store's 44 px logo with, when it has unread messages, a red count badge at its top-right (`.msg-dot`, 18 px, `#C8473D`); the store's full name (bold, ellipsis) with the last message's time on the right; the last message on one line (ellipsis), prefixed 「我：」 when the user sent it. Unread rows end with sr-only 「，{n} 条未读」.
+  - One row per store chat that has at least one message, newest activity first (gap 8). Each row has the same card look and two buttons. The row itself (`.msg-row`) shows the store's full name (bold, ellipsis) with the last message's time on the right, and the last message on one line (ellipsis), prefixed 「我：」 when the user sent it; unread rows end with sr-only 「，{n} 条未读」. On top of its left end sits the store's 44 px logo as a separate button (`.msg-shop`, aria 「查看店铺 {full name}」), with, when the chat has unread messages, a red count badge at its top-right (`.msg-dot`, 18 px, `#C8473D`).
   - Empty state, when no chat has a message: a chat icon, 「还没有和商家的聊天」 and a ghost button 「去购物广场逛逛」.
   - Note 「演示对话，回复为预设内容」.
 
@@ -996,6 +1040,7 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
 - Back → pop to 购物广场 `/plaza`. A deep link to `/plaza/messages` gets the same parent.
 - 「消息通知」 row → 「消息通知」 sheet.
 - A store row → that store's chat thread sheet. Opening it marks the chat read at once: its badge and the 购物广场 badge drop.
+- A store's logo → that store's page (`VT.storefront.open`; push `store` → `/plaza/messages/s/:sid`, proposed; 商家店铺, §27). Back returns here.
 - 「去购物广场逛逛」 → back.
 
 **Overlays.** Both sheets close via ×, scrim tap, Esc or back.
@@ -1003,20 +1048,21 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
   - 「心愿单降价提醒」 · `你关注的「条纹亚麻衬衫」本周可用 ¥20 优惠券` · 「10 分钟前」 → push `product` `{pid:'striped-shirt'}` on top of this screen → `/plaza/messages/p/striped-shirt`.
   - 「订单运输中」 · 「你的订单预计 7月18日 送达，点击查看物流」 · 「今天 08:32」 → `app.open('orders', {oid: data.seedOrder.id}, {anim:'fade'})`. This switches to 我的 and replaces its stack with 我的 › 我的订单 (`filter:'all'`) › 订单详情, at `/me/orders/o/VT20260715092418`. The copy says 物流, but it opens 订单详情, not 物流跟踪 (HANDOFF §13.2 #17).
   - 「AI 造型师」 · 「为你准备了 3 套朋友聚会穿搭，快去看看」 · 「昨天」 → contextual tab jump to `stylist` (its root, fade) → `/stylist`.
-- **Chat thread sheet** (`VT.storeChat.open(app, storeId)`, a full-height sheet). Also opened by 「联系商家」 on the store sheet, over 购物广场 or 商品详情, without navigating.
-  - Title: the store's full name.
+- **Chat thread sheet** (`VT.storeChat.open(app, storeId)`, a full-height sheet). Also opened by 「联系商家」 on 商家店铺 (§27), over that page, without navigating.
+  - Header: one button (`.mchat-who`, aria 「查看店铺 {full name}」) holding the store's logo, its full name and a ›; the sheet keeps the plain full name as its accessible name. It opens the store's page with `chat: '1'`, so back from that page re-opens this chat. Over that store's own page it just closes the chat.
   - Thread (`.mchat`): the stored messages as bubbles, the store's on the left and the user's on the right. A store with no messages shows one greeting bubble, 「您好，欢迎光临 {full name}，请问有什么可以帮您？」, which is stored only once the user writes.
   - Quick-question chips 「什么时候发货？」「尺码怎么选？」「有优惠券吗？」; an input (placeholder 「输入消息…」, aria 「输入消息」; Enter sends, not while composing) with a dark 「发送」 button; the note 「演示对话，回复为预设内容」.
   - Opening sets the chat's `unread` to 0 and updates 商家消息 (when it is the screen underneath) or the 购物广场 badge.
+  - Unsent text is kept per store while the app runs: closing the sheet, or visiting the store from its header, keeps it in the input for next time. A reload loses it.
   - Sending (a chip, or the trimmed input; blank does nothing): the user's bubble appears at once and the message is stored with the time `HH:mm`. If the chat was empty, the greeting is stored first. 900 ms later the store's reply (HANDOFF §9.14) is stored and appended. If the sheet was closed in the meantime, the reply raises the chat's `unread` by 1 and the badges show it. Each message moves the chat to the top of the list. The thread scrolls to the bottom on open and after each bubble.
 
-**Data.** Reads `s.storeChats` and `data.storeById`. Writes `s.storeChats[storeId]` = `{ unread, at, msgs: [{ me, text, t }] }`: `unread` (opening, replies), `msgs` (sent and received messages, with `t` the display time) and `at` (last activity: `Date.now()` for new messages, small numbers in the seed; only used to order the list). Persisted. Keep scroll `msg`.
+**Data.** Reads `s.storeChats` and `data.storeById`. Writes `s.storeChats[storeId]` = `{ unread, at, msgs: [{ me, text, t }] }`: `unread` (opening, replies), `msgs` (sent and received messages, with `t` the display time) and `at` (last activity: `Date.now()` for new messages, small numbers in the seed; only used to order the list). Persisted. Keep scroll `msg`. The unsent text per store (`drafts` in `14-messages.js`) is in memory only.
 
 Seed (`data.storeChatSeed`); the list shows ZARA, Mono Atelier, Forma and the 购物广场 badge reads 1:
 
 | Store | `unread` | `at` | Messages (`t`) |
 |---|---|---|---|
-| ZARA | 1 | 3 | store 「10:24」: 「您收藏的店铺上新啦！2024 秋冬系列已上线，收藏店铺的顾客可领取 ¥30 新品券～」 |
+| ZARA | 1 | 3 | store 「10:24」: 「您关注的店铺上新啦！2024 秋冬系列已上线，关注店铺的顾客可领取 ¥30 新品券～」 |
 | Mono Atelier | 0 | 2 | user 「昨天」: 「黑色西装外套还有 S 码吗？」 · store 「昨天」: 「亲，黑色 S 码有现货，下单后 48 小时内发货哦～」 |
 | Forma | 0 | 1 | store 「7月13日」: 「您的小白板鞋已送达，穿着还合适吗？有任何问题随时联系我们～」 |
 
@@ -1028,9 +1074,9 @@ Seed (`data.storeChatSeed`); the list shows ZARA, Mono Atelier, Forma and the �
 - The 「消息通知」 row has no unread state, and its time is fixed.
 - 订单详情's 「联系商家」 is a different, unstored chat with other scripted answers. It never shows up here (HANDOFF §13.2 #36).
 
-**Components used.** `VT.ui.subHead`, `VT.plaza.logo` (`.st-logo--msg`, 44 px), `VT.icon` (`bell`, `chat-dots`), `.msg-row`/`.msg-sys`/`.msg-face`/`.msg-dot`/`.msg-main`/`.msg-top`, `.msg-h`, `.ol-empty`, `.sheet-note`, `app.sheet` with `full: true`, `.mchat` with `.b.me`/`.b.them`, `.or-quick` chips, `.mchat-input`, `app.later`, `app.refresh`. Exports `VT.storeChat = { open, unread }`.
+**Components used.** `VT.ui.subHead`, `VT.plaza.logo` (`.st-logo--msg`, 44 px; `.st-logo--chat` in the sheet header), `VT.icon` (`bell`, `chat-dots`, `chevron-right`), `.msg-row`/`.msg-sys`/`.msg-face`/`.msg-shop`/`.msg-dot`/`.msg-main`/`.msg-top`, `.msg-h`, `.ol-empty`, `.sheet-note`, `app.sheet` with `full: true`, `.mchat` with `.b.me`/`.b.them`, `.mchat-who`, `.or-quick` chips, `.mchat-input`, `app.later`, `app.refresh`, `VT.storefront.open`. Exports `VT.storeChat = { open, unread }`.
 
-**Acceptance checks.** `plaza: chat icon opens 商家消息` (the rows are ZARA, Mono Atelier, Forma, with one unread badge) · `plaza: store chat replies and clears unread` (ZARA, chip 「什么时候发货？」) · `plaza: back from 商家消息 → 购物广场`.
+**Acceptance checks.** `plaza: chat icon opens 商家消息` (the rows are ZARA, Mono Atelier, Forma, with one unread badge) · `商家消息: a store avatar opens its store page; back returns` (Mono Atelier) · `plaza: store chat replies and clears unread` (ZARA, chip 「什么时候发货？」) · `chat header opens the store page; back reopens the same chat with its draft` (「有 M 码吗」 typed, not sent) · `plaza: back from 商家消息 → 购物广场`.
 
 
 ## Orders (我的 → 我的订单)
@@ -1724,4 +1770,138 @@ The avatar keeps its current photos until a generation finishes. Leaving midway 
 **Components used.** `VT.ui.subHead` with its right action `.sub-act`, `.set-group`, `.set-h`, `.set-card`, `.set-main`/`.set-label`/`.set-sub`, `VT.ui.price`, `VT.ui.img`, `.ol-empty`, global `nav` action, `app.dialog`, `app.toast`.
 
 **Acceptance checks.** `浏览记录 includes viewed products`
+
+
+## Collections and moments (from 个人衣橱)
+
+Added with 个人衣橱 V2 (8bf9527, 20 Oct 2026). Both screens belong to the active person and sit on 个人衣橱's stack (the prototype's `PARENT`: `outfit: 'wardrobe'`, `moment: 'wardrobe'`). Their routes are a proposal (HANDOFF §8, §13.1 #20). The V2 mockup isn't in `reference/design/`, so the prototype is the only reference.
+
+### 25. 搭配集详情 · `outfit`
+
+**Route** `/wardrobe/sets/:id` (proposed: HANDOFF §8, §13.1 #20; prototype params `{ id, pick? }`) · **Type** secondary, parent 个人衣橱 · **Prototype** `js/screens/06-wardrobe.js` (`VT.screens.outfit`; its sheets are 个人衣橱's), `css/screens/06-wardrobe.css` · **Design ref** none in `reference/design/` (REPORT deviations 18–19)
+
+**Purpose.** One collection (搭配集) of the active person: its cover and garments, to open each garment, edit the set, and try the whole set on in one go.
+
+**Layout (top → bottom).** No tab bar.
+- Header (`.sub-head`, fixed): back (aria 「返回」); centred, the collection's name (h1, 18 px / 900, one line, ellipsis) over 「{n} 件单品」 (11.5 px); a ⋯ button on the right (aria 「更多操作」, `aria-haspopup="dialog"`).
+- Scroll (`.wr-od`, `data-keep-scroll="wr-od"`):
+  - The cover at 4 : 3 (radius 16). The kit image is shown whole here (the 搭配集 list crops it to 16 : 10); without one, the collage of the first garments; for an empty collection, a hanger.
+  - The garments (aria 「搭配集里的单品」): a 5-column grid of square tiles (gap 8, radius 12), in the collection's order. Each tile is a button (`aria-haspopup="dialog"`) with the garment's grid image (`img.square`, else `img.tile`, or the photo). 搭配集详情's tiles show ✓ (16 px, top-right, 5 px in; aria adds 「，已拥有」) on what the person owns. After them, a ＋ tile with a thin ring (aria 「编辑单品」).
+  - With no garments: 「还没有单品，点「＋」从衣橱里挑选」 under the grid.
+- Footer (`.sub-foot`): the full-width button 「一键试穿这套」 (`#342722`, white text), disabled while the collection is empty.
+
+**Interactions.**
+- Back → pop to 个人衣橱 as it was (its view and scroll kept). A deep link gets the same parent.
+- A garment → the item sheet (§5), with 「从「{collection}」移出」 after 「加入搭配集」.
+- ＋ → the 编辑单品 sheet (§5).
+- ⋯ → the collection menu (§5): 重命名 · 编辑单品 · 分享 · 删除搭配集. After 删除搭配集 it goes back.
+- 「一键试穿这套」 → `VT.tryOn` with every garment in the set's order, photos included (as `up:{uid}`): they go on the active avatar with the slot rules, and the app jumps to 首页 (§5, Try-on). 一键试穿这套 works whenever the set has garments, photos included. With none it toasts 「这个搭配集还没有可试穿的单品」 (the button is disabled then anyway).
+- Opened by 「新建搭配集」 (`params.pick = '1'`), the screen opens 编辑单品 380 ms after the push, so the new set can be filled at once. It doesn't when the screen is restored (tab switch, back) or refreshed.
+
+**Overlays.** The item sheet, 加入搭配集, the collection menu, the name sheet, 编辑单品, 添加衣物 (from an empty 编辑单品) and the 删除 dialogs, as described under 个人衣橱 (§5).
+
+**Data.** Reads the active person's `s.collections` and `s.wardrobe` (a collection holds wardrobe uids; a uid whose garment was deleted is skipped). Writes that collection (rename, garments, delete) and, through the item sheet, what §5 lists. Keep scroll `wr-od`.
+
+**States & edge cases.**
+- An unknown id shows the person's first collection. With no collections at all, the screen is the sub-header 「搭配集」 over the empty state 「这个搭配集已不存在」 with a ghost 「返回」.
+- Deleting a garment in the item sheet also takes it out of this collection (and every other one of that person).
+- A kit cover is a fixed picture of the seed garments (a collage of the kit's shots): it doesn't change when the set is edited. Only sets without one draw their collage from their current garments.
+- **[demo]** The seed collections hold 4 garments each (REPORT deviation 19).
+
+**Components used.** `VT.ui.backBtn`, `.sub-head`, `.sub-foot`, `VT.ui.iconBtn`, `VT.ui.img`, `VT.ui.ownMark`, `.btn--xl.btn--block`, `app.sheet`, `app.dialog`, `app.toast`, `app.later`, `VT.tryOn`, `VT.garments`. Local: `.wr-od-*`, `.wr-cover*`, `.wr-cta`.
+
+**Acceptance checks.** From the 个人衣橱 V2 block: `搭配集 → 搭配集详情 with its garments` (5 cards after 「春日出游」 joined; the second, 周末最爱, shows 4 garments) · `一键试穿这套 → 首页 wears the set` (knit-cardigan and straight-jeans in the outfit).
+
+
+### 26. 穿搭瞬间 · `moment`
+
+**Route** `/wardrobe/moments/:id` (proposed: HANDOFF §8, §13.1 #20; prototype params `{ id }`) · **Type** secondary, parent 个人衣橱 · **Prototype** `js/screens/06-wardrobe.js` (`VT.screens.moment`; `saveLook` for 首页's 保存造型), `css/screens/06-wardrobe.css`; seed photos in `assets/wardrobe/moments/` · **Design ref** none in `reference/design/`
+
+**Purpose.** One saved look of the active person: the picture, when it was saved and the garments in it, to save, share or try on again. Private to the user (「仅自己可见」).
+
+**Layout (top → bottom).** No tab bar.
+- Sub-header 「穿搭瞬间」 (`VT.ui.subHead`): back, and a ⋯ button on the right (aria 「更多操作」, `aria-haspopup="dialog"`).
+- Scroll (`.wr-mo`, `data-keep-scroll="wr-mo"`):
+  - The picture at 2 : 3 (radius 18), drawn as in the gallery (a 首页 render whole on its backdrop's colour), with its heart at the top-right (44 px target; aria 「标记喜欢：{M月D日}的穿搭」 / 「取消喜欢：{M月D日}的穿搭」).
+  - One line: 「{M月D日} 保存」 on the left, a lock and 「仅自己可见」 on the right.
+  - When it has garments: the heading 「相关单品」 and a 3-column grid. Each garment is a button (aria 「查看商品详情：{name}」, followed by 「，已拥有」 when owned): a square thumbnail (`img.square`, else `img.tile`), the name on one line and, for a garment the render couldn't show, the tag 「暂无上身图」. 穿搭瞬间's 相关单品 show ✓ (16 px, top-right, 5 px in) on what the person owns (`VT.garments.ownsProduct`).
+  - A note: 「首页数字分身的试穿画面（演示版使用示例模特）」 under a 首页 render, 「示例照片（演示版）」 under a seed photo **[demo]**.
+- Footer (`.sub-foot`): two 51 px round buttons, 保存图片 (download icon) and 分享 (share icon), labelled by their aria-labels 「保存图片」 and 「分享」, then 「再次试穿」 filling the rest (`#342722`), disabled without garments.
+
+**Interactions.**
+- Back → pop to 个人衣橱, on its 穿搭瞬间 view.
+- Heart → toggles `fav`, as in the gallery (pop animation, no toast).
+- A garment → push `product` → `/wardrobe/moments/:id/p/:pid`.
+- 保存图片 → downloads 「穿搭瞬间-{M月D日}」: a seed photo as it is (`.webp`; `.jpg` for a JPEG), a 首页 render drawn onto its backdrop's colour as an 800 × 1200 JPEG (quality 0.9; the figure 94 % of the height, standing on the bottom edge). Toast 「图片已开始下载」 (download icon), or 「无法保存这张图片」.
+- 分享 → where the browser can share files, the native share sheet with that file, the title 「穿搭瞬间」 and the text 「我的穿搭瞬间 · {M月D日}」. Otherwise the text alone: native share, else the clipboard (「已复制，可粘贴分享」), else 「分享面板在此浏览器不可用」.
+- 「再次试穿」 → `VT.tryOn` with the garments that are still in the catalogue → 首页 (§5, Try-on). Garments the person hasn't got become temporary garments of theirs (HANDOFF §9.17).
+- ⋯ → a sheet titled 「{M月D日}」 with 「保存图片」 · 「分享」 · 「删除这张」 (red). 删除这张 → dialog 「删除这张穿搭瞬间？」 / 「删除后无法恢复。」 / 「取消」 · 「删除」; confirming deletes it, goes back to the gallery and toasts 「已删除」.
+
+**How a 穿搭瞬间 is made.** 首页's 「保存造型」 (`VT.wardrobe.saveLook`, §3) adds one to the active person's `s.moments`, first:
+- `src`: the image of the render 首页 shows (`pickRender(outfit).render`); `scene`: the backdrop (`fitScene`, default `taupe`); `at`: now; `fav`: false.
+- `items`: the outfit's catalogue garments (product ids; photos are left out). With none, the garments the render itself wears, so an empty outfit saves base with basic-cami, straight-jeans and white-sneakers.
+- `missing`: those of `items` the render doesn't show (`pickRender(outfit).missing`), shown as 「暂无上身图」.
+- When the newest 穿搭瞬间 has the same `src`, `scene` and set of `items`, nothing is added (「这套造型已经保存过了」).
+- Seed 穿搭瞬间 are photos: `src` only, no `scene` or `missing` (§5, Data).
+
+**Data.** Reads the active person's `s.moments`, `data.byId`, and ownership through `VT.garments.ownsProduct`. Writes `fav` and deletes. No picture data is stored: a 穿搭瞬间 points to a seed image or a render image. Keep scroll `wr-mo`.
+
+**States & edge cases.**
+- An unknown id shows the person's newest 穿搭瞬间. With none, the screen is the sub-header 「穿搭瞬间」 over 「这张穿搭瞬间已不存在」 with a ghost 「返回」.
+- The garments are product ids, not wardrobe entries: they stay listed whether or not the person still has them, and ✓ follows the current ownership.
+- **[demo]** Every render shows the sample model, so saved looks differ only in garments and backdrop. The seed photos are crops of the mockup; their garments are the catalogue items closest to what they show.
+
+**Components used.** `VT.ui.subHead`, `VT.ui.iconBtn`, `VT.ui.img`, `VT.ui.ownMark`, `.heart-btn` (+`.pop`), `.sheet-note`, `.btn--xl`, `app.sheet`, `app.dialog`, `app.toast`, `app.later`, `VT.tryOn`, `VT.garments`. Local: `.wr-mo-*`, `.wr-photo`, `.wr-private`, `.wr-round`, `.wr-cta`, `.wr-menu-row`.
+
+**Acceptance checks.** From the 个人衣橱 V2 block: `首页 保存造型 → 本人's 穿搭瞬间, newest first` · `穿搭瞬间 detail: photo, date, 仅自己可见, related garments, 再次试穿` (the second 穿搭瞬间 in the gallery).
+
+
+## Store pages (from 购物广场, 商品详情 and 商家消息)
+
+### 27. 商家店铺 · `store`
+
+**Route** `/plaza/s/:sid` (proposed: HANDOFF §8, §13.1 #20; prototype params `{ sid, cat?, chat? }`); also after any 商品详情 (`…/p/:pid/s/:sid`) and after 商家消息 (`/plaza/messages/s/:sid`) · **Type** secondary, parent 购物广场 · **Prototype** `js/screens/15-store.js`, `css/screens/13-store.css`; the logo, banner, card, 关注 and the store's products come from `js/screens/04-plaza.js` (`VT.plaza`); store data in `js/data.js` (`stores`) · **Design ref** `reference/design/screens/04_plaza_store_v2.webp`, its second phone (REPORT deviations 31–36)
+
+**Purpose.** A store's own page (66f648a): who it is, its campaign, introduction and collections, and everything it sells, with 关注 (the user's favourite-store list, the same one as on 购物广场) and 联系商家 (its chat on 商家消息).
+
+**Layout (top → bottom).** No tab bar.
+- Top bar (fixed, 88 px including the status bar): back (aria 「返回」) on the left, share (aria 「分享店铺」) on the right. No title.
+- Scroll (`.sf-scroll`, `data-keep-scroll="sf"`, side padding 19.4 / 19.9 px):
+  - The store: its 64 px logo (`VT.plaza.logo`: the monogram, or ZARA's serif wordmark); the `name` as h1 (19 px / 800, ellipsis), the tagline, and 「在售 {n} 件 · 店铺评分 {rating}」 (rating with one decimal; no follower count, REPORT deviation 31). On the right, two stacked 84 × 30 px pills: 「＋ 关注」 (dark) or 「✓ 已关注」 (light), with `aria-pressed`, and 「联系商家」 (white, outlined, chat icon).
+  - The store's banner 16 px below: the same banner as on 购物广场 (§4), without 「进入店铺」, and not a button.
+  - The introduction (`intro`, 11.6 px, at most three lines) with a ›: one button (sr-only 「，查看品牌介绍」) → 品牌介绍 sheet.
+  - Only for a store with `collections` (ZARA): the heading 「当季精选」 and a sideways row (`data-keep-scroll="sf-cols"`) of 111 px cards: a 1.6 : 1 photo, the name (bold) and a sub-line: 秋冬外套系列 · 质感廓形 从容日常; 针织毛衣系列 · 柔软舒适 百搭实穿; 牛仔系列 · 经典重塑 自在穿着. No 「查看全部」 (REPORT deviation 33).
+  - The heading 「全部商品」, a chip row (`role="tablist"` aria 「商品分类」, `data-keep-scroll="sf-chips"`) with 「全部」 and only the 购物广场 categories the store sells (ZARA: 全部 · 下装 · 外套, REPORT deviation 34; Forma: 全部 · 上衣 · 外套 · 鞋包 · 配饰), then the store's products in `data.plazaOrder` order in 购物广场's two-column grid with the same cards (heart, ✓ when the person owns it, colour dots). Every card image loads lazily.
+  - The note 「店铺介绍、商品与评分均为演示数据」 **[demo]**.
+
+**Interactions.**
+- Back → pop. From 购物广场 that is the plaza root, with its chosen store and chip as they were. When the page was opened from a chat's header (`chat: '1'`) and no sheet is open, back also re-opens that store's chat sheet, with its history and unsent text.
+- Share → the native share sheet with the title = the full name and the text 「{full name} · {tagline} — 来自「全新的购物体验」原型」; else the clipboard and 「店铺信息已复制，可粘贴分享」; else 「分享面板在此浏览器不可用」. The text says 「原型」, like 商品详情's (see there).
+- 「关注」 / 「已关注」 → `VT.plaza.toggleFav`, the same list as 购物广场's bar (`s.storeFavs`, HANDOFF §9.14): following puts the store first; unfollowing removes it and sends 购物广场 back to 全部 if it was the chosen store. The pill swaps in place and keeps focus; toast 「已关注「{name}」」 / 「已取消关注「{name}」」.
+- 「联系商家」 → that store's chat sheet over this page (商家消息, §10). Its header button only closes the chat here.
+- The introduction → 品牌介绍 sheet. A 当季精选 card → its collection sheet.
+- Chip → filters the grid in place (`.sf-feed` re-renders). The choice lives in this page's stack entry (`params.cat`; proposed `?cat=`), so it survives going to a product and back; a new visit starts on 全部. An unknown or unsold category falls back to 全部.
+- A card → push `product` (`…/s/:sid/p/:pid`). Its heart works as on 购物广场.
+- **One page per store** (`VT.storefront.open(app, sid)`, used by every way in): when this store's page is already in the current tab's stack, the app goes back to it (closing any sheet, dropping the screens above it, pop transition) instead of pushing a second copy. When it is the current screen, it only closes the sheets. So store → product → brand row returns to the store (stack 购物广场 › 商家店铺). An unknown store id opens nothing.
+
+**Overlays.** All close via ✕, a scrim tap, Esc or back.
+- **品牌介绍 sheet** (title 「品牌介绍」): the 54 px logo with the full name (bold) and the tagline; the introduction (13.5 px, line height 1.75); a card of three facts, 「主营品类」 (the categories it sells, joined by 「 · 」), 「在售商品」 「{n} 件」 and 「店铺评分」 {rating}; the note 「店铺介绍与评分均为演示数据」. No company facts (REPORT deviation 32).
+- **Collection sheet** (当季精选; titled with its name): its photo (1.9 : 1, radius 14), the lead 「{sub} · {n} 件」, then `.mini` rows (image, name, tags, price) for its products, only ever this store's own: 秋冬外套系列 → brown-blazer, knit-cardigan (2 件); 针织毛衣系列 → knit-cardigan (1 件); 牛仔系列 → straight-jeans (1 件). A row → push `product`.
+- The chat sheet (商家消息, §10).
+
+**Data.**
+- Reads `data.storeById[sid]` (an unknown `sid` shows ZARA), the store's products (`VT.plaza.storeProducts`: `data.plazaOrder` filtered by `data.storeOf`), `data.plazaCats` and `data.inCat` (the chips), `s.storeFavs`, `s.favorites` and the person's ownership (cards). Writes `s.storeFavs` (关注) and `s.favorites` (hearts); the chat writes `s.storeChats` (§10).
+- The store fields this page added (`data.js` `stores`; 购物广场's table lists the campaign lines): `campaign { img?, line }`, the banner's text-free photo (ZARA only) and title; `intro`, the introduction (demo copy, no company facts or follower counts); `collections` (ZARA only) `[{ id, name, sub, img, items }]`, the 当季精选, whose photos are the plaza model photos. The contract's `Store` doesn't have them yet (HANDOFF §13.1 #21).
+- Keep scroll `sf`, `sf-cols` and `sf-chips`.
+
+**States & edge cases.**
+- Every store but ZARA shows the collage banner and no 当季精选.
+- Reformation and Linea Denim sell one product each: their chip row is 「全部」 plus one category.
+- The page can sit on any tab's stack: 商品详情 opened from 个人衣橱, AI 造型师, 我的收藏 or 浏览记录 pushes it there (e.g. `/wardrobe/p/:pid/s/:sid`), not on 购物广场.
+- Following or unfollowing here changes 购物广场's bar; it shows when the user is back on 购物广场.
+- **[demo]** Introductions, collections, ratings and counts are seed data.
+
+**Components used.** `VT.ui.backBtn`, `VT.ui.iconBtn`, `VT.ui.img`, `VT.plaza.logo` (`.st-logo--sf` 64 px, `.st-logo--lg` 54 px), `VT.plaza.banner` (`.mban`), `VT.plaza.card` (`.pz-grid`, `.pz-card`), `VT.plaza.mini`, `VT.plaza.toggleFav`, `VT.plaza.isFavStore`, `VT.plaza.storeProducts`, `.chip` in `.pz-chips`, `.opt-list`, `.sheet-lead`, `.sheet-note`, `app.sheet`, `app.toast`, `VT.storeChat.open`. Local: `.sf-*`. Exports `VT.storefront = { open }`, used by 购物广场, 商品详情 and 商家消息.
+
+**Acceptance checks.** In the 购物广场 stores block (mobile context, seed data): `plaza: the store banner's 进入店铺 opens the store page` (ZARA) · `store page: identity, banner, 当季精选 and only its products, no tab bar` · `store page: category narrows its products` (外套 → knit-cardigan, brown-blazer) · `store page → product; its brand row returns to the same store page` · `back from the store page → 购物广场, store and category kept` · `store page: 关注 is the plaza's favourite-store list` (取消, then 关注 again: ZARA first in the bar) · `商家消息: a store avatar opens its store page; back returns` · `chat header opens the store page; back reopens the same chat with its draft` · `product brand opens its store page`.
 
