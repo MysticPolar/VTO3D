@@ -63,7 +63,7 @@ Every screen of the app: what it shows, what each control does, its sheets and d
 **Interactions.**
 - 「开始体验」 → if `avatar.status === 'ready'`, calls `app.enterMain()`. Otherwise it pushes `avatar` with `{ from: 'launch' }` → `/welcome/avatar` (slide).
 - 「登录」 → opens the 登录 sheet with an `after` callback. `after` sets `avatar.status = 'ready'` and `avatar.demo = true` if the avatar isn't ready yet (the code comment says a returning account already has a digital avatar), then calls `app.enterMain()`.
-- `app.enterMain()` (app.js:113): sets `setupDone = true`, closes all overlays, **clears every stack, including the launch flow**, and shows 首页 `/home` with a fade. Use a replace navigation so browser back can't return to `/welcome`.
+- `app.enterMain()` (app.js:114-121): sets `setupDone = true`, closes all overlays, **clears every stack, including the launch flow**, and shows 首页 `/home` with a fade. Use a replace navigation so browser back can't return to `/welcome`.
 
 **Overlays.**
 - **登录 sheet.** Built by `openLogin(app, after)` and exported as `VT.login`. 设置 also uses it for 「登录 / 注册」, with `after = refresh`. It is a bottom sheet titled 「登录」 with a ✕ close button (aria 「关闭」).
@@ -78,7 +78,7 @@ Every screen of the app: what it shows, what each control does, its sheets and d
 **Data.** Reads `avatar.status`. Writes `loggedIn` (login), `avatar.status` and `avatar.demo` (login), and `setupDone` (through `enterMain`). No keep-scroll or keep-value state.
 
 **States & edge cases.**
-- At app start, `app.launch()` (app.js:104) opens 首页 if `setupDone`, otherwise 启动页. This screen therefore appears only on first launch, after 设置 → 「重新体验首次启动」 (sets `setupDone = false` and keeps all data), or after 「重置演示数据」.
+- At app start, `app.launch()` (app.js:105-111) opens 首页 if `setupDone`, otherwise 启动页. This screen therefore appears only on first launch, after 设置 → 「重新体验首次启动」 (sets `setupDone = false` and keeps all data), or after 「重置演示数据」.
 - After 「重新体验首次启动」 the avatar is usually still `'ready'`, so 「开始体验」 skips avatar creation and goes straight to 首页. `'none'` and `'stale'` go to the upload screen.
 - Being logged in changes nothing on this screen: 「登录」 always opens the sheet. Only 设置 reads `loggedIn` (to show 登录 / 注册 or 退出登录).
 
@@ -888,7 +888,7 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
   - It records every time the screen mounts: first push, `open`, popping back from checkout, and returning to its tab. It skips in-place `app.refresh()`, but no product action refreshes, so in practice it records on every display.
   - It drops older entries for the same pid, prepends `{p, t: '今天 HH:MM'}` and keeps 30 entries.
   - **[demo]** The label is stored as text, so it still says 「今天」 on later days.
-- An unknown `pid` renders the striped shirt (05-product.js:22), but the actions look up `data.byId[pid]` and throw (verified by tapping a size). `mount` still writes the unknown id into history, and 我的 counts it (10-profile.js:73).
+- An unknown `pid` renders the striped shirt (05-product.js:22), but the actions look up `data.byId[pid]` and throw (verified by tapping a size). `mount` still writes the unknown id into history, and 我的 counts it (10-profile.js:75).
 - A product with one image: tapping the hero just re-shows the same image, and there is one thumb.
 - The brand row never stacks a second copy of a store page: opened from a store page, it returns to it (`plaza › store › product` → `plaza › store`). From any other screen it pushes the store page on that tab, e.g. `/wardrobe/p/:pid/s/:sid`.
 - The size table never matches shoe sizes or 均码. The tip ignores `s.body` and `s.avatarPrefs.sizeTips`.
@@ -993,7 +993,7 @@ This screen doesn't read uploaded avatar photos or `avatar.status`; every avatar
       2. `app.open('orders', {oid}, {anim:'fade'})` closes overlays instantly, switches to 我的 and replaces its stack with 我的 › 我的订单 (`filter:'all'`) › 订单详情, at `/me/orders/o/:oid`.
       3. Back then goes to 我的订单, then 我的. The 购物广场 tab reopens on the product page.
     - 「继续逛逛」: `app.drop('checkout')`, then a contextual jump `app.go('plaza')` to the plaza root at `/plaza`. If checkout was on the plaza stack, the product page is cleared too and the animation is pop. If it came from another tab, the animation is fade and that tab keeps its product page.
-  - Also used by 我的订单 `orderlist` (「去支付」 on 待付款 cards) and 订单详情 `orders` (the 「立即支付」 pay bar), both through `orderActions().paynow` (09-orders.js:65–80). There it is called with `payment: o.payment`, `amount: o.paid` and cancelMsg `已取消支付，订单仍在「待付款」`.
+  - Also used by 我的订单 `orderlist` (「去支付」 on 待付款 cards) and 订单详情 `orders` (the 「立即支付」 pay bar), both through `orderActions().paynow` (09-orders.js:66–81). There it is called with `payment: o.payment`, `amount: o.paid` and cancelMsg `已取消支付，订单仍在「待付款」`.
     - `onPaid` sets status 0, progress 1 and eta 「3 天内」, and adds a logistics line.
     - `onView` closes the layer and refreshes in place. `onShop` calls `app.go('plaza')`.
 
@@ -1414,7 +1414,7 @@ The avatar keeps its current photos until a generation finishes. Leaving midway 
 - Defaults (`store.js`): 「小橙子」 / 「开启更美的每一天」 / 女 / 1998-06-18 / 「138****8888」.
 - The phone number and the 「已绑定」 tag are static **[demo]**.
 - Birthday has no range check and can be cleared. Signature may be empty.
-- The 我的 header photo picker handles the same mistake differently: for a non-image it shows 「请选择图片文件（JPG / PNG 等）」 (10-profile.js:40). Pick one message for both.
+- The 我的 header photo picker handles the same mistake differently: for a non-image it shows 「请选择图片文件（JPG / PNG 等）」 (10-profile.js:42). Pick one message for both.
 
 **Components used.** `VT.ui.subHead`, `.set-group` / `.set-card`, `.set-row--field`, `.seg`, `VT.ui.row`, `.set-tag`, `.btn--dark.btn--lg.btn--block.sub-save`, `VT.ui.profilePhoto`, `VT.profile.squarePhoto`.
 
@@ -1473,7 +1473,7 @@ The avatar keeps its current photos until a generation finishes. Leaving midway 
 - Orders store only the address id (`08-checkout.js:241`). Editing or deleting an address later changes what old orders show in 订单信息; a deleted address falls back to the default.
 
 **States & edge cases.**
-- **The empty state can never be shown.** Deleting the last address empties the store, but the screen then shows the two seed addresses again. They are not stored, so 设为默认 on them only sets `checkout.address` and 删除 only shows its toast. The next 保存 re-inserts both seeds plus the new address (`11-account.js:100`).
+- **The empty state can never be shown.** Deleting the last address empties the store, but the screen then shows the two seed addresses again. They are not stored, so 设为默认 on them only sets `checkout.address` and 删除 only shows its toast. The next 保存 re-inserts both seeds plus the new address (`11-account.js:114`).
 - Turning 设为默认地址 off on the current default does nothing if that address is first in the list, because the first address is made default again (L104–106).
 - Only masked phone numbers exist **[demo]**.
 
@@ -1682,7 +1682,7 @@ The avatar keeps its current photos until a generation finishes. Leaving midway 
   - Quick chips: 「怎么修改收货地址？」「数字分身怎么重新生成？」「如何开发票？」.
   - Input with placeholder 「输入消息…」 (Enter sends) and a 「发送」 button.
   - Note 「演示对话，回复为预设内容」 **[demo]**.
-  - Each message adds a user bubble, and a reply arrives **800 ms** later. Replies are the scripted answers in `openChat`'s `answers` map; any other text gets the generic line (09-orders.js:421) **[demo]**.
+  - Each message adds a user bubble, and a reply arrives **800 ms** later. Replies are the scripted answers in `openChat`'s `answers` map; any other text gets the generic line (09-orders.js:434) **[demo]**.
   - Empty input is ignored. The thread auto-scrolls to the bottom. Nothing is kept: each opening starts fresh.
 - **Sheet 「意见反馈」.**
   - Textarea, maxlength 200, placeholder 「请描述你的问题或建议」.
@@ -1759,13 +1759,13 @@ The avatar keeps its current photos until a generation finishes. Leaving midway 
 
 **Data.**
 - Reads: `s.history` (`[{p, t}]`, newest first) and `data.byId`; unknown products are skipped. Writes: `s.history = []` on clear.
-- 商品详情 writes a record every time it opens (`VT.store.h.viewed`, `store.js:128`): it adds `{p, t:'今天 HH:MM'}` at the front, removes older entries for the same product and keeps 30.
+- 商品详情 writes a record every time it opens (`VT.store.h.viewed`, `store.js:251-255`): it adds `{p, t:'今天 HH:MM'}` at the front, removes older entries for the same product and keeps 30.
 - Groups use the first word of `t`, in list order. The time part is never shown.
 - Seed `data.seedHistory`: 6 entries (今天 ×2, 昨天 ×2, 7月14日 ×2). Scroll kept: `hs`. 我的 shows `history.length`.
 
 **States & edge cases.**
 - Empty: a history icon, 「暂无浏览记录」 and the ghost button 「去购物广场逛逛」 → contextual jump to `/plaza`. 「清空」 is hidden.
-- Day labels are stored text, not dates, so a view saved as 「今天」 still reads 「今天」 on later days (`store.js:130`). Suggested fix: the web build stores a timestamp and formats 今天 / 昨天 / M月D日 when rendering (to confirm).
+- Day labels are stored text, not dates, so a view saved as 「今天」 still reads 「今天」 on later days (`store.js:253`). Suggested fix: the web build stores a timestamp and formats 今天 / 昨天 / M月D日 when rendering (to confirm).
 
 **Components used.** `VT.ui.subHead` with its right action `.sub-act`, `.set-group`, `.set-h`, `.set-card`, `.set-main`/`.set-label`/`.set-sub`, `VT.ui.price`, `VT.ui.img`, `.ol-empty`, global `nav` action, `app.dialog`, `app.toast`.
 
