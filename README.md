@@ -1,5 +1,7 @@
 # 全新的购物体验 · web front-end handoff kit
 
+> **Frozen on 23 Oct 2026.** This repo is no longer developed. The prototype, the spec and the app continue in [liu0563/vto-monorepo](https://github.com/liu0563/vto-monorepo) under `apps/web/`, an import of this repo with its history, next to the backend services. The live prototype link below shows the prototype as it was frozen here.
+
 Everything Claude Code needs to build the web version of the virtual try-on prototype. Front end only: data runs through a typed mock API, so a real backend can be plugged in later without touching the screens.
 
 **Live prototype:** <https://mysticpolar.github.io/VTO3D/> (GitHub Pages, served from the `gh-pages` branch). After changing `reference/prototype/`, run `scripts/deploy-prototype-pages.sh` to update it.

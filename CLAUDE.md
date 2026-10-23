@@ -1,5 +1,7 @@
 # 全新的购物体验 — web front end
 
+> **FROZEN on 23 Oct 2026: don't change anything in this repo.** The prototype, the spec and the app continue in **liu0563/vto-monorepo** (local checkout `~/vto-monorepo`), under `apps/web/`, which is an import of this repo with its history. Work there, and follow its root `CLAUDE.md` and `apps/web/CLAUDE.md`. This file is kept for the record.
+
 Mobile-first web app (H5) for a Chinese-market virtual try-on and personal wardrobe app.
 **Front end only.** Every data call goes through `src/api`, which has a local mock implementation for now. A real backend comes later; build nothing server-side.
 
